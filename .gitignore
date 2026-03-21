@@ -46,6 +46,7 @@ app.*.map.json
 google-services.json
 firebase_options.dart
 GoogleService-Info.plist
+firebase.json
 
 # Android local config
 android/local.properties
