@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
+import '../models/enums.dart';
 
 class AuthProvider extends ChangeNotifier {
   final AuthService _authService = AuthService();
@@ -93,5 +94,10 @@ class AuthProvider extends ChangeNotifier {
       if (msg.contains('invalid-email')) return 'Invalid email address.';
     }
     return 'Something went wrong. Please try again.';
+  }
+
+  Future<void> refreshUser() async {
+    _user = await _authService.getCurrentUser();
+    notifyListeners();
   }
 }

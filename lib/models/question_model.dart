@@ -1,0 +1,60 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'enums.dart';
+
+class QuestionModel {
+  final String id;
+  final String categoryId;
+  final String topicId;
+  final String text;
+  final QuestionType type;
+  final List<String> options;
+  final int correctIndex;
+  final String explanation;
+  final DifficultyLevel difficulty;
+  final int points;
+
+  QuestionModel({
+    required this.id,
+    required this.categoryId,
+    required this.topicId,
+    required this.text,
+    required this.type,
+    required this.options,
+    required this.correctIndex,
+    required this.explanation,
+    required this.difficulty,
+    required this.points,
+  });
+
+  factory QuestionModel.fromMap(Map<String, dynamic> map) => QuestionModel(
+    id: map['id'] ?? '',
+    categoryId: map['categoryId'],
+    topicId: map['topicId'] ?? '',
+    text: map['text'],
+    type: QuestionType.values.firstWhere(
+          (e) => e.name == map['type'],
+      orElse: () => QuestionType.multipleChoice,
+    ),
+    options: List<String>.from(map['options']),
+    correctIndex: map['correctIndex'],
+    explanation: map['explanation'] ?? '',
+    difficulty: DifficultyLevel.values.firstWhere(
+          (e) => e.name == map['difficulty'],
+      orElse: () => DifficultyLevel.beginner,
+    ),
+    points: map['points'] ?? 10,
+  );
+
+  Map<String, dynamic> toMap() => {
+    'id': id,
+    'categoryId': categoryId,
+    'topicId': topicId,
+    'text': text,
+    'type': type.name,
+    'options': options,
+    'correctIndex': correctIndex,
+    'explanation': explanation,
+    'difficulty': difficulty.name,
+    'points': points,
+  };
+}

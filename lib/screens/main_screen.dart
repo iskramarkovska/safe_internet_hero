@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:safe_internet_hero/screens/learn_screen.dart';
 import 'topics_screen.dart';
 import 'character_screen.dart';
 import 'activity_screen.dart';
+import 'leaderboard_screen.dart';
+import 'notifications_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -11,11 +14,13 @@ class MainScreen extends StatefulWidget {
 }
 
 class _MainScreenState extends State<MainScreen> {
-  int _currentIndex = 1; // Start on Topics
+  int _currentIndex = 2;
 
   final List<Widget> _screens = [
     const CharacterScreen(),
+    const LearnScreen(),
     const TopicsScreen(),
+    const LeaderboardScreen(),
     const ActivityScreen(),
   ];
 
@@ -47,8 +52,16 @@ class _MainScreenState extends State<MainScreen> {
               label: 'Character',
             ),
             BottomNavigationBarItem(
+              icon: Icon(Icons.menu_book_rounded),
+              label: 'Learn',
+            ),
+            BottomNavigationBarItem(
               icon: Icon(Icons.grid_view_rounded),
               label: 'Topics',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.leaderboard_rounded),
+              label: 'Leaderboard',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.bolt_rounded),
