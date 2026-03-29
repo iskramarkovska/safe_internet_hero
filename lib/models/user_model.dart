@@ -26,29 +26,39 @@ class UserModel {
     this.answeredQuestions = const [],
   });
 
-  factory UserModel.fromMap(Map<String, dynamic> map) => UserModel(
-    id: map['uid'],
-    email: map['email'],
-    username: map['username'],
-    ageGroup: AgeGroupExtension.fromString(map['ageGroup']),
-    totalStars: map['totalStars'] ?? 0,
-    createdAt: (map['createdAt'] as Timestamp).toDate(),
-    friends: List<String>.from(map['friends'] ?? []),
-    friendRequests: List<String>.from(map['friendRequests'] ?? []),
-    isAdmin: map['isAdmin'] ?? false,
-    answeredQuestions: List<String>.from(map['answeredQuestions'] ?? []),
-  );
+  factory UserModel.fromMap(Map<String, dynamic> map) {
+    return UserModel(
+      id: map['uid'] ?? map['id'] ?? '',
+      email: map['email'] ?? '',
+      username: map['username'] ?? '',
+      ageGroup: AgeGroupExtension.fromString(map['ageGroup'] ?? 'kids'),
+      totalStars: map['totalStars'] ?? 0,
+      createdAt: _toDateTime(map['createdAt']),
+      friends: List<String>.from(map['friends'] ?? []),
+      friendRequests: List<String>.from(map['friendRequests'] ?? []),
+      isAdmin: map['isAdmin'] ?? false,
+      answeredQuestions: List<String>.from(map['answeredQuestions'] ?? []),
+    );
+  }
 
-  Map<String, dynamic> toMap() => {
-    'uid': id,
-    'email': email,
-    'username': username,
-    'ageGroup': ageGroup.name,
-    'totalStars': totalStars,
-    'createdAt': createdAt,
-    'friends': friends,
-    'friendRequests': friendRequests,
-    'isAdmin': isAdmin,
-    'answeredQuestions': answeredQuestions,
-  };
+  Map<String, dynamic> toMap() {
+    return {
+      'uid': id,
+      'email': email,
+      'username': username,
+      'ageGroup': ageGroup.name,
+      'totalStars': totalStars,
+      'createdAt': Timestamp.fromDate(createdAt),
+      'friends': friends,
+      'friendRequests': friendRequests,
+      'isAdmin': isAdmin,
+      'answeredQuestions': answeredQuestions,
+    };
+  }
+
+  static DateTime _toDateTime(dynamic value) {
+    if (value is Timestamp) return value.toDate();
+    if (value is DateTime) return value;
+    return DateTime.now();
+  }
 }

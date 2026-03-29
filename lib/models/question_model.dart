@@ -1,4 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'enums.dart';
 
 class QuestionModel {
@@ -26,35 +25,39 @@ class QuestionModel {
     required this.points,
   });
 
-  factory QuestionModel.fromMap(Map<String, dynamic> map) => QuestionModel(
-    id: map['id'] ?? '',
-    categoryId: map['categoryId'],
-    topicId: map['topicId'] ?? '',
-    text: map['text'],
-    type: QuestionType.values.firstWhere(
-          (e) => e.name == map['type'],
-      orElse: () => QuestionType.multipleChoice,
-    ),
-    options: List<String>.from(map['options']),
-    correctIndex: map['correctIndex'],
-    explanation: map['explanation'] ?? '',
-    difficulty: DifficultyLevel.values.firstWhere(
-          (e) => e.name == map['difficulty'],
-      orElse: () => DifficultyLevel.beginner,
-    ),
-    points: map['points'] ?? 10,
-  );
+  factory QuestionModel.fromMap(Map<String, dynamic> map) {
+    return QuestionModel(
+      id: map['id'] ?? '',
+      categoryId: map['categoryId'] ?? '',
+      topicId: map['topicId'] ?? '',
+      text: map['text'] ?? '',
+      type: QuestionType.values.firstWhere(
+            (e) => e.name == map['type'],
+        orElse: () => QuestionType.multipleChoice,
+      ),
+      options: List<String>.from(map['options'] ?? []),
+      correctIndex: map['correctIndex'] ?? 0,
+      explanation: map['explanation'] ?? '',
+      difficulty: DifficultyLevel.values.firstWhere(
+            (e) => e.name == map['difficulty'],
+        orElse: () => DifficultyLevel.beginner,
+      ),
+      points: map['points'] ?? 10,
+    );
+  }
 
-  Map<String, dynamic> toMap() => {
-    'id': id,
-    'categoryId': categoryId,
-    'topicId': topicId,
-    'text': text,
-    'type': type.name,
-    'options': options,
-    'correctIndex': correctIndex,
-    'explanation': explanation,
-    'difficulty': difficulty.name,
-    'points': points,
-  };
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'categoryId': categoryId,
+      'topicId': topicId,
+      'text': text,
+      'type': type.name,
+      'options': options,
+      'correctIndex': correctIndex,
+      'explanation': explanation,
+      'difficulty': difficulty.name,
+      'points': points,
+    };
+  }
 }

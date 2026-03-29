@@ -34,43 +34,55 @@ class QuizResultModel {
     this.correctlyAnsweredIds = const [],
   });
 
-  int get percentage => ((score / totalQuestions) * 100).round();
+  int get percentage {
+    if (totalQuestions == 0) return 0;
+    return ((score / totalQuestions) * 100).round();
+  }
 
-  factory QuizResultModel.fromMap(Map<String, dynamic> map) => QuizResultModel(
-    id: map['id'] ?? '',
-    userId: map['userId'],
-    username: map['username'],
-    categoryId: map['categoryId'],
-    categoryName: map['categoryName'],
-    topicId: map['topicId'] ?? '',
-    topicName: map['topicName'] ?? '',
-    score: map['score'],
-    totalQuestions: map['totalQuestions'],
-    starsEarned: map['starsEarned'],
-    pointsEarned: map['pointsEarned'],
-    difficulty: DifficultyLevel.values.firstWhere(
-          (e) => e.name == map['difficulty'],
-      orElse: () => DifficultyLevel.beginner,
-    ),
-    completedAt: (map['completedAt'] as Timestamp).toDate(),
-    correctlyAnsweredIds: List<String>.from(
-        map['correctlyAnsweredIds'] ?? []),
-  );
+  factory QuizResultModel.fromMap(Map<String, dynamic> map) {
+    return QuizResultModel(
+      id: map['id'] ?? '',
+      userId: map['userId'] ?? '',
+      username: map['username'] ?? '',
+      categoryId: map['categoryId'] ?? '',
+      categoryName: map['categoryName'] ?? '',
+      topicId: map['topicId'] ?? '',
+      topicName: map['topicName'] ?? '',
+      score: map['score'] ?? 0,
+      totalQuestions: map['totalQuestions'] ?? 0,
+      starsEarned: map['starsEarned'] ?? 0,
+      pointsEarned: map['pointsEarned'] ?? 0,
+      difficulty: DifficultyLevel.values.firstWhere(
+            (e) => e.name == map['difficulty'],
+        orElse: () => DifficultyLevel.beginner,
+      ),
+      completedAt: _toDateTime(map['completedAt']),
+      correctlyAnsweredIds: List<String>.from(map['correctlyAnsweredIds'] ?? []),
+    );
+  }
 
-  Map<String, dynamic> toMap() => {
-    'id': id,
-    'userId': userId,
-    'username': username,
-    'categoryId': categoryId,
-    'categoryName': categoryName,
-    'topicId': topicId,
-    'topicName': topicName,
-    'score': score,
-    'totalQuestions': totalQuestions,
-    'starsEarned': starsEarned,
-    'pointsEarned': pointsEarned,
-    'difficulty': difficulty.name,
-    'completedAt': completedAt,
-    'correctlyAnsweredIds': correctlyAnsweredIds,
-  };
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'userId': userId,
+      'username': username,
+      'categoryId': categoryId,
+      'categoryName': categoryName,
+      'topicId': topicId,
+      'topicName': topicName,
+      'score': score,
+      'totalQuestions': totalQuestions,
+      'starsEarned': starsEarned,
+      'pointsEarned': pointsEarned,
+      'difficulty': difficulty.name,
+      'completedAt': Timestamp.fromDate(completedAt),
+      'correctlyAnsweredIds': correctlyAnsweredIds,
+    };
+  }
+
+  static DateTime _toDateTime(dynamic value) {
+    if (value is Timestamp) return value.toDate();
+    if (value is DateTime) return value;
+    return DateTime.now();
+  }
 }

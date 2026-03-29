@@ -1,4 +1,5 @@
 enum QuestionType { multipleChoice, trueFalse }
+
 enum DifficultyLevel { beginner, intermediate, advanced }
 
 enum AgeGroup { kids, tweens, teens }
@@ -6,9 +7,12 @@ enum AgeGroup { kids, tweens, teens }
 extension AgeGroupExtension on AgeGroup {
   String get label {
     switch (this) {
-      case AgeGroup.kids:   return 'Kids (6–9)';
-      case AgeGroup.tweens: return 'Tweens (10–13)';
-      case AgeGroup.teens:  return 'Teens (14+)';
+      case AgeGroup.kids:
+        return 'Kids (6–9)';
+      case AgeGroup.tweens:
+        return 'Tweens (10–13)';
+      case AgeGroup.teens:
+        return 'Teens (14+)';
     }
   }
 

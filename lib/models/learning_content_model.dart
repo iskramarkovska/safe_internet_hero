@@ -27,33 +27,42 @@ class LearningContentModel {
     required this.createdAt,
   });
 
-  factory LearningContentModel.fromMap(Map<String, dynamic> map) =>
-      LearningContentModel(
-        id: map['id'] ?? '',
-        categoryId: map['categoryId'],
-        topicId: map['topicId'] ?? '',
-        title: map['title'],
-        description: map['description'] ?? '',
-        type: ContentType.values.firstWhere(
-              (e) => e.name == map['type'],
-          orElse: () => ContentType.article,
-        ),
-        content: map['content'] ?? '',
-        thumbnailUrl: map['thumbnailUrl'] ?? '',
-        readTimeMinutes: map['readTimeMinutes'] ?? 0,
-        createdAt: (map['createdAt'] as Timestamp).toDate(),
-      );
+  factory LearningContentModel.fromMap(Map<String, dynamic> map) {
+    return LearningContentModel(
+      id: map['id'] ?? '',
+      categoryId: map['categoryId'] ?? '',
+      topicId: map['topicId'] ?? '',
+      title: map['title'] ?? '',
+      description: map['description'] ?? '',
+      type: ContentType.values.firstWhere(
+            (e) => e.name == map['type'],
+        orElse: () => ContentType.article,
+      ),
+      content: map['content'] ?? '',
+      thumbnailUrl: map['thumbnailUrl'] ?? '',
+      readTimeMinutes: map['readTimeMinutes'] ?? 0,
+      createdAt: _toDateTime(map['createdAt']),
+    );
+  }
 
-  Map<String, dynamic> toMap() => {
-    'id': id,
-    'categoryId': categoryId,
-    'topicId': topicId,
-    'title': title,
-    'description': description,
-    'type': type.name,
-    'content': content,
-    'thumbnailUrl': thumbnailUrl,
-    'readTimeMinutes': readTimeMinutes,
-    'createdAt': createdAt,
-  };
+  Map<String, dynamic> toMap() {
+    return {
+      'id': id,
+      'categoryId': categoryId,
+      'topicId': topicId,
+      'title': title,
+      'description': description,
+      'type': type.name,
+      'content': content,
+      'thumbnailUrl': thumbnailUrl,
+      'readTimeMinutes': readTimeMinutes,
+      'createdAt': Timestamp.fromDate(createdAt),
+    };
+  }
+
+  static DateTime _toDateTime(dynamic value) {
+    if (value is Timestamp) return value.toDate();
+    if (value is DateTime) return value;
+    return DateTime.now();
+  }
 }
