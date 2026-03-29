@@ -28,11 +28,9 @@ class HomeScreen extends StatelessWidget {
           Positioned.fill(
             child: CustomPaint(painter: _BackgroundPainter()),
           ),
-
           SafeArea(
             child: Column(
               children: [
-                // Top bar
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
                   child: Row(
@@ -86,7 +84,6 @@ class HomeScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-
                 Expanded(
                   child: Center(
                     child: Padding(
@@ -96,7 +93,6 @@ class HomeScreen extends StatelessWidget {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          // Logo with white ring
                           Container(
                             width: 130,
                             height: 130,
@@ -124,8 +120,6 @@ class HomeScreen extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 20),
-
-                          // Title — dark color, bold, readable on light bg
                           const Text(
                             'Safe Internet Hero',
                             textAlign: TextAlign.center,
@@ -136,10 +130,7 @@ class HomeScreen extends StatelessWidget {
                               letterSpacing: 0.3,
                             ),
                           ),
-
                           const SizedBox(height: 56),
-
-                          // PLAY button
                           _QuizUpPlayButton(
                             onTap: () => Navigator.push(
                               context,
@@ -163,24 +154,68 @@ class HomeScreen extends StatelessWidget {
   Future<void> _confirmLogout(BuildContext context) async {
     final confirm = await showDialog<bool>(
       context: context,
-      builder: (_) => AlertDialog(
+      builder: (_) => Dialog(
         shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20)),
-        title: const Text('Log out?'),
-        content: const Text('Are you sure you want to log out?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            borderRadius: BorderRadius.circular(24)),
+        backgroundColor: const Color(0xFFF0FEFA),
+        elevation: 20,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Title pill
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: teal.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(32),
+                ),
+                child: const Text(
+                  'Sign out',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: teal,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'Are you sure you want to sign out?',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: teal,
+                  fontSize: 16,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 28),
+              Row(
+                children: [
+                  Expanded(
+                    child: _DialogButton(
+                      label: 'BACK',
+                      onTap: () => Navigator.pop(context, false),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _DialogButton(
+                      label: 'CONFIRM',
+                      onTap: () => Navigator.pop(context, true),
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('Log out',
-                style: TextStyle(color: AppColors.wrong)),
-          ),
-        ],
+        ),
       ),
     );
+
     if (confirm == true && context.mounted) {
       await context.read<AuthProvider>().logout();
       if (context.mounted) {
@@ -191,6 +226,68 @@ class HomeScreen extends StatelessWidget {
         );
       }
     }
+  }
+}
+
+class _DialogButton extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+
+  const _DialogButton({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          decoration: BoxDecoration(
+            // Gradient to simulate 3D effect like QuizUp
+            gradient: const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Color(0xFFFFD97A),
+                Color(0xFFE8C84A),
+              ],
+            ),
+            borderRadius: BorderRadius.circular(32),
+            // Outer border (darker yellow = shadow line at bottom)
+            border: Border.all(
+              color: const Color(0xFFC8A830),
+              width: 2.5,
+            ),
+            boxShadow: [
+              // Bottom shadow — gives 3D pressed look
+              const BoxShadow(
+                color: Color(0xFFC8A830),
+                offset: Offset(0, 4),
+                blurRadius: 0,
+                spreadRadius: 0,
+              ),
+              // Soft outer glow
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                offset: const Offset(0, 6),
+                blurRadius: 8,
+              ),
+            ],
+          ),
+          child: Text(
+            label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Color(0xFF5A7A6A),
+              fontWeight: FontWeight.bold,
+              fontSize: 15,
+              letterSpacing: 1,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -278,32 +375,22 @@ class _BackgroundPainter extends CustomPainter {
       ..color = Colors.white.withOpacity(0.07)
       ..style = PaintingStyle.fill;
 
-    canvas.drawCircle(
-        Offset(size.width * 0.85, size.height * 0.05),
-        size.width * 0.28,
-        circlePaint);
-    canvas.drawCircle(
-        Offset(size.width * 0.08, size.height * 0.18),
-        size.width * 0.18,
-        circlePaint);
-    canvas.drawCircle(
-        Offset(size.width * 0.15, size.height * 0.38),
-        size.width * 0.10,
-        circlePaint);
+    canvas.drawCircle(Offset(size.width * 0.85, size.height * 0.05),
+        size.width * 0.28, circlePaint);
+    canvas.drawCircle(Offset(size.width * 0.08, size.height * 0.18),
+        size.width * 0.18, circlePaint);
+    canvas.drawCircle(Offset(size.width * 0.15, size.height * 0.38),
+        size.width * 0.10, circlePaint);
 
     final ringPaint = Paint()
       ..color = Colors.white.withOpacity(0.06)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 18;
 
-    canvas.drawCircle(
-        Offset(size.width * 0.9, size.height * 0.28),
-        size.width * 0.22,
-        ringPaint);
-    canvas.drawCircle(
-        Offset(size.width * 0.05, size.height * 0.08),
-        size.width * 0.15,
-        ringPaint);
+    canvas.drawCircle(Offset(size.width * 0.9, size.height * 0.28),
+        size.width * 0.22, ringPaint);
+    canvas.drawCircle(Offset(size.width * 0.05, size.height * 0.08),
+        size.width * 0.15, ringPaint);
 
     final dotPaint = Paint()
       ..color = teal.withOpacity(0.15)
@@ -325,28 +412,20 @@ class _BackgroundPainter extends CustomPainter {
       ..color = lightTeal.withOpacity(0.2)
       ..style = PaintingStyle.fill;
 
-    canvas.drawCircle(
-        Offset(size.width * 0.05, size.height * 0.85),
-        size.width * 0.12,
-        accentPaint);
-    canvas.drawCircle(
-        Offset(size.width * 0.92, size.height * 0.75),
-        size.width * 0.09,
-        accentPaint);
-    canvas.drawCircle(
-        Offset(size.width * 0.78, size.height * 0.92),
-        size.width * 0.06,
-        accentPaint);
+    canvas.drawCircle(Offset(size.width * 0.05, size.height * 0.85),
+        size.width * 0.12, accentPaint);
+    canvas.drawCircle(Offset(size.width * 0.92, size.height * 0.75),
+        size.width * 0.09, accentPaint);
+    canvas.drawCircle(Offset(size.width * 0.78, size.height * 0.92),
+        size.width * 0.06, accentPaint);
 
     final ringPaint2 = Paint()
       ..color = teal.withOpacity(0.12)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 12;
 
-    canvas.drawCircle(
-        Offset(size.width * 0.1, size.height * 0.9),
-        size.width * 0.18,
-        ringPaint2);
+    canvas.drawCircle(Offset(size.width * 0.1, size.height * 0.9),
+        size.width * 0.18, ringPaint2);
   }
 
   @override
