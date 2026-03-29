@@ -25,10 +25,42 @@ class _SplashScreenState extends State<SplashScreen> {
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
-        builder: (_) => auth.isLoggedIn ? const MainScreen() : const AuthGate(),
+        builder: (_) =>
+        auth.isLoggedIn ? const MainScreen() : const AuthGate(),
       ),
     );
   }
+
+  @override
+  Widget build(BuildContext context) => const _SplashBody();
+}
+
+class PostLoginSplash extends StatefulWidget {
+  const PostLoginSplash({super.key});
+
+  @override
+  State<PostLoginSplash> createState() => _PostLoginSplashState();
+}
+
+class _PostLoginSplashState extends State<PostLoginSplash> {
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(const Duration(milliseconds: 1500), () {
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const MainScreen()),
+      );
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) => const _SplashBody();
+}
+
+class _SplashBody extends StatelessWidget {
+  const _SplashBody();
 
   @override
   Widget build(BuildContext context) {
@@ -96,6 +128,9 @@ class AuthGate extends StatelessWidget {
         body: Center(child: CircularProgressIndicator()),
       );
     }
-    return auth.isLoggedIn ? const MainScreen() : const LoginScreen();
+    if (auth.isLoggedIn) {
+      return const PostLoginSplash();
+    }
+    return const LoginScreen();
   }
 }

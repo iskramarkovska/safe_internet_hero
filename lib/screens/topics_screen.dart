@@ -6,6 +6,7 @@ import '../providers/auth_provider.dart';
 import '../services/questions_service.dart';
 import 'quiz_screen.dart';
 import 'notifications_screen.dart';
+import 'splash_screen.dart';
 
 class TopicsScreen extends StatelessWidget {
   const TopicsScreen({super.key});
@@ -112,8 +113,8 @@ class TopicsScreen extends StatelessWidget {
         showDialog(
           context: context,
           builder: (_) => AlertDialog(
-            shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(20)),
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -127,13 +128,15 @@ class TopicsScreen extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text('You\'ve answered all questions in $topicName!',
                     textAlign: TextAlign.center,
-                    style: const TextStyle(color: AppColors.textSecondary)),
+                    style:
+                    const TextStyle(color: AppColors.textSecondary)),
                 const SizedBox(height: 20),
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
                     onPressed: () => Navigator.pop(context),
-                    style: ElevatedButton.styleFrom(backgroundColor: color),
+                    style:
+                    ElevatedButton.styleFrom(backgroundColor: color),
                     child: const Text('Back to Topics'),
                   ),
                 ),
@@ -158,6 +161,40 @@ class TopicsScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Future<void> _logout(BuildContext context) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape:
+        RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Log out?'),
+        content: const Text('Are you sure you want to log out?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Log out',
+                style: TextStyle(color: AppColors.wrong)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true && context.mounted) {
+      await context.read<AuthProvider>().logout();
+      if (context.mounted) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const AuthGate()),
+              (route) => false,
+        );
+      }
+    }
   }
 
   @override
@@ -203,7 +240,8 @@ class TopicsScreen extends StatelessWidget {
                           Stack(
                             children: [
                               IconButton(
-                                icon: const Icon(Icons.notifications_outlined,
+                                icon: const Icon(
+                                    Icons.notifications_outlined,
                                     color: AppColors.textSecondary),
                                 onPressed: () => Navigator.push(
                                   context,
@@ -240,35 +278,7 @@ class TopicsScreen extends StatelessWidget {
                         IconButton(
                           icon: const Icon(Icons.logout_rounded,
                               color: AppColors.textSecondary),
-                          onPressed: () async {
-                            final confirm = await showDialog<bool>(
-                              context: context,
-                              builder: (_) => AlertDialog(
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(20)),
-                                title: const Text('Log out?'),
-                                content: const Text(
-                                    'Are you sure you want to log out?'),
-                                actions: [
-                                  TextButton(
-                                    onPressed: () =>
-                                        Navigator.pop(context, false),
-                                    child: const Text('Cancel'),
-                                  ),
-                                  TextButton(
-                                    onPressed: () =>
-                                        Navigator.pop(context, true),
-                                    child: const Text('Log out',
-                                        style:
-                                        TextStyle(color: AppColors.wrong)),
-                                  ),
-                                ],
-                              ),
-                            );
-                            if (confirm == true && context.mounted) {
-                              context.read<AuthProvider>().logout();
-                            }
-                          },
+                          onPressed: () => _logout(context),
                         ),
                       ],
                     ),
@@ -277,7 +287,6 @@ class TopicsScreen extends StatelessWidget {
               ),
             ),
 
-            // Stars banner
             if (!isGuest)
               SliverToBoxAdapter(
                 child: Padding(
@@ -317,7 +326,6 @@ class TopicsScreen extends StatelessWidget {
                 ),
               ),
 
-            // Guest banner
             if (isGuest)
               SliverToBoxAdapter(
                 child: Padding(
@@ -351,7 +359,6 @@ class TopicsScreen extends StatelessWidget {
                 ),
               ),
 
-            // Categories + vertical topic cards
             SliverList(
               delegate: SliverChildBuilderDelegate(
                     (context, index) {

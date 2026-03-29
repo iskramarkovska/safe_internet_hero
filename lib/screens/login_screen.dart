@@ -17,6 +17,9 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _showForm = false;
   bool _obscurePassword = true;
 
+  static const red = Color(0xFFE8524A);
+  static const teal = Color(0xFF2BBFAA);
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -59,16 +62,15 @@ class _LoginScreenState extends State<LoginScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 const SizedBox(height: 24),
-                // Logo
                 Container(
                   width: 110,
                   height: 110,
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE8524A),
+                    color: red,
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: const Color(0xFFE8524A).withOpacity(0.3),
+                        color: red.withOpacity(0.3),
                         blurRadius: 24,
                         offset: const Offset(0, 8),
                       ),
@@ -81,7 +83,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 const Text(
                   'Safe Internet Hero',
                   style: TextStyle(
-                    color: Color(0xFF2BBFAA),
+                    color: teal,
                     fontSize: 26,
                     fontWeight: FontWeight.w900,
                   ),
@@ -89,77 +91,193 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 48),
 
                 if (!_showForm) ...[
-                  // Sign in with email button
-                  _QuizUpButton(
+                  _SolidButton(
                     label: 'Sign in with email',
                     icon: Icons.email_outlined,
-                    color: const Color(0xFFE8524A),
+                    color: red,
                     onTap: () => setState(() => _showForm = true),
                   ),
                   const SizedBox(height: 14),
                   const Divider(thickness: 1, color: Color(0xFFCCE8E4)),
                   const SizedBox(height: 14),
-                  // Continue as guest
-                  _QuizUpButton(
+                  _OutlineButton(
                     label: 'Continue as Guest',
                     icon: Icons.person_outline_rounded,
-                    color: const Color(0xFF2BBFAA),
-                    onTap: () => context.read<AuthProvider>().continueAsGuest(),
+                    color: teal,
+                    onTap: () =>
+                        context.read<AuthProvider>().continueAsGuest(),
                   ),
                 ] else ...[
-                  // Email form
-                  TextField(
+                  _RoundedField(
                     controller: _emailController,
+                    hint: 'Email',
+                    icon: Icons.email_outlined,
                     keyboardType: TextInputType.emailAddress,
-                    decoration: const InputDecoration(
-                      labelText: 'Email',
-                      prefixIcon: Icon(Icons.email_outlined,
-                          color: Color(0xFF2BBFAA)),
-                    ),
                   ),
                   const SizedBox(height: 12),
-                  TextField(
+                  _RoundedField(
                     controller: _passwordController,
-                    obscureText: _obscurePassword,
-                    decoration: InputDecoration(
-                      labelText: 'Password',
-                      prefixIcon: const Icon(Icons.lock_outlined,
-                          color: Color(0xFF2BBFAA)),
-                      suffixIcon: IconButton(
-                        icon: Icon(
-                          _obscurePassword
-                              ? Icons.visibility_outlined
-                              : Icons.visibility_off_outlined,
-                          color: AppColors.textLight,
-                        ),
-                        onPressed: () => setState(
-                                () => _obscurePassword = !_obscurePassword),
+                    hint: 'Password',
+                    icon: Icons.lock_outline_rounded,
+                    obscure: _obscurePassword,
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _obscurePassword
+                            ? Icons.visibility_outlined
+                            : Icons.visibility_off_outlined,
+                        color: AppColors.textLight,
+                        size: 20,
                       ),
+                      onPressed: () => setState(
+                              () => _obscurePassword = !_obscurePassword),
                     ),
                   ),
                   const SizedBox(height: 20),
-                  _QuizUpButton(
-                    label: auth.isLoading ? 'Signing in...' : 'Log In',
-                    icon: Icons.login_rounded,
-                    color: const Color(0xFFE8524A),
-                    onTap: auth.isLoading ? null : _login,
-                  ),
-                  const SizedBox(height: 12),
-                  TextButton(
-                    onPressed: () => setState(() => _showForm = false),
-                    child: const Text('← Back',
-                        style: TextStyle(color: Color(0xFF2BBFAA))),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _OutlineButton(
+                          label: 'Cancel',
+                          color: teal,
+                          onTap: () => setState(() => _showForm = false),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: _SolidButton(
+                          label: auth.isLoading ? '...' : 'Log In',
+                          color: red,
+                          onTap: auth.isLoading ? null : _login,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
 
-                const SizedBox(height: 20),
-                TextButton(
-                  onPressed: () => Navigator.push(context,
+                const SizedBox(height: 28),
+                MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: GestureDetector(
+                    onTap: () => Navigator.push(
+                      context,
                       MaterialPageRoute(
-                          builder: (_) => const RegisterScreen())),
-                  child: const Text(
-                    "Don't have an account? Register",
-                    style: TextStyle(color: Color(0xFF2BBFAA)),
+                          builder: (_) => const RegisterScreen()),
+                    ),
+                    child: const Text(
+                      "Don't have an account? Register",
+                      style: TextStyle(color: teal),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RoundedField extends StatelessWidget {
+  final TextEditingController controller;
+  final String hint;
+  final IconData icon;
+  final TextInputType keyboardType;
+  final bool obscure;
+  final Widget? suffixIcon;
+
+  const _RoundedField({
+    required this.controller,
+    required this.hint,
+    required this.icon,
+    this.keyboardType = TextInputType.text,
+    this.obscure = false,
+    this.suffixIcon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(32),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: TextField(
+        controller: controller,
+        keyboardType: keyboardType,
+        obscureText: obscure,
+        decoration: InputDecoration(
+          hintText: hint,
+          hintStyle: const TextStyle(color: AppColors.textLight),
+          prefixIcon:
+          Icon(icon, color: const Color(0xFF2BBFAA), size: 20),
+          suffixIcon: suffixIcon,
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(32),
+            borderSide: BorderSide.none,
+          ),
+          filled: true,
+          fillColor: Colors.transparent,
+          contentPadding:
+          const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+        ),
+      ),
+    );
+  }
+}
+
+class _SolidButton extends StatelessWidget {
+  final String label;
+  final IconData? icon;
+  final Color color;
+  final VoidCallback? onTap;
+
+  const _SolidButton({
+    required this.label,
+    required this.color,
+    this.icon,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const shape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.all(Radius.circular(32)),
+    );
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: Material(
+        color: color,
+        shape: shape,
+        shadowColor: color,
+        elevation: 4,
+        child: InkWell(
+          onTap: onTap,
+          customBorder: shape,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (icon != null) ...[
+                  Icon(icon, color: Colors.white, size: 20),
+                  const SizedBox(width: 10),
+                ],
+                Text(
+                  label,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    letterSpacing: 0.3,
                   ),
                 ),
               ],
@@ -171,42 +289,47 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
-class _QuizUpButton extends StatelessWidget {
+class _OutlineButton extends StatelessWidget {
   final String label;
-  final IconData icon;
+  final IconData? icon;
   final Color color;
   final VoidCallback? onTap;
 
-  const _QuizUpButton({
+  const _OutlineButton({
     required this.label,
-    required this.icon,
     required this.color,
+    this.icon,
     this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final shape = RoundedRectangleBorder(
+      borderRadius: const BorderRadius.all(Radius.circular(32)),
+      side: BorderSide(color: color, width: 2),
+    );
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: Material(
-        color: color,
-        borderRadius: BorderRadius.circular(32),
-        shadowColor: color.withOpacity(0.4),
-        elevation: 4,
+        color: Colors.white,
+        shape: shape,
+        elevation: 0,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(32),
+          customBorder: shape,
           child: Padding(
             padding: const EdgeInsets.symmetric(vertical: 16),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(icon, color: Colors.white, size: 20),
-                const SizedBox(width: 10),
+                if (icon != null) ...[
+                  Icon(icon, color: color, size: 20),
+                  const SizedBox(width: 10),
+                ],
                 Text(
                   label,
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: color,
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                     letterSpacing: 0.3,
