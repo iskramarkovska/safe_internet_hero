@@ -8,12 +8,20 @@ class AuthProvider extends ChangeNotifier {
 
   UserModel? _user;
   bool _isLoading = false;
+  bool _isGuest = false;
   String? _errorMessage;
 
   UserModel? get user => _user;
   bool get isLoading => _isLoading;
+  bool get isGuest => _isGuest;
+  bool get isLoggedIn => _user != null || _isGuest;
   String? get errorMessage => _errorMessage;
-  bool get isLoggedIn => _user != null;
+
+  void continueAsGuest() {
+    _isGuest = true;
+    _user = null;
+    notifyListeners();
+  }
 
   Future<bool> register({
     required String email,
@@ -30,6 +38,7 @@ class AuthProvider extends ChangeNotifier {
         username: username,
         ageGroup: ageGroup,
       );
+      _isGuest = false;
       notifyListeners();
       return true;
     } catch (e) {
@@ -52,14 +61,10 @@ class AuthProvider extends ChangeNotifier {
         email: email,
         password: password,
       );
-
-      print('LOGIN RESULT: $_user');
-      print('IS LOGGED IN: $isLoggedIn');
-
+      _isGuest = false;
       notifyListeners();
       return true;
     } catch (e) {
-      print('LOGIN ERROR: $e');
       _errorMessage = _handleError(e);
       notifyListeners();
       return false;
@@ -71,10 +76,17 @@ class AuthProvider extends ChangeNotifier {
   Future<void> logout() async {
     await _authService.logout();
     _user = null;
+    _isGuest = false;
     notifyListeners();
   }
 
   Future<void> checkCurrentUser() async {
+    _user = await _authService.getCurrentUser();
+    notifyListeners();
+  }
+
+  Future<void> refreshUser() async {
+    if (_isGuest) return;
     _user = await _authService.getCurrentUser();
     notifyListeners();
   }
@@ -94,10 +106,5 @@ class AuthProvider extends ChangeNotifier {
       if (msg.contains('invalid-email')) return 'Invalid email address.';
     }
     return 'Something went wrong. Please try again.';
-  }
-
-  Future<void> refreshUser() async {
-    _user = await _authService.getCurrentUser();
-    notifyListeners();
   }
 }
