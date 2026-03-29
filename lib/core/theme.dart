@@ -34,7 +34,6 @@ class AppTheme {
       surface: AppColors.surface,
     ),
     scaffoldBackgroundColor: AppColors.background,
-    fontFamily: 'Inter',
     appBarTheme: const AppBarTheme(
       backgroundColor: AppColors.surface,
       foregroundColor: AppColors.textPrimary,

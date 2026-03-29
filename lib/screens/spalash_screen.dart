@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import '../core/theme.dart';
-import 'login_screen.dart';
 import 'package:provider/provider.dart';
+import '../core/theme.dart';
 import '../providers/auth_provider.dart';
 import 'main_screen.dart';
+import 'login_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -16,21 +16,18 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(seconds: 2), () {
-      if (!mounted) return;
-      final auth = context.read<AuthProvider>();
-      if (auth.isLoggedIn) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const MainScreen()),
-        );
-      } else {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => const LoginScreen()),
-        );
-      }
-    });
+    Future.delayed(const Duration(seconds: 2), _navigate);
+  }
+
+  void _navigate() {
+    if (!mounted) return;
+    final auth = context.read<AuthProvider>();
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => auth.isLoggedIn ? const MainScreen() : const AuthGate(),
+      ),
+    );
   }
 
   @override
@@ -65,7 +62,6 @@ class _SplashScreenState extends State<SplashScreen> {
                 color: Color(0xFF2BBFAA),
                 fontSize: 28,
                 fontWeight: FontWeight.w900,
-                letterSpacing: 0.5,
               ),
             ),
             const SizedBox(height: 48),
@@ -86,5 +82,20 @@ class _SplashScreenState extends State<SplashScreen> {
         ),
       ),
     );
+  }
+}
+
+class AuthGate extends StatelessWidget {
+  const AuthGate({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    if (auth.isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+    return auth.isLoggedIn ? const MainScreen() : const LoginScreen();
   }
 }
