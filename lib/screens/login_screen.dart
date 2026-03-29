@@ -14,6 +14,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  bool _showForm = false;
   bool _obscurePassword = true;
 
   @override
@@ -51,101 +52,171 @@ class _LoginScreenState extends State<LoginScreen> {
         child: Center(
           child: SingleChildScrollView(
             padding: EdgeInsets.symmetric(
-              horizontal: isWide ? size.width * 0.25 : 24,
+              horizontal: isWide ? size.width * 0.25 : 32,
               vertical: 24,
             ),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Center(
-                  child: Container(
-                    width: 80,
-                    height: 80,
-                    decoration: BoxDecoration(
-                      color: AppColors.primary,
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    child: const Icon(Icons.shield_rounded,
-                        color: Colors.white, size: 44),
-                  ),
-                ),
-                const SizedBox(height: 32),
-                const Text(
-                  'Welcome back!',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                const Text(
-                  'Log in to continue your journey',
-                  style:
-                  TextStyle(color: AppColors.textSecondary, fontSize: 15),
-                ),
-                const SizedBox(height: 36),
-                TextField(
-                  controller: _emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
-                    labelText: 'Email',
-                    prefixIcon:
-                    Icon(Icons.email_outlined, color: AppColors.primary),
-                  ),
-                ),
-                const SizedBox(height: 14),
-                TextField(
-                  controller: _passwordController,
-                  obscureText: _obscurePassword,
-                  decoration: InputDecoration(
-                    labelText: 'Password',
-                    prefixIcon: const Icon(Icons.lock_outlined,
-                        color: AppColors.primary),
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscurePassword
-                            ? Icons.visibility_outlined
-                            : Icons.visibility_off_outlined,
-                        color: AppColors.textLight,
-                      ),
-                      onPressed: () =>
-                          setState(() => _obscurePassword = !_obscurePassword),
-                    ),
-                  ),
-                ),
                 const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: auth.isLoading ? null : _login,
-                    child: auth.isLoading
-                        ? const SizedBox(
-                      height: 20,
-                      width: 20,
-                      child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white),
-                    )
-                        : const Text('Log In'),
+                // Logo
+                Container(
+                  width: 110,
+                  height: 110,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE8524A),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFFE8524A).withOpacity(0.3),
+                        blurRadius: 24,
+                        offset: const Offset(0, 8),
+                      ),
+                    ],
                   ),
+                  child: const Icon(Icons.bolt_rounded,
+                      color: Colors.white, size: 60),
                 ),
                 const SizedBox(height: 16),
-                Center(
-                  child: TextButton(
-                    onPressed: () => Navigator.push(
-                      context,
+                const Text(
+                  'Safe Internet Hero',
+                  style: TextStyle(
+                    color: Color(0xFF2BBFAA),
+                    fontSize: 26,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 48),
+
+                if (!_showForm) ...[
+                  // Sign in with email button
+                  _QuizUpButton(
+                    label: 'Sign in with email',
+                    icon: Icons.email_outlined,
+                    color: const Color(0xFFE8524A),
+                    onTap: () => setState(() => _showForm = true),
+                  ),
+                  const SizedBox(height: 14),
+                  const Divider(thickness: 1, color: Color(0xFFCCE8E4)),
+                  const SizedBox(height: 14),
+                  // Continue as guest
+                  _QuizUpButton(
+                    label: 'Continue as Guest',
+                    icon: Icons.person_outline_rounded,
+                    color: const Color(0xFF2BBFAA),
+                    onTap: () => context.read<AuthProvider>().continueAsGuest(),
+                  ),
+                ] else ...[
+                  // Email form
+                  TextField(
+                    controller: _emailController,
+                    keyboardType: TextInputType.emailAddress,
+                    decoration: const InputDecoration(
+                      labelText: 'Email',
+                      prefixIcon: Icon(Icons.email_outlined,
+                          color: Color(0xFF2BBFAA)),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _passwordController,
+                    obscureText: _obscurePassword,
+                    decoration: InputDecoration(
+                      labelText: 'Password',
+                      prefixIcon: const Icon(Icons.lock_outlined,
+                          color: Color(0xFF2BBFAA)),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                          color: AppColors.textLight,
+                        ),
+                        onPressed: () => setState(
+                                () => _obscurePassword = !_obscurePassword),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  _QuizUpButton(
+                    label: auth.isLoading ? 'Signing in...' : 'Log In',
+                    icon: Icons.login_rounded,
+                    color: const Color(0xFFE8524A),
+                    onTap: auth.isLoading ? null : _login,
+                  ),
+                  const SizedBox(height: 12),
+                  TextButton(
+                    onPressed: () => setState(() => _showForm = false),
+                    child: const Text('← Back',
+                        style: TextStyle(color: Color(0xFF2BBFAA))),
+                  ),
+                ],
+
+                const SizedBox(height: 20),
+                TextButton(
+                  onPressed: () => Navigator.push(context,
                       MaterialPageRoute(
-                          builder: (_) => const RegisterScreen()),
-                    ),
-                    child: const Text(
-                      "Don't have an account? Register",
-                      style: TextStyle(color: AppColors.primary),
-                    ),
+                          builder: (_) => const RegisterScreen())),
+                  child: const Text(
+                    "Don't have an account? Register",
+                    style: TextStyle(color: Color(0xFF2BBFAA)),
                   ),
                 ),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _QuizUpButton extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final Color color;
+  final VoidCallback? onTap;
+
+  const _QuizUpButton({
+    required this.label,
+    required this.icon,
+    required this.color,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        decoration: BoxDecoration(
+          color: color,
+          borderRadius: BorderRadius.circular(32),
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(0.3),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, color: Colors.white, size: 20),
+            const SizedBox(width: 10),
+            Text(
+              label,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.3,
+              ),
+            ),
+          ],
         ),
       ),
     );
