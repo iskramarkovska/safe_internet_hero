@@ -5,43 +5,47 @@ class LearningService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
   Stream<List<LearningContentModel>> getAllContent() {
-    return FirebaseFirestore.instance
+    return _db
         .collection('learning_content')
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map(
-          (snap) => snap.docs
-          .map((doc) => LearningContentModel.fromMap(doc.data()))
-          .toList(),
-    );
+        .map((snap) => snap.docs
+        .map((doc) => LearningContentModel.fromMap({'id': doc.id, ...doc.data()}))
+        .toList());
   }
 
-  // Get all content for a category
   Stream<List<LearningContentModel>> getContentByCategory(String categoryId) {
     return _db
         .collection('learning_content')
         .where('categoryId', isEqualTo: categoryId)
         .snapshots()
         .map((snap) => snap.docs
-        .map((doc) => LearningContentModel.fromMap(doc.data()))
+        .map((doc) => LearningContentModel.fromMap({'id': doc.id, ...doc.data()}))
         .toList());
   }
 
-  // Get content for a specific topic
   Stream<List<LearningContentModel>> getContentByTopic(String topicId) {
     return _db
         .collection('learning_content')
         .where('topicId', isEqualTo: topicId)
         .snapshots()
         .map((snap) => snap.docs
-        .map((doc) => LearningContentModel.fromMap(doc.data()))
+        .map((doc) => LearningContentModel.fromMap({'id': doc.id, ...doc.data()}))
         .toList());
   }
 
-  // Save content (used by admin)
+  // Create new content
   Future<void> saveContent(LearningContentModel content) async {
     final doc = _db.collection('learning_content').doc();
     await doc.set(content.toMap()..['id'] = doc.id);
+  }
+
+  // Update existing content
+  Future<void> updateContent(LearningContentModel content) async {
+    await _db
+        .collection('learning_content')
+        .doc(content.id)
+        .update(content.toMap());
   }
 
   // Delete content
