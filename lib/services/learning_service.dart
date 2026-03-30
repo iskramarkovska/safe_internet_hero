@@ -4,6 +4,18 @@ import '../models/learning_content_model.dart';
 class LearningService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
+  Stream<List<LearningContentModel>> getAllContent() {
+    return FirebaseFirestore.instance
+        .collection('learning_content')
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map(
+          (snap) => snap.docs
+          .map((doc) => LearningContentModel.fromMap(doc.data()))
+          .toList(),
+    );
+  }
+
   // Get all content for a category
   Stream<List<LearningContentModel>> getContentByCategory(String categoryId) {
     return _db

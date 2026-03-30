@@ -5,112 +5,85 @@ import '../models/topic_model.dart';
 class TopicsService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
-  Future<List<CategoryModel>> getCategories() async {
-    final snap = await _db.collection('categories').orderBy('order').get();
-    return snap.docs
-        .map((doc) => CategoryModel.fromMap({
-      'id': doc.id,
-      ...doc.data(),
-    }))
-        .toList();
-  }
 
   Stream<List<CategoryModel>> watchCategories() {
-    return _db.collection('categories').orderBy('order').snapshots().map(
-          (snap) => snap.docs
-          .map((doc) => CategoryModel.fromMap({
-        'id': doc.id,
-        ...doc.data(),
-      }))
-          .toList(),
-    );
+    return _db.collection('categories').snapshots().map((snap) {
+      final list = snap.docs
+          .map((d) => CategoryModel.fromMap({'id': d.id, ...d.data()}))
+          .toList();
+      list.sort((a, b) => a.order.compareTo(b.order));
+      return list;
+    });
   }
 
-  Future<List<TopicModel>> getTopicsByCategory(String categoryId) async {
-    final snap = await _db
-        .collection('topics')
-        .where('categoryId', isEqualTo: categoryId)
-        .orderBy('order')
-        .get();
-
-    return snap.docs
-        .map((doc) => TopicModel.fromMap({
-      'id': doc.id,
-      ...doc.data(),
-    }))
+  Future<List<CategoryModel>> getCategories() async {
+    final snap = await _db.collection('categories').get();
+    final list = snap.docs
+        .map((d) => CategoryModel.fromMap({'id': d.id, ...d.data()}))
         .toList();
+    list.sort((a, b) => a.order.compareTo(b.order));
+    return list;
+  }
+
+  Future<void> saveCategory(CategoryModel category) async {
+    await _db.collection('categories').doc(category.id).set(category.toMap());
+  }
+
+  Future<void> deleteCategory(String id) async {
+    await _db.collection('categories').doc(id).delete();
+  }
+
+  Stream<List<TopicModel>> watchAllTopics() {
+    return _db.collection('topics').snapshots().map((snap) {
+      final list = snap.docs
+          .map((d) => TopicModel.fromMap({'id': d.id, ...d.data()}))
+          .toList();
+      list.sort((a, b) => a.order.compareTo(b.order));
+      return list;
+    });
   }
 
   Stream<List<TopicModel>> watchTopicsByCategory(String categoryId) {
     return _db
         .collection('topics')
         .where('categoryId', isEqualTo: categoryId)
-        .orderBy('order')
         .snapshots()
-        .map(
-          (snap) => snap.docs
-          .map((doc) => TopicModel.fromMap({
-        'id': doc.id,
-        ...doc.data(),
-      }))
-          .toList(),
-    );
+        .map((snap) {
+      final list = snap.docs
+          .map((d) => TopicModel.fromMap({'id': d.id, ...d.data()}))
+          .toList();
+      list.sort((a, b) => a.order.compareTo(b.order));
+      return list;
+    });
+  }
+
+  Future<List<TopicModel>> getTopicsByCategory(String categoryId) async {
+    final snap = await _db
+        .collection('topics')
+        .where('categoryId', isEqualTo: categoryId)
+        .get();
+    final list = snap.docs
+        .map((d) => TopicModel.fromMap({'id': d.id, ...d.data()}))
+        .toList();
+    list.sort((a, b) => a.order.compareTo(b.order));
+    return list;
   }
 
   Future<List<TopicModel>> getAllTopics() async {
-    final snap = await _db.collection('topics').orderBy('order').get();
-    return snap.docs
-        .map((doc) => TopicModel.fromMap({
-      'id': doc.id,
-      ...doc.data(),
-    }))
+    final snap = await _db.collection('topics').get();
+    final list = snap.docs
+        .map((d) => TopicModel.fromMap({'id': d.id, ...d.data()}))
         .toList();
-  }
-
-  Stream<List<TopicModel>> watchAllTopics() {
-    return _db.collection('topics').orderBy('order').snapshots().map(
-          (snap) => snap.docs
-          .map((doc) => TopicModel.fromMap({
-        'id': doc.id,
-        ...doc.data(),
-      }))
-          .toList(),
-    );
-  }
-
-  Future<void> saveCategory(CategoryModel category) async {
-    final docRef = _db.collection('categories').doc(category.id);
-    await docRef.set(category.toMap());
+    list.sort((a, b) => a.order.compareTo(b.order));
+    return list;
   }
 
   Future<void> saveTopic(TopicModel topic) async {
-    final docRef = _db.collection('topics').doc(topic.id);
-    await docRef.set(topic.toMap());
+    await _db.collection('topics').doc(topic.id).set(topic.toMap());
   }
 
-  Future<void> seedCategories(List<CategoryModel> categories) async {
-    final batch = _db.batch();
-    for (final category in categories) {
-      final docRef = _db.collection('categories').doc(category.id);
-      batch.set(docRef, category.toMap());
-    }
-    await batch.commit();
+  Future<void> deleteTopic(String id) async {
+    await _db.collection('topics').doc(id).delete();
   }
 
-  Future<void> seedTopics(List<TopicModel> topics) async {
-    final batch = _db.batch();
-    for (final topic in topics) {
-      final docRef = _db.collection('topics').doc(topic.id);
-      batch.set(docRef, topic.toMap());
-    }
-    await batch.commit();
-  }
-
-  Future<void> deleteCategory(String categoryId) async {
-    await _db.collection('categories').doc(categoryId).delete();
-  }
-
-  Future<void> deleteTopic(String topicId) async {
-    await _db.collection('topics').doc(topicId).delete();
-  }
 }

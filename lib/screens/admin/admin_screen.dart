@@ -1,62 +1,969 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import '../../core/theme.dart';
+import '../../models/category_model.dart';
+import '../../models/enums.dart';
+import '../../models/question_model.dart';
+import '../../models/topic_model.dart';
+import '../../services/questions_service.dart';
+import '../../services/topics_service.dart';
 
-class AdminScreen extends StatelessWidget {
+class AdminScreen extends StatefulWidget {
   const AdminScreen({super.key});
 
+  @override
+  State<AdminScreen> createState() => _AdminScreenState();
+}
+
+class _AdminScreenState extends State<AdminScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
   static const teal = Color(0xFF2BBFAA);
+  static const darkTeal = Color(0xFF1A9E8F);
+  static const yellow = Color(0xFFE8C84A);
+  static const yellowDark = Color(0xFFC8A830);
+  static const bg = Color(0xFFF5FAF7);
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFE8F5F3),
+      backgroundColor: bg,
       body: SafeArea(
         child: Column(
           children: [
+            // Header
             Container(
               color: teal,
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-              child: Row(
+              child: Column(
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_rounded,
-                        color: Colors.white, size: 22),
-                    onPressed: () => Navigator.pop(context),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                    child: Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back_ios_rounded, color: Colors.white, size: 22),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                        const Expanded(
+                          child: Text('Admin Panel', textAlign: TextAlign.center,
+                              style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900)),
+                        ),
+                        const SizedBox(width: 48),
+                      ],
+                    ),
                   ),
-                  const Expanded(
-                    child: Text('Admin Panel',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 20,
-                            fontWeight: FontWeight.w900)),
+                  TabBar(
+                    controller: _tabController,
+                    indicatorColor: yellow,
+                    indicatorWeight: 3,
+                    labelColor: Colors.white,
+                    unselectedLabelColor: Colors.white60,
+                    labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    tabs: const [
+                      Tab(text: 'Questions'),
+                      Tab(text: 'Manage'),
+                    ],
                   ),
-                  const SizedBox(width: 48),
                 ],
               ),
             ),
-            const Expanded(
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.admin_panel_settings_rounded,
-                        size: 80, color: Color(0xFF2BBFAA)),
-                    SizedBox(height: 20),
-                    Text('Coming Soon',
-                        style: TextStyle(
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF1A9E8F))),
-                    SizedBox(height: 8),
-                    Text('Admin panel is under construction.',
-                        style: TextStyle(color: Colors.grey, fontSize: 14)),
-                  ],
-                ),
+
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: const [
+                  _AddQuestionTab(),
+                  _ManageTab(),
+                ],
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TAB 1 — ADD QUESTION
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class _AddQuestionTab extends StatefulWidget {
+  const _AddQuestionTab();
+
+  @override
+  State<_AddQuestionTab> createState() => _AddQuestionTabState();
+}
+
+class _AddQuestionTabState extends State<_AddQuestionTab> {
+  static const teal = Color(0xFF2BBFAA);
+  static const darkTeal = Color(0xFF1A9E8F);
+  static const red = Color(0xFFE8524A);
+  static const bg = Color(0xFFF5FAF7);
+
+  final _formKey = GlobalKey<FormState>();
+  final _textCtrl = TextEditingController();
+  final _explanationCtrl = TextEditingController();
+  final _opt0Ctrl = TextEditingController();
+  final _opt1Ctrl = TextEditingController();
+  final _opt2Ctrl = TextEditingController();
+  final _opt3Ctrl = TextEditingController();
+
+  final TopicsService _topicsService = TopicsService();
+
+  List<CategoryModel> _categories = [];
+  List<TopicModel> _topics = [];
+  String? _categoryId;
+  String? _topicId;
+  bool _loading = true;
+  bool _saving = false;
+
+  QuestionType _type = QuestionType.multipleChoice;
+  DifficultyLevel _difficulty = DifficultyLevel.beginner;
+  int _correctIndex = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCategories();
+  }
+
+  @override
+  void dispose() {
+    _textCtrl.dispose();
+    _explanationCtrl.dispose();
+    _opt0Ctrl.dispose();
+    _opt1Ctrl.dispose();
+    _opt2Ctrl.dispose();
+    _opt3Ctrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadCategories() async {
+    final cats = await _topicsService.getCategories();
+    setState(() {
+      _categories = cats;
+      _categoryId = cats.isNotEmpty ? cats.first.id : null;
+    });
+    if (_categoryId != null) await _loadTopics(_categoryId!);
+    else setState(() => _loading = false);
+  }
+
+  Future<void> _loadTopics(String catId) async {
+    setState(() => _loading = true);
+    final topics = await _topicsService.getTopicsByCategory(catId);
+    setState(() {
+      _topics = topics;
+      _topicId = topics.isNotEmpty ? topics.first.id : null;
+      _loading = false;
+    });
+  }
+
+  int get _points {
+    switch (_difficulty) {
+      case DifficultyLevel.beginner: return 10;
+      case DifficultyLevel.intermediate: return 20;
+      case DifficultyLevel.advanced: return 30;
+    }
+  }
+
+  List<String> get _options => _type == QuestionType.trueFalse
+      ? ['True', 'False']
+      : [_opt0Ctrl.text.trim(), _opt1Ctrl.text.trim(), _opt2Ctrl.text.trim(), _opt3Ctrl.text.trim()];
+
+  Future<void> _save() async {
+    if (_categoryId == null || _topicId == null) {
+      _snack('Select category and topic', isError: true); return;
+    }
+    if (!_formKey.currentState!.validate()) return;
+    if (_type == QuestionType.multipleChoice) {
+      if ([_opt0Ctrl, _opt1Ctrl, _opt2Ctrl, _opt3Ctrl].any((c) => c.text.trim().isEmpty)) {
+        _snack('Fill in all 4 options', isError: true); return;
+      }
+    }
+
+    setState(() => _saving = true);
+    try {
+      await QuestionService().seedQuestions([QuestionModel(
+        id: '',
+        categoryId: _categoryId!,
+        topicId: _topicId!,
+        text: _textCtrl.text.trim(),
+        type: _type,
+        options: _options,
+        correctIndex: _correctIndex,
+        explanation: _explanationCtrl.text.trim(),
+        difficulty: _difficulty,
+        points: _points,
+      )]);
+
+      _textCtrl.clear(); _explanationCtrl.clear();
+      _opt0Ctrl.clear(); _opt1Ctrl.clear(); _opt2Ctrl.clear(); _opt3Ctrl.clear();
+      setState(() { _correctIndex = 0; _saving = false; });
+      _snack('Question saved!');
+    } catch (e) {
+      setState(() => _saving = false);
+      _snack('Error: $e', isError: true);
+    }
+  }
+
+  void _snack(String msg, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(msg),
+      backgroundColor: isError ? red : darkTeal,
+    ));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) return const Center(child: CircularProgressIndicator(color: teal));
+
+    return Form(
+      key: _formKey,
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+        children: [
+          // Category + Topic
+          _Card(title: 'Where does this question belong?', child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const _Label('Category'),
+              const SizedBox(height: 8),
+              _Dropdown<String>(
+                value: _categoryId,
+                items: _categories.map((c) => DropdownMenuItem(value: c.id, child: Text(c.title))).toList(),
+                hint: 'Select category',
+                onChanged: (val) async { if (val == null) return; setState(() { _categoryId = val; _topicId = null; }); await _loadTopics(val); },
+              ),
+              const SizedBox(height: 14),
+              const _Label('Topic'),
+              const SizedBox(height: 8),
+              _Dropdown<String>(
+                value: _topicId,
+                items: _topics.map((t) => DropdownMenuItem(value: t.id, child: Text(t.name))).toList(),
+                hint: 'Select topic',
+                onChanged: (val) => setState(() => _topicId = val),
+              ),
+            ],
+          )),
+          const SizedBox(height: 14),
+
+          // Type + Difficulty
+          _Card(title: 'Question setup', child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const _Label('Type'),
+              const SizedBox(height: 8),
+              Row(children: [
+                Expanded(child: _ChoiceTile(label: 'Multiple Choice', selected: _type == QuestionType.multipleChoice,
+                    onTap: () => setState(() { _type = QuestionType.multipleChoice; _correctIndex = 0; }))),
+                const SizedBox(width: 10),
+                Expanded(child: _ChoiceTile(label: 'True / False', selected: _type == QuestionType.trueFalse,
+                    onTap: () => setState(() { _type = QuestionType.trueFalse; _correctIndex = 0; }))),
+              ]),
+              const SizedBox(height: 14),
+              const _Label('Difficulty'),
+              const SizedBox(height: 8),
+              Row(children: [
+                Expanded(child: _DiffTile(label: 'Beginner', color: Colors.green, selected: _difficulty == DifficultyLevel.beginner, onTap: () => setState(() => _difficulty = DifficultyLevel.beginner))),
+                const SizedBox(width: 8),
+                Expanded(child: _DiffTile(label: 'Intermediate', color: Colors.orange, selected: _difficulty == DifficultyLevel.intermediate, onTap: () => setState(() => _difficulty = DifficultyLevel.intermediate))),
+                const SizedBox(width: 8),
+                Expanded(child: _DiffTile(label: 'Advanced', color: red, selected: _difficulty == DifficultyLevel.advanced, onTap: () => setState(() => _difficulty = DifficultyLevel.advanced))),
+              ]),
+            ],
+          )),
+          const SizedBox(height: 14),
+
+          // Question text + options
+          _Card(title: 'Question', child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              TextFormField(
+                controller: _textCtrl,
+                maxLines: 3,
+                decoration: _inputDec('Type your question here...'),
+                validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+              ),
+              const SizedBox(height: 14),
+              if (_type == QuestionType.multipleChoice) ...[
+                const _Label('Options — tap letter to mark correct'),
+                const SizedBox(height: 8),
+                _OptionField(ctrl: _opt0Ctrl, letter: 'A', index: 0, correctIndex: _correctIndex, onTap: () => setState(() => _correctIndex = 0)),
+                const SizedBox(height: 8),
+                _OptionField(ctrl: _opt1Ctrl, letter: 'B', index: 1, correctIndex: _correctIndex, onTap: () => setState(() => _correctIndex = 1)),
+                const SizedBox(height: 8),
+                _OptionField(ctrl: _opt2Ctrl, letter: 'C', index: 2, correctIndex: _correctIndex, onTap: () => setState(() => _correctIndex = 2)),
+                const SizedBox(height: 8),
+                _OptionField(ctrl: _opt3Ctrl, letter: 'D', index: 3, correctIndex: _correctIndex, onTap: () => setState(() => _correctIndex = 3)),
+              ],
+              if (_type == QuestionType.trueFalse) ...[
+                const _Label('Correct answer'),
+                const SizedBox(height: 8),
+                Row(children: [
+                  Expanded(child: _ChoiceTile(label: 'True', selected: _correctIndex == 0, color: Colors.green, onTap: () => setState(() => _correctIndex = 0))),
+                  const SizedBox(width: 12),
+                  Expanded(child: _ChoiceTile(label: 'False', selected: _correctIndex == 1, color: Colors.green, onTap: () => setState(() => _correctIndex = 1))),
+                ]),
+              ],
+              const SizedBox(height: 14),
+              const _Label('Explanation'),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _explanationCtrl,
+                maxLines: 3,
+                decoration: _inputDec('Why is this answer correct?'),
+                validator: (v) => v == null || v.isEmpty ? 'Required' : null,
+              ),
+            ],
+          )),
+          const SizedBox(height: 14),
+
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFE5E7EB))),
+            child: Text('This question awards $_points points', textAlign: TextAlign.center,
+                style: const TextStyle(color: AppColors.textSecondary, fontWeight: FontWeight.w600)),
+          ),
+          const SizedBox(height: 16),
+          _TealBtn(label: _saving ? 'Saving...' : 'Save Question', onTap: _saving ? () {} : _save),
+        ],
+      ),
+    );
+  }
+
+  InputDecoration _inputDec(String hint) => InputDecoration(
+    hintText: hint, hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
+    filled: true, fillColor: Colors.white,
+    contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+    border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
+    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
+    focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: teal, width: 2)),
+  );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// TAB 2 — MANAGE CATEGORIES & TOPICS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class _ManageTab extends StatefulWidget {
+  const _ManageTab();
+
+  @override
+  State<_ManageTab> createState() => _ManageTabState();
+}
+
+class _ManageTabState extends State<_ManageTab> {
+  static const teal = Color(0xFF2BBFAA);
+  static const darkTeal = Color(0xFF1A9E8F);
+  static const red = Color(0xFFE8524A);
+  static const bg = Color(0xFFF5FAF7);
+  static const yellow = Color(0xFFE8C84A);
+  static const yellowDark = Color(0xFFC8A830);
+
+  final TopicsService _service = TopicsService();
+  List<CategoryModel> _categories = [];
+  List<TopicModel> _topics = [];
+  String? _selectedCatId;
+  bool _loadingCats = true;
+  bool _loadingTopics = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCategories();
+  }
+
+  Future<void> _loadCategories() async {
+    setState(() => _loadingCats = true);
+    final cats = await _service.getCategories();
+    setState(() {
+      _categories = cats;
+      _selectedCatId = cats.isNotEmpty ? cats.first.id : null;
+      _loadingCats = false;
+    });
+    if (_selectedCatId != null) await _loadTopics(_selectedCatId!);
+  }
+
+  Future<void> _loadTopics(String catId) async {
+    setState(() => _loadingTopics = true);
+    final topics = await _service.getTopicsByCategory(catId);
+    setState(() { _topics = topics; _loadingTopics = false; });
+  }
+
+  Future<void> _showCategorySheet({CategoryModel? cat}) async {
+    final titleCtrl = TextEditingController(text: cat?.title ?? '');
+    var order = cat?.order ?? (_categories.length + 1);
+
+    await showModalBottomSheet(
+      context: context, isScrollControlled: true, backgroundColor: Colors.transparent,
+      builder: (_) => StatefulBuilder(builder: (ctx, setS) => _BottomSheet(
+        title: cat == null ? 'Add Category' : 'Edit Category',
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const _Label('Category Name'),
+          const SizedBox(height: 8),
+          _Field(controller: titleCtrl, hint: 'e.g. Privacy'),
+          const SizedBox(height: 24),
+          Row(children: [
+            Expanded(child: _OutBtn(label: 'Cancel', onTap: () => Navigator.pop(ctx))),
+            const SizedBox(width: 12),
+            Expanded(child: _TealBtn(label: cat == null ? 'Save' : 'Update', onTap: () async {
+              final title = titleCtrl.text.trim();
+              if (title.isEmpty) return;
+              await _service.saveCategory(CategoryModel(
+                id: cat?.id ?? FirebaseFirestore.instance.collection('categories').doc().id,
+                title: title,
+                order: order,
+              ));
+              if (!mounted) return;
+              Navigator.pop(ctx);
+              await _loadCategories();
+            })),
+          ]),
+        ]),
+      )),
+    );
+  }
+
+  Future<void> _showTopicSheet({required String catId, TopicModel? topic}) async {
+    final nameCtrl = TextEditingController(text: topic?.name ?? '');
+    final descCtrl = TextEditingController(text: topic?.desc ?? '');
+
+    // Only show isNew on create, only isUpdated on edit
+    var isNew = topic == null ? true : false;
+    var isUpdated = topic != null ? topic.isUpdated : false;
+
+    await showModalBottomSheet(
+      context: context, isScrollControlled: true, backgroundColor: Colors.transparent,
+      builder: (_) => StatefulBuilder(builder: (ctx, setS) => _BottomSheet(
+        title: topic == null ? 'Add Topic' : 'Edit Topic',
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const _Label('Topic Name'),
+          const SizedBox(height: 8),
+          _Field(controller: nameCtrl, hint: 'e.g. Strong Passwords'),
+          const SizedBox(height: 14),
+          const _Label('Description'),
+          const SizedBox(height: 8),
+          _Field(controller: descCtrl, hint: 'Short description', maxLines: 2),
+          const SizedBox(height: 14),
+
+          // NEW only on create
+          if (topic == null) ...[
+            _Toggle(
+              label: 'Mark as New',
+              value: isNew,
+              color: const Color(0xFFF45B8C),
+              onChanged: (v) => setS(() => isNew = v),
+            ),
+          ],
+
+          // UPDATED only on edit
+          if (topic != null) ...[
+            _Toggle(
+              label: 'Mark as Updated',
+              value: isUpdated,
+              color: const Color(0xFFFFA726),
+              onChanged: (v) => setS(() => isUpdated = v),
+            ),
+          ],
+
+          const SizedBox(height: 24),
+          Row(children: [
+            Expanded(child: _OutBtn(label: 'Cancel', onTap: () => Navigator.pop(ctx))),
+            const SizedBox(width: 12),
+            Expanded(child: _TealBtn(label: topic == null ? 'Save' : 'Update', onTap: () async {
+              final name = nameCtrl.text.trim();
+              final desc = descCtrl.text.trim();
+              if (name.isEmpty || desc.isEmpty) return;
+
+              final nextOrder = topic?.order ?? (_topics.length + 1);
+
+              await _service.saveTopic(TopicModel(
+                id: topic?.id ?? FirebaseFirestore.instance.collection('topics').doc().id,
+                categoryId: catId,
+                name: name,
+                desc: desc,
+                isNew: topic == null ? isNew : false, // clear isNew on edit
+                isUpdated: topic != null ? isUpdated : false,
+                order: nextOrder,
+                createdAt: topic?.createdAt ?? DateTime.now(),
+                updatedAt: DateTime.now(),
+              ));
+              if (!mounted) return;
+              Navigator.pop(ctx);
+              await _loadTopics(catId);
+            })),
+          ]),
+        ]),
+      )),
+    );
+  }
+
+  Future<void> _deleteCat(CategoryModel cat) async {
+    final ok = await _confirm('Delete "${cat.title}"?', 'All topics and questions will be deleted.');
+    if (!ok) return;
+    final db = FirebaseFirestore.instance;
+    final topics = await _service.getTopicsByCategory(cat.id);
+    for (final t in topics) {
+      for (final col in ['questions', 'learning_content']) {
+        final snap = await db.collection(col).where('topicId', isEqualTo: t.id).get();
+        for (final d in snap.docs) await d.reference.delete();
+      }
+      await _service.deleteTopic(t.id);
+    }
+    await _service.deleteCategory(cat.id);
+    await _loadCategories();
+  }
+
+  Future<void> _deleteTopic(TopicModel topic) async {
+    final ok = await _confirm('Delete "${topic.name}"?', 'Related questions will also be deleted.');
+    if (!ok) return;
+    final db = FirebaseFirestore.instance;
+    for (final col in ['questions', 'learning_content']) {
+      final snap = await db.collection(col).where('topicId', isEqualTo: topic.id).get();
+      for (final d in snap.docs) await d.reference.delete();
+    }
+    await _service.deleteTopic(topic.id);
+    await _loadTopics(topic.categoryId);
+  }
+
+  Future<bool> _confirm(String title, String msg) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Text(title), content: Text(msg),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Delete', style: TextStyle(color: red))),
+        ],
+      ),
+    );
+    return result ?? false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final selCat = _categories.cast<CategoryModel?>().firstWhere((c) => c?.id == _selectedCatId, orElse: () => null);
+
+    if (_loadingCats) return const Center(child: CircularProgressIndicator(color: teal));
+
+    return Row(
+      children: [
+        // Categories column
+        Container(
+          width: 220,
+          margin: const EdgeInsets.fromLTRB(12, 12, 6, 12),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20),
+              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))]),
+          child: Column(children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 14, 8, 8),
+              child: Row(children: [
+                const Expanded(child: Text('Categories', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Color(0xFF111827)))),
+                IconButton(
+                  icon: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(color: yellow, shape: BoxShape.circle, border: Border.all(color: yellowDark)),
+                    child: const Icon(Icons.add_rounded, color: Color(0xFF5A7A6A), size: 18),
+                  ),
+                  onPressed: _showCategorySheet,
+                ),
+              ]),
+            ),
+            const Divider(height: 1),
+            Expanded(
+              child: _categories.isEmpty
+                  ? const Center(child: Text('No categories', style: TextStyle(color: Color(0xFF9CA3AF))))
+                  : ListView.builder(
+                padding: const EdgeInsets.all(8),
+                itemCount: _categories.length,
+                itemBuilder: (_, i) {
+                  final cat = _categories[i];
+                  final sel = cat.id == _selectedCatId;
+                  return GestureDetector(
+                    onTap: () async { setState(() => _selectedCatId = cat.id); await _loadTopics(cat.id); },
+                    child: Container(
+                      margin: const EdgeInsets.only(bottom: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: sel ? teal.withOpacity(0.1) : const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: sel ? teal : const Color(0xFFE5E7EB), width: sel ? 2 : 1),
+                      ),
+                      child: Row(children: [
+                        Expanded(child: Text(cat.title, style: TextStyle(fontWeight: FontWeight.bold,
+                            color: sel ? darkTeal : const Color(0xFF111827), fontSize: 13))),
+                        GestureDetector(onTap: () => _showCategorySheet(cat: cat),
+                            child: const Icon(Icons.edit_rounded, color: teal, size: 16)),
+                        const SizedBox(width: 6),
+                        GestureDetector(onTap: () => _deleteCat(cat),
+                            child: const Icon(Icons.delete_rounded, color: red, size: 16)),
+                      ]),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ]),
+        ),
+
+        // Topics column
+        Expanded(
+          child: Container(
+            margin: const EdgeInsets.fromLTRB(6, 12, 12, 12),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))]),
+            child: Column(children: [
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 14, 8, 8),
+                child: Row(children: [
+                  Expanded(child: Text(selCat == null ? 'Topics' : 'Topics in ${selCat.title}',
+                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Color(0xFF111827)))),
+                  if (_selectedCatId != null)
+                    TextButton.icon(
+                      onPressed: () => _showTopicSheet(catId: _selectedCatId!),
+                      icon: const Icon(Icons.add_rounded, size: 16),
+                      label: const Text('Add'),
+                      style: TextButton.styleFrom(foregroundColor: teal),
+                    ),
+                ]),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: _selectedCatId == null
+                    ? const Center(child: Text('Select a category', style: TextStyle(color: Color(0xFF9CA3AF))))
+                    : _loadingTopics
+                    ? const Center(child: CircularProgressIndicator(color: teal))
+                    : _topics.isEmpty
+                    ? const Center(child: Text('No topics yet', style: TextStyle(color: Color(0xFF9CA3AF))))
+                    : ListView.builder(
+                  padding: const EdgeInsets.all(8),
+                  itemCount: _topics.length,
+                  itemBuilder: (_, i) {
+                    final topic = _topics[i];
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: const Color(0xFFE5E7EB))),
+                      child: Row(children: [
+                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Row(children: [
+                            Expanded(child: Text(topic.name, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF111827)))),
+                            if (topic.isNew) _MiniTag(text: 'NEW', color: const Color(0xFFF45B8C)),
+                            if (topic.isUpdated) _MiniTag(text: 'UPD', color: const Color(0xFFFFA726)),
+                          ]),
+                          Text(topic.desc, style: const TextStyle(color: Color(0xFF6B7280), fontSize: 12)),
+                        ])),
+                        IconButton(icon: const Icon(Icons.edit_rounded, color: teal, size: 18),
+                            onPressed: () => _showTopicSheet(catId: topic.categoryId, topic: topic)),
+                        IconButton(icon: const Icon(Icons.delete_rounded, color: red, size: 18),
+                            onPressed: () => _deleteTopic(topic)),
+                      ]),
+                    );
+                  },
+                ),
+              ),
+            ]),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SHARED WIDGETS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class _Card extends StatelessWidget {
+  final String title;
+  final Widget child;
+  const _Card({required this.title, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 4))]),
+      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF111827))),
+        const SizedBox(height: 14),
+        child,
+      ]),
+    );
+  }
+}
+
+class _BottomSheet extends StatelessWidget {
+  final String title;
+  final Widget child;
+  const _BottomSheet({required this.title, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(left: 16, right: 16, top: 16, bottom: MediaQuery.of(context).viewInsets.bottom + 24),
+      child: Container(
+        decoration: BoxDecoration(color: const Color(0xFFF5FAF7), borderRadius: BorderRadius.circular(24),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 16, offset: const Offset(0, 8))]),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Center(child: Container(width: 44, height: 5, decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(20)))),
+            const SizedBox(height: 14),
+            Text(title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+            const SizedBox(height: 16),
+            child,
+          ]),
+        ),
+      ),
+    );
+  }
+}
+
+class _Label extends StatelessWidget {
+  final String text;
+  const _Label(this.text);
+  @override
+  Widget build(BuildContext context) =>
+      Text(text, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF374151), fontSize: 13));
+}
+
+class _Field extends StatelessWidget {
+  final TextEditingController controller;
+  final String hint;
+  final int maxLines;
+  const _Field({required this.controller, required this.hint, this.maxLines = 1});
+
+  @override
+  Widget build(BuildContext context) {
+    return TextField(
+      controller: controller, maxLines: maxLines,
+      decoration: InputDecoration(hintText: hint, filled: true, fillColor: Colors.white,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFF2BBFAA), width: 2))),
+    );
+  }
+}
+
+class _Dropdown<T> extends StatelessWidget {
+  final T? value;
+  final List<DropdownMenuItem<T>> items;
+  final String hint;
+  final ValueChanged<T?> onChanged;
+  const _Dropdown({required this.value, required this.items, required this.hint, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return DropdownButtonFormField<T>(
+      value: value, items: items, onChanged: onChanged,
+      decoration: InputDecoration(hintText: hint, filled: true, fillColor: Colors.white,
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
+          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
+          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFF2BBFAA), width: 2))),
+    );
+  }
+}
+
+class _Toggle extends StatelessWidget {
+  final String label;
+  final bool value;
+  final Color color;
+  final ValueChanged<bool> onChanged;
+  const _Toggle({required this.label, required this.value, required this.color, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () => onChanged(!value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: value ? color.withOpacity(0.1) : Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: value ? color : const Color(0xFFE5E7EB), width: value ? 2 : 1),
+        ),
+        child: Row(children: [
+          Icon(value ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+              color: value ? color : const Color(0xFF9CA3AF), size: 20),
+          const SizedBox(width: 8),
+          Text(label, style: TextStyle(fontWeight: FontWeight.bold, color: value ? color : const Color(0xFF6B7280))),
+        ]),
+      ),
+    );
+  }
+}
+
+class _ChoiceTile extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final Color? color;
+  final VoidCallback onTap;
+  const _ChoiceTile({required this.label, required this.selected, this.color, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = color ?? const Color(0xFF2BBFAA);
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(vertical: 11),
+        decoration: BoxDecoration(
+          color: selected ? c.withOpacity(0.12) : const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: selected ? c : const Color(0xFFE5E7EB), width: selected ? 2 : 1),
+        ),
+        child: Text(label, textAlign: TextAlign.center,
+            style: TextStyle(color: selected ? c : const Color(0xFF6B7280), fontWeight: FontWeight.bold, fontSize: 13)),
+      ),
+    );
+  }
+}
+
+class _DiffTile extends StatelessWidget {
+  final String label;
+  final Color color;
+  final bool selected;
+  final VoidCallback onTap;
+  const _DiffTile({required this.label, required this.color, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(
+          color: selected ? color.withOpacity(0.12) : const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: selected ? color : const Color(0xFFE5E7EB), width: selected ? 2 : 1),
+        ),
+        child: Text(label, textAlign: TextAlign.center,
+            style: TextStyle(color: selected ? color : const Color(0xFF6B7280), fontWeight: FontWeight.bold, fontSize: 12)),
+      ),
+    );
+  }
+}
+
+class _OptionField extends StatelessWidget {
+  final TextEditingController ctrl;
+  final String letter;
+  final int index;
+  final int correctIndex;
+  final VoidCallback onTap;
+  const _OptionField({required this.ctrl, required this.letter, required this.index, required this.correctIndex, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final isCorrect = correctIndex == index;
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        decoration: BoxDecoration(
+          color: Colors.white, borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: isCorrect ? Colors.green : const Color(0xFFE5E7EB), width: isCorrect ? 2 : 1),
+        ),
+        child: Row(children: [
+          Container(
+            width: 44, height: 52,
+            decoration: BoxDecoration(
+              color: isCorrect ? Colors.green.withOpacity(0.12) : const Color(0xFFF8FAFC),
+              borderRadius: const BorderRadius.only(topLeft: Radius.circular(12), bottomLeft: Radius.circular(12)),
+            ),
+            child: Center(child: Text(isCorrect ? '✓' : letter,
+                style: TextStyle(color: isCorrect ? Colors.green : const Color(0xFF9CA3AF), fontWeight: FontWeight.bold))),
+          ),
+          Expanded(child: TextField(
+            controller: ctrl,
+            decoration: InputDecoration(
+              hintText: 'Option $letter',
+              hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 13),
+              border: InputBorder.none,
+              contentPadding: const EdgeInsets.symmetric(horizontal: 12),
+            ),
+          )),
+        ]),
+      ),
+    );
+  }
+}
+
+class _TealBtn extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+  const _TealBtn({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 52,
+        decoration: BoxDecoration(
+          color: const Color(0xFF2BBFAA), borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFF1A9E8F), width: 2),
+          boxShadow: const [BoxShadow(color: Color(0xFF1A9E8F), offset: Offset(0, 4), blurRadius: 0)],
+        ),
+        child: Center(child: Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15))),
+      ),
+    );
+  }
+}
+
+class _OutBtn extends StatelessWidget {
+  final String label;
+  final VoidCallback onTap;
+  const _OutBtn({required this.label, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 52,
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: const Color(0xFFD1D5DB))),
+        child: Center(child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF374151)))),
+      ),
+    );
+  }
+}
+
+class _MiniTag extends StatelessWidget {
+  final String text;
+  final Color color;
+  const _MiniTag({required this.text, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(left: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(8)),
+      child: Text(text, style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
     );
   }
 }

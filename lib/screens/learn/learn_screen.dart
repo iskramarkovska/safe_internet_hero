@@ -1,10 +1,11 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import '../../models/category_model.dart';
 import '../../models/learning_content_model.dart';
 import '../../services/learning_service.dart';
+import '../../services/topics_service.dart';
 import 'article_screen.dart';
 import 'video_screen.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class LearnScreen extends StatefulWidget {
   const LearnScreen({super.key});
@@ -15,16 +16,25 @@ class LearnScreen extends StatefulWidget {
 
 class _LearnScreenState extends State<LearnScreen> {
   final LearningService _service = LearningService();
+  final TopicsService _topicsService = TopicsService();
+
+  List<CategoryModel> _categories = [];
+  bool _loadingCategories = true;
   String _selectedCategory = 'all';
 
-  final List<Map<String, dynamic>> _categories = [
-    {'id': 'all', 'label': 'All', 'color': const Color(0xFF00D4FF)},
-    {'id': 'privacy', 'label': 'Privacy', 'color': const Color(0xFF7C4DFF)},
-    {'id': 'passwords', 'label': 'Passwords', 'color': const Color(0xFF00BCD4)},
-    {'id': 'cyberbullying', 'label': 'Cyberbullying', 'color': const Color(0xFFFF5252)},
-    {'id': 'social_media', 'label': 'Social Media', 'color': const Color(0xFFFFD740)},
-    {'id': 'phishing', 'label': 'Phishing', 'color': const Color(0xFFFF6D00)},
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadCategories();
+  }
+
+  Future<void> _loadCategories() async {
+    final categories = await _topicsService.getCategories();
+    setState(() {
+      _categories = categories;
+      _loadingCategories = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -33,13 +43,16 @@ class _LearnScreenState extends State<LearnScreen> {
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF1A1A2E), Color(0xFF16213E), Color(0xFF0F3460)],
+          colors: [
+            Color(0xFF1A1A2E),
+            Color(0xFF16213E),
+            Color(0xFF0F3460),
+          ],
         ),
       ),
       child: SafeArea(
         child: Column(
           children: [
-            // Header
             const Padding(
               padding: EdgeInsets.fromLTRB(20, 16, 20, 8),
               child: Align(
@@ -54,67 +67,52 @@ class _LearnScreenState extends State<LearnScreen> {
                 ),
               ),
             ),
-
-            // Category filter
-            SizedBox(
-              height: 44,
-              child: ListView.builder(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: _categories.length,
-                itemBuilder: (context, index) {
-                  final cat = _categories[index];
-                  final isSelected = _selectedCategory == cat['id'];
-                  final color = cat['color'] as Color;
-                  return GestureDetector(
-                    onTap: () =>
-                        setState(() => _selectedCategory = cat['id'] as String),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 200),
-                      margin: const EdgeInsets.only(right: 8),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: isSelected
-                            ? color.withOpacity(0.2)
-                            : Colors.white.withOpacity(0.05),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                          color: isSelected ? color : Colors.white24,
-                          width: 1.5,
-                        ),
-                      ),
-                      child: Text(
-                        cat['label'] as String,
-                        style: TextStyle(
-                          color: isSelected ? color : Colors.white54,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                        ),
+            if (_loadingCategories)
+              const SizedBox(
+                height: 44,
+                child: Center(child: CircularProgressIndicator()),
+              )
+            else
+              SizedBox(
+                height: 44,
+                child: ListView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  children: [
+                    _buildCategoryChip(
+                      id: 'all',
+                      label: 'All',
+                      selected: _selectedCategory == 'all',
+                    ),
+                    ..._categories.map(
+                          (category) => _buildCategoryChip(
+                        id: category.id,
+                        label: category.title,
+                        selected: _selectedCategory == category.id,
                       ),
                     ),
-                  );
-                },
+                  ],
+                ),
               ),
-            ),
-
             const SizedBox(height: 12),
-
-            // Content list
             Expanded(
-              child: StreamBuilder<List<LearningContentModel>>(
-                stream: _selectedCategory == 'all'
-                    ? _service.getContentByCategory('all')
-                    : _service.getContentByCategory(_selectedCategory),
+              child: _selectedCategory == 'all'
+                  ? StreamBuilder<List<LearningContentModel>>(
+                stream: _service.getAllContent(),
                 builder: (context, snapshot) {
                   if (!snapshot.hasData) {
                     return const Center(child: CircularProgressIndicator());
                   }
-
-                  // For 'all' fetch all content
-                  return _selectedCategory == 'all'
-                      ? _buildAllContent()
-                      : _buildContentList(snapshot.data!);
+                  return _buildContentList(snapshot.data!);
+                },
+              )
+                  : StreamBuilder<List<LearningContentModel>>(
+                stream: _service.getContentByCategory(_selectedCategory),
+                builder: (context, snapshot) {
+                  if (!snapshot.hasData) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+                  return _buildContentList(snapshot.data!);
                 },
               ),
             ),
@@ -124,21 +122,36 @@ class _LearnScreenState extends State<LearnScreen> {
     );
   }
 
-  Widget _buildAllContent() {
-    return StreamBuilder<List<LearningContentModel>>(
-      stream: FirebaseFirestore.instance
-          .collection('learning_content')
-          .snapshots()
-          .map((snap) => snap.docs
-          .map((doc) =>
-          LearningContentModel.fromMap(doc.data()))
-          .toList()),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        return _buildContentList(snapshot.data!);
-      },
+  Widget _buildCategoryChip({
+    required String id,
+    required String label,
+    required bool selected,
+  }) {
+    return GestureDetector(
+      onTap: () => setState(() => _selectedCategory = id),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        margin: const EdgeInsets.only(right: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected
+              ? const Color(0xFF00D4FF).withOpacity(0.2)
+              : Colors.white.withOpacity(0.05),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: selected ? const Color(0xFF00D4FF) : Colors.white24,
+            width: 1.5,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? const Color(0xFF00D4FF) : Colors.white54,
+            fontWeight: FontWeight.bold,
+            fontSize: 13,
+          ),
+        ),
+      ),
     );
   }
 
@@ -153,9 +166,10 @@ class _LearnScreenState extends State<LearnScreen> {
             Text(
               'No content yet',
               style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold),
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             SizedBox(height: 8),
             Text(
@@ -211,7 +225,6 @@ class _LearnScreenState extends State<LearnScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Thumbnail
             if (item.thumbnailUrl.isNotEmpty)
               ClipRRect(
                 borderRadius: const BorderRadius.only(
@@ -244,8 +257,11 @@ class _LearnScreenState extends State<LearnScreen> {
                       ),
                     ),
                     child: const Center(
-                      child: Icon(Icons.image_not_supported_outlined,
-                          color: Colors.white24, size: 40),
+                      child: Icon(
+                        Icons.image_not_supported_outlined,
+                        color: Colors.white24,
+                        size: 40,
+                      ),
                     ),
                   ),
                 ),
@@ -261,12 +277,9 @@ class _LearnScreenState extends State<LearnScreen> {
                   ),
                 ),
                 child: Center(
-                  child: Text(typeIcon,
-                      style: const TextStyle(fontSize: 40)),
+                  child: Text(typeIcon, style: const TextStyle(fontSize: 40)),
                 ),
               ),
-
-            // Content info
             Padding(
               padding: const EdgeInsets.all(14),
               child: Column(
@@ -274,26 +287,12 @@ class _LearnScreenState extends State<LearnScreen> {
                 children: [
                   Row(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF00D4FF).withOpacity(0.15),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          item.categoryId,
-                          style: const TextStyle(
-                              color: Color(0xFF00D4FF),
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
                       Text(
                         '$typeIcon $typeLabel',
                         style: const TextStyle(
-                            color: Colors.white38, fontSize: 11),
+                          color: Colors.white38,
+                          fontSize: 11,
+                        ),
                       ),
                     ],
                   ),
@@ -310,7 +309,9 @@ class _LearnScreenState extends State<LearnScreen> {
                   Text(
                     item.description,
                     style: const TextStyle(
-                        color: Colors.white54, fontSize: 13),
+                      color: Colors.white54,
+                      fontSize: 13,
+                    ),
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
                   ),
