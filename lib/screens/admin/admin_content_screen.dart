@@ -5,6 +5,7 @@ import '../../models/learning_content_model.dart';
 import '../../models/topic_model.dart';
 import '../../services/learning_service.dart';
 import '../../services/topics_service.dart';
+import '../../widgets/admin_content_header.dart';
 import '../../widgets/admin_content_ui.dart';
 import '../../widgets/content_category_topic_section.dart';
 import '../../widgets/content_details_section.dart';
@@ -100,9 +101,7 @@ class _AdminContentScreenState extends State<AdminContentScreen> {
   Future<void> _openManager() async {
     await Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (_) => const CategoryTopicManagerScreen(),
-      ),
+      MaterialPageRoute(builder: (_) => const CategoryTopicManagerScreen()),
     );
     await _loadCategories();
   }
@@ -167,8 +166,9 @@ class _AdminContentScreenState extends State<AdminContentScreen> {
                     const SizedBox(height: 8),
                     TextField(
                       controller: nameController,
-                      decoration:
-                      AdminContentUi.inputDecoration('Enter topic name'),
+                      decoration: AdminContentUi.inputDecoration(
+                        'Enter topic name',
+                      ),
                     ),
                     const SizedBox(height: 16),
                     const AdminSectionLabel('Description'),
@@ -176,8 +176,9 @@ class _AdminContentScreenState extends State<AdminContentScreen> {
                     TextField(
                       controller: descController,
                       maxLines: 3,
-                      decoration:
-                      AdminContentUi.inputDecoration('Short description'),
+                      decoration: AdminContentUi.inputDecoration(
+                        'Short description',
+                      ),
                     ),
                     const SizedBox(height: 16),
                     Row(
@@ -187,8 +188,7 @@ class _AdminContentScreenState extends State<AdminContentScreen> {
                             label: 'New',
                             value: isNew,
                             color: const Color(0xFFF45B8C),
-                            onTap: () =>
-                                setModalState(() => isNew = !isNew),
+                            onTap: () => setModalState(() => isNew = !isNew),
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -197,9 +197,8 @@ class _AdminContentScreenState extends State<AdminContentScreen> {
                             label: 'Updated',
                             value: isUpdated,
                             color: const Color(0xFFFFA726),
-                            onTap: () => setModalState(
-                                  () => isUpdated = !isUpdated,
-                            ),
+                            onTap: () =>
+                                setModalState(() => isUpdated = !isUpdated),
                           ),
                         ),
                       ],
@@ -209,8 +208,7 @@ class _AdminContentScreenState extends State<AdminContentScreen> {
                     const SizedBox(height: 8),
                     AdminOrderStepper(
                       value: order,
-                      onChanged: (value) =>
-                          setModalState(() => order = value),
+                      onChanged: (value) => setModalState(() => order = value),
                     ),
                     const SizedBox(height: 20),
                     Row(
@@ -312,8 +310,7 @@ class _AdminContentScreenState extends State<AdminContentScreen> {
   void _showSnack(String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        backgroundColor:
-        isError ? AdminContentUi.red : AdminContentUi.tealDark,
+        backgroundColor: isError ? AdminContentUi.red : AdminContentUi.tealDark,
         content: Text(message),
       ),
     );
@@ -344,68 +341,9 @@ class _AdminContentScreenState extends State<AdminContentScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
               child: Row(
                 children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: const Color(0xFFFFF0C2),
-                        width: 2,
-                      ),
-                    ),
-                    child: IconButton(
-                      icon: const Icon(
-                        Icons.arrow_back_ios_new_rounded,
-                        color: AdminContentUi.tealDark,
-                        size: 20,
-                      ),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ),
-                  const Expanded(
-                    child: Text(
-                      'Add Learning Content',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.w300,
-                      ),
-                    ),
-                  ),
-                  PopupMenuButton<String>(
-                    color: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    onSelected: (value) async {
-                      if (value == 'manage') {
-                        await _openManager();
-                      }
-                    },
-                    itemBuilder: (context) => const [
-                      PopupMenuItem(
-                        value: 'manage',
-                        child: Text('Manage Categories & Topics'),
-                      ),
-                    ],
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: AdminContentUi.gold,
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: AdminContentUi.goldDark,
-                          width: 2,
-                        ),
-                      ),
-                      child: const Padding(
-                        padding: EdgeInsets.all(10),
-                        child: Icon(
-                          Icons.more_horiz_rounded,
-                          color: Color(0xFF5A7A6A),
-                        ),
-                      ),
-                    ),
+                  AdminContentHeader(
+                    onBack: () => Navigator.pop(context),
+                    onManage: _openManager,
                   ),
                 ],
               ),
@@ -414,47 +352,48 @@ class _AdminContentScreenState extends State<AdminContentScreen> {
               child: _loading
                   ? const Center(child: CircularProgressIndicator())
                   : ListView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-                children: [
-                  ContentCategoryTopicSection(
-                    categories: _categories,
-                    topics: _topics,
-                    selectedCategoryId: _categoryId,
-                    selectedTopicId: _topicId,
-                    onAddTopic: _showQuickAddTopicSheet,
-                    onTopicChanged: (val) => setState(() => _topicId = val),
-                    onCategoryChanged: (val) async {
-                      if (val == null) return;
-                      setState(() {
-                        _categoryId = val;
-                        _topicId = null;
-                        _topics = [];
-                        _loading = true;
-                      });
-                      await _loadTopics(val);
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  ContentTypeSelector(
-                    selectedType: _type,
-                    onChanged: (type) => setState(() => _type = type),
-                  ),
-                  const SizedBox(height: 16),
-                  ContentDetailsSection(
-                    titleController: _titleController,
-                    descriptionController: _descriptionController,
-                    contentController: _contentController,
-                    thumbnailController: _thumbnailController,
-                    readTimeController: _readTimeController,
-                    type: _type,
-                  ),
-                  const SizedBox(height: 20),
-                  AdminPrimaryButton(
-                    label: _isSaving ? 'Saving...' : 'Save Content',
-                    onTap: _isSaving ? () {} : _save,
-                  ),
-                ],
-              ),
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                      children: [
+                        ContentCategoryTopicSection(
+                          categories: _categories,
+                          topics: _topics,
+                          selectedCategoryId: _categoryId,
+                          selectedTopicId: _topicId,
+                          onAddTopic: _showQuickAddTopicSheet,
+                          onTopicChanged: (val) =>
+                              setState(() => _topicId = val),
+                          onCategoryChanged: (val) async {
+                            if (val == null) return;
+                            setState(() {
+                              _categoryId = val;
+                              _topicId = null;
+                              _topics = [];
+                              _loading = true;
+                            });
+                            await _loadTopics(val);
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        ContentTypeSelector(
+                          selectedType: _type,
+                          onChanged: (type) => setState(() => _type = type),
+                        ),
+                        const SizedBox(height: 16),
+                        ContentDetailsSection(
+                          titleController: _titleController,
+                          descriptionController: _descriptionController,
+                          contentController: _contentController,
+                          thumbnailController: _thumbnailController,
+                          readTimeController: _readTimeController,
+                          type: _type,
+                        ),
+                        const SizedBox(height: 20),
+                        AdminPrimaryButton(
+                          label: _isSaving ? 'Saving...' : 'Save Content',
+                          onTap: _isSaving ? () {} : _save,
+                        ),
+                      ],
+                    ),
             ),
           ],
         ),
