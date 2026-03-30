@@ -10,6 +10,7 @@ import '../../widgets/admin_content_ui.dart';
 import '../../widgets/content_category_topic_section.dart';
 import '../../widgets/content_details_section.dart';
 import '../../widgets/content_type_selector.dart';
+import '../../widgets/quick_add_topic_sheet.dart';
 import 'category_topic_manager_screen.dart';
 
 class AdminContentScreen extends StatefulWidget {
@@ -113,150 +114,32 @@ class _AdminContentScreenState extends State<AdminContentScreen> {
     }
 
     final category = _categories.firstWhere((c) => c.id == _categoryId);
-    final nameController = TextEditingController();
-    final descController = TextEditingController();
 
     await showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
-        bool isNew = true;
-        bool isUpdated = false;
-        int order = _topics.length + 1;
-
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                left: 16,
-                right: 16,
-                top: 16,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-              ),
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: AdminContentUi.cream,
-                  borderRadius: BorderRadius.circular(28),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 56,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    Text(
-                      'Add Topic to ${category.title}',
-                      style: const TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF111827),
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 18),
-                    const AdminSectionLabel('Topic Name'),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: nameController,
-                      decoration: AdminContentUi.inputDecoration(
-                        'Enter topic name',
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    const AdminSectionLabel('Description'),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: descController,
-                      maxLines: 3,
-                      decoration: AdminContentUi.inputDecoration(
-                        'Short description',
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: AdminToggleCard(
-                            label: 'New',
-                            value: isNew,
-                            color: const Color(0xFFF45B8C),
-                            onTap: () => setModalState(() => isNew = !isNew),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: AdminToggleCard(
-                            label: 'Updated',
-                            value: isUpdated,
-                            color: const Color(0xFFFFA726),
-                            onTap: () =>
-                                setModalState(() => isUpdated = !isUpdated),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    const AdminSectionLabel('Order'),
-                    const SizedBox(height: 8),
-                    AdminOrderStepper(
-                      value: order,
-                      onChanged: (value) => setModalState(() => order = value),
-                    ),
-                    const SizedBox(height: 20),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: AdminSecondaryButton(
-                            label: 'Cancel',
-                            onTap: () => Navigator.pop(context),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: AdminPrimaryButton(
-                            label: 'Save Topic',
-                            onTap: () async {
-                              final name = nameController.text.trim();
-                              final desc = descController.text.trim();
-                              if (name.isEmpty || desc.isEmpty) return;
-
-                              final topic = TopicModel(
-                                id: FirebaseFirestore.instance
-                                    .collection('topics')
-                                    .doc()
-                                    .id,
-                                categoryId: category.id,
-                                name: name,
-                                desc: desc,
-                                isNew: isNew,
-                                isUpdated: isUpdated,
-                                order: order,
-                                createdAt: DateTime.now(),
-                                updatedAt: DateTime.now(),
-                              );
-
-                              await _topicsService.saveTopic(topic);
-                              if (!mounted) return;
-                              Navigator.pop(context);
-                              await _loadTopics(category.id);
-                              setState(() => _topicId = topic.id);
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
+        return QuickAddTopicSheet(
+          categoryTitle: category.title,
+          initialOrder: _topics.length + 1,
+          onSave: (name, desc, isNew, isUpdated, order) async {
+            final topic = TopicModel(
+              id: FirebaseFirestore.instance.collection('topics').doc().id,
+              categoryId: category.id,
+              name: name,
+              desc: desc,
+              isNew: isNew,
+              isUpdated: isUpdated,
+              order: order,
+              createdAt: DateTime.now(),
+              updatedAt: DateTime.now(),
             );
+
+            await _topicsService.saveTopic(topic);
+            if (!mounted) return;
+            await _loadTopics(category.id);
+            setState(() => _topicId = topic.id);
           },
         );
       },
@@ -323,30 +206,9 @@ class _AdminContentScreenState extends State<AdminContentScreen> {
       body: SafeArea(
         child: Column(
           children: [
-            Container(
-              decoration: const BoxDecoration(
-                color: AdminContentUi.teal,
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(26),
-                  bottomRight: Radius.circular(26),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 10,
-                    offset: Offset(0, 4),
-                  ),
-                ],
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-              child: Row(
-                children: [
-                  AdminContentHeader(
-                    onBack: () => Navigator.pop(context),
-                    onManage: _openManager,
-                  ),
-                ],
-              ),
+            AdminContentHeader(
+              onBack: () => Navigator.pop(context),
+              onManage: _openManager,
             ),
             Expanded(
               child: _loading
