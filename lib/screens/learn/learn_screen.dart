@@ -1,5 +1,5 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import '../../core/theme.dart';
 import '../../models/category_model.dart';
 import '../../models/learning_content_model.dart';
 import '../../services/learning_service.dart';
@@ -15,12 +15,14 @@ class LearnScreen extends StatefulWidget {
 }
 
 class _LearnScreenState extends State<LearnScreen> {
-  final LearningService _service = LearningService();
+  static const teal = Color(0xFF2BBFAA);
+
+  final LearningService _learningService = LearningService();
   final TopicsService _topicsService = TopicsService();
 
   List<CategoryModel> _categories = [];
-  bool _loadingCategories = true;
-  String _selectedCategory = 'all';
+  String _selectedCatId = 'all';
+  bool _loading = true;
 
   @override
   void initState() {
@@ -29,90 +31,94 @@ class _LearnScreenState extends State<LearnScreen> {
   }
 
   Future<void> _loadCategories() async {
-    final categories = await _topicsService.getCategories();
+    final cats = await _topicsService.getCategories();
     setState(() {
-      _categories = categories;
-      _loadingCategories = false;
+      _categories = cats;
+      _loading = false;
     });
+  }
+
+  void _openContent(LearningContentModel item) {
+    Navigator.push(context, MaterialPageRoute(
+      builder: (_) => item.type == ContentType.video
+          ? VideoScreen(content: item)
+          : ArticleScreen(content: item),
+    ));
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFF1A1A2E),
-            Color(0xFF16213E),
-            Color(0xFF0F3460),
-          ],
-        ),
-      ),
-      child: SafeArea(
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: SafeArea(
         child: Column(
           children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(20, 16, 20, 8),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Learn',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 26,
-                    fontWeight: FontWeight.w900,
+            // Teal header with category chips
+            Container(
+              color: teal,
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Learn', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900)),
+                  const SizedBox(height: 2),
+                  const Text('Explore articles and videos', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    height: 36,
+                    child: _loading
+                        ? const SizedBox.shrink()
+                        : ListView(
+                      scrollDirection: Axis.horizontal,
+                      children: [
+                        _Chip(label: 'All', selected: _selectedCatId == 'all', onTap: () => setState(() => _selectedCatId = 'all')),
+                        ..._categories.map((cat) => _Chip(
+                          label: cat.title,
+                          selected: _selectedCatId == cat.id,
+                          onTap: () => setState(() => _selectedCatId = cat.id),
+                        )),
+                      ],
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 12),
+                ],
               ),
             ),
-            if (_loadingCategories)
-              const SizedBox(
-                height: 44,
-                child: Center(child: CircularProgressIndicator()),
-              )
-            else
-              SizedBox(
-                height: 44,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  children: [
-                    _buildCategoryChip(
-                      id: 'all',
-                      label: 'All',
-                      selected: _selectedCategory == 'all',
-                    ),
-                    ..._categories.map(
-                          (category) => _buildCategoryChip(
-                        id: category.id,
-                        label: category.title,
-                        selected: _selectedCategory == category.id,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            const SizedBox(height: 12),
+
+            // Content list
             Expanded(
-              child: _selectedCategory == 'all'
-                  ? StreamBuilder<List<LearningContentModel>>(
-                stream: _service.getAllContent(),
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData) {
-                    return const Center(child: CircularProgressIndicator());
+              child: StreamBuilder<List<LearningContentModel>>(
+                stream: _selectedCatId == 'all'
+                    ? _learningService.getAllContent()
+                    : _learningService.getContentByCategory(_selectedCatId),
+                builder: (context, snap) {
+                  if (!snap.hasData) return const Center(child: CircularProgressIndicator(color: teal));
+
+                  final items = snap.data!;
+                  if (items.isEmpty) {
+                    return Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 80, height: 80,
+                            decoration: BoxDecoration(color: teal.withOpacity(0.1), shape: BoxShape.circle),
+                            child: const Icon(Icons.menu_book_rounded, color: teal, size: 40),
+                          ),
+                          const SizedBox(height: 16),
+                          const Text('No content yet', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
+                          const SizedBox(height: 6),
+                          const Text('Check back soon!', style: TextStyle(color: AppColors.textSecondary)),
+                        ],
+                      ),
+                    );
                   }
-                  return _buildContentList(snapshot.data!);
-                },
-              )
-                  : StreamBuilder<List<LearningContentModel>>(
-                stream: _service.getContentByCategory(_selectedCategory),
-                builder: (context, snapshot) {
-                  if (!snapshot.hasData) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  return _buildContentList(snapshot.data!);
+
+                  return ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                    itemCount: items.length,
+                    itemBuilder: (_, i) => _ContentCard(item: items[i], onTap: () => _openContent(items[i])),
+                  );
                 },
               ),
             ),
@@ -121,206 +127,127 @@ class _LearnScreenState extends State<LearnScreen> {
       ),
     );
   }
+}
 
-  Widget _buildCategoryChip({
-    required String id,
-    required String label,
-    required bool selected,
-  }) {
+class _Chip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  const _Chip({required this.label, required this.selected, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => setState(() => _selectedCategory = id),
+      onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
+        duration: const Duration(milliseconds: 180),
         margin: const EdgeInsets.only(right: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         decoration: BoxDecoration(
-          color: selected
-              ? const Color(0xFF00D4FF).withOpacity(0.2)
-              : Colors.white.withOpacity(0.05),
+          color: selected ? Colors.white : Colors.white.withOpacity(0.15),
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(
-            color: selected ? const Color(0xFF00D4FF) : Colors.white24,
-            width: 1.5,
-          ),
+          border: Border.all(color: selected ? Colors.white : Colors.white38, width: 1.5),
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            color: selected ? const Color(0xFF00D4FF) : Colors.white54,
-            fontWeight: FontWeight.bold,
-            fontSize: 13,
-          ),
-        ),
+        child: Text(label, style: TextStyle(
+          color: selected ? const Color(0xFF1A9E8F) : Colors.white,
+          fontWeight: FontWeight.bold, fontSize: 13,
+        )),
       ),
     );
   }
+}
 
-  Widget _buildContentList(List<LearningContentModel> items) {
-    if (items.isEmpty) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text('📚', style: TextStyle(fontSize: 48)),
-            SizedBox(height: 16),
-            Text(
-              'No content yet',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            SizedBox(height: 8),
-            Text(
-              'Check back soon!',
-              style: TextStyle(color: Colors.white54),
-            ),
-          ],
-        ),
-      );
-    }
+class _ContentCard extends StatelessWidget {
+  final LearningContentModel item;
+  final VoidCallback onTap;
+  const _ContentCard({required this.item, required this.onTap});
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(16),
-      itemCount: items.length,
-      itemBuilder: (context, index) => _buildContentCard(items[index]),
-    );
-  }
-
-  Widget _buildContentCard(LearningContentModel item) {
-    final typeIcon = item.type == ContentType.video
-        ? '▶️'
-        : item.type == ContentType.infographic
-        ? '🖼️'
-        : '📄';
-
-    final typeLabel = item.type == ContentType.video
-        ? 'Video'
-        : item.type == ContentType.infographic
-        ? 'Infographic'
-        : '${item.readTimeMinutes} min read';
+  @override
+  Widget build(BuildContext context) {
+    final isVideo = item.type == ContentType.video;
+    final isImage = item.type == ContentType.infographic;
 
     return GestureDetector(
-      onTap: () {
-        if (item.type == ContentType.video) {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => VideoScreen(content: item)),
-          );
-        } else {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => ArticleScreen(content: item)),
-          );
-        }
-      },
+      onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
+        margin: const EdgeInsets.only(bottom: 14),
         decoration: BoxDecoration(
-          color: Colors.white.withOpacity(0.05),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.white.withOpacity(0.1)),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.06), blurRadius: 10, offset: const Offset(0, 4))],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (item.thumbnailUrl.isNotEmpty)
-              ClipRRect(
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(16),
-                  topRight: Radius.circular(16),
-                ),
-                child: CachedNetworkImage(
-                  imageUrl: item.thumbnailUrl,
-                  height: 160,
-                  width: double.infinity,
-                  fit: BoxFit.cover,
-                  placeholder: (context, url) => Container(
-                    height: 160,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF16213E),
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(16),
-                        topRight: Radius.circular(16),
-                      ),
-                    ),
-                    child: const Center(child: CircularProgressIndicator()),
-                  ),
-                  errorWidget: (context, url, error) => Container(
-                    height: 160,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF16213E),
-                      borderRadius: BorderRadius.only(
-                        topLeft: Radius.circular(16),
-                        topRight: Radius.circular(16),
-                      ),
-                    ),
-                    child: const Center(
-                      child: Icon(
-                        Icons.image_not_supported_outlined,
-                        color: Colors.white24,
-                        size: 40,
-                      ),
-                    ),
-                  ),
-                ),
-              )
-            else
-              Container(
-                height: 120,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.05),
-                  borderRadius: const BorderRadius.only(
-                    topLeft: Radius.circular(16),
-                    topRight: Radius.circular(16),
-                  ),
-                ),
-                child: Center(
-                  child: Text(typeIcon, style: const TextStyle(fontSize: 40)),
-                ),
-              ),
+            // Thumbnail
+            ClipRRect(
+              borderRadius: const BorderRadius.only(topLeft: Radius.circular(18), topRight: Radius.circular(18)),
+              child: item.thumbnailUrl.isNotEmpty
+                  ? Image.network(item.thumbnailUrl, height: 140, width: double.infinity, fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => _placeholder(isVideo, isImage))
+                  : _placeholder(isVideo, isImage),
+            ),
+
             Padding(
-              padding: const EdgeInsets.all(14),
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Text(
-                        '$typeIcon $typeLabel',
-                        style: const TextStyle(
-                          color: Colors.white38,
-                          fontSize: 11,
-                        ),
-                      ),
+                  Row(children: [
+                    _TypeBadge(type: item.type),
+                    if (!isVideo && item.readTimeMinutes > 0) ...[
+                      const SizedBox(width: 8),
+                      const Icon(Icons.access_time_rounded, color: AppColors.textLight, size: 12),
+                      const SizedBox(width: 3),
+                      Text('${item.readTimeMinutes} min read', style: const TextStyle(color: AppColors.textLight, fontSize: 11)),
                     ],
-                  ),
+                  ]),
                   const SizedBox(height: 8),
-                  Text(
-                    item.title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                  Text(item.title, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: AppColors.textPrimary)),
                   const SizedBox(height: 4),
-                  Text(
-                    item.description,
-                    style: const TextStyle(
-                      color: Colors.white54,
-                      fontSize: 13,
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
+                  Text(item.description, maxLines: 2, overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: AppColors.textSecondary, fontSize: 12, height: 1.4)),
                 ],
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _placeholder(bool isVideo, bool isImage) {
+    return Container(
+      height: 140, width: double.infinity,
+      color: const Color(0xFFE8F5F3),
+      child: Center(child: Icon(
+        isVideo ? Icons.play_circle_rounded : isImage ? Icons.image_rounded : Icons.article_rounded,
+        color: const Color(0xFF2BBFAA), size: 48,
+      )),
+    );
+  }
+}
+
+class _TypeBadge extends StatelessWidget {
+  final ContentType type;
+  const _TypeBadge({required this.type});
+
+  @override
+  Widget build(BuildContext context) {
+    final isVideo = type == ContentType.video;
+    final isImage = type == ContentType.infographic;
+    final color = isVideo ? const Color(0xFFE8524A) : isImage ? const Color(0xFFFFB300) : const Color(0xFF2BBFAA);
+    final label = isVideo ? 'VIDEO' : isImage ? 'IMAGE' : 'ARTICLE';
+    final icon = isVideo ? Icons.play_circle_rounded : isImage ? Icons.image_rounded : Icons.article_rounded;
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(8)),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon, color: color, size: 12),
+        const SizedBox(width: 4),
+        Text(label, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 10)),
+      ]),
     );
   }
 }
