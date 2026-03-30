@@ -6,6 +6,7 @@ import '../../models/topic_model.dart';
 import '../../services/learning_service.dart';
 import '../../services/topics_service.dart';
 import '../../widgets/admin_content_ui.dart';
+import '../../widgets/content_category_topic_section.dart';
 import 'category_topic_manager_screen.dart';
 
 class AdminContentScreen extends StatefulWidget {
@@ -478,41 +479,23 @@ class _AdminContentScreenState extends State<AdminContentScreen> {
                     ),
                   ),
                   const SizedBox(height: 16),
-                  AdminSectionCard(
-                    title: 'Content type',
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: _TypeButton(
-                            label: 'Article',
-                            selected: _type == ContentType.article,
-                            onTap: () => setState(
-                                  () => _type = ContentType.article,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _TypeButton(
-                            label: 'Video',
-                            selected: _type == ContentType.video,
-                            onTap: () => setState(
-                                  () => _type = ContentType.video,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: _TypeButton(
-                            label: 'Image',
-                            selected: _type == ContentType.infographic,
-                            onTap: () => setState(
-                                  () => _type = ContentType.infographic,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                  ContentCategoryTopicSection(
+                    categories: _categories,
+                    topics: _topics,
+                    selectedCategoryId: _categoryId,
+                    selectedTopicId: _topicId,
+                    onAddTopic: _showQuickAddTopicSheet,
+                    onTopicChanged: (val) => setState(() => _topicId = val),
+                    onCategoryChanged: (val) async {
+                      if (val == null) return;
+                      setState(() {
+                        _categoryId = val;
+                        _topicId = null;
+                        _topics = [];
+                        _loading = true;
+                      });
+                      await _loadTopics(val);
+                    },
                   ),
                   const SizedBox(height: 16),
                   AdminSectionCard(
