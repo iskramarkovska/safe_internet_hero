@@ -141,17 +141,20 @@ class _TopicsScreenState extends State<TopicsScreen> {
               child: StreamBuilder<List<CategoryModel>>(
                 stream: _topicsService.watchCategories(),
                 builder: (context, catSnap) {
-                  if (!catSnap.hasData) return const Center(child: CircularProgressIndicator());
+                  if (!catSnap.hasData) {
+                    return const Center(child: CircularProgressIndicator(color: teal));
+                  }
 
                   return StreamBuilder<List<TopicModel>>(
                     stream: _topicsService.watchAllTopics(),
                     builder: (context, topicSnap) {
-                      if (!topicSnap.hasData) return const Center(child: CircularProgressIndicator());
+                      if (!topicSnap.hasData) {
+                        return const Center(child: CircularProgressIndicator(color: teal));
+                      }
 
                       final categories = catSnap.data!;
                       final allTopics = topicSnap.data!;
 
-                      // Apply search filter
                       final query = _searchText.trim().toLowerCase();
                       final filtered = categories.map((cat) {
                         final topics = allTopics
@@ -190,7 +193,9 @@ class _TopicsScreenState extends State<TopicsScreen> {
                                 hintStyle: const TextStyle(color: AppColors.textLight),
                                 prefixIcon: const Icon(Icons.search_rounded, color: teal),
                                 suffixIcon: _searchText.isNotEmpty
-                                    ? IconButton(icon: const Icon(Icons.close_rounded), onPressed: () { _searchController.clear(); setState(() => _searchText = ''); })
+                                    ? IconButton(
+                                    icon: const Icon(Icons.close_rounded),
+                                    onPressed: () { _searchController.clear(); setState(() => _searchText = ''); })
                                     : null,
                                 border: InputBorder.none,
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -259,8 +264,10 @@ class _CategoryCard extends StatelessWidget {
     required this.completedCount,
   });
 
-  static const teal = Color(0xFF2BBFAA);
-  static const darkTeal = Color(0xFF1A9E8F);
+  // Light teal for cards — distinct from nav bar
+  static const cardColor = Color(0xFF4ECFBC);
+  static const cardBorder = Color(0xFF2BBFAA);
+  static const cardShadow = Color(0xFF1A9E8F);
 
   @override
   Widget build(BuildContext context) {
@@ -270,11 +277,11 @@ class _CategoryCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
-        color: teal,
+        color: cardColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: darkTeal, width: 2),
+        border: Border.all(color: cardBorder, width: 2),
         boxShadow: const [
-          BoxShadow(color: darkTeal, offset: Offset(0, 5), blurRadius: 0),
+          BoxShadow(color: cardShadow, offset: Offset(0, 5), blurRadius: 0),
           BoxShadow(color: Colors.black12, offset: Offset(0, 8), blurRadius: 8),
         ],
       ),
@@ -282,7 +289,6 @@ class _CategoryCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(18),
         child: Column(
           children: [
-            // Header row
             Stack(
               children: [
                 GestureDetector(
@@ -292,15 +298,15 @@ class _CategoryCard extends StatelessWidget {
                     padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
                     child: Row(
                       children: [
-                        // Icon in white circle
+                        // White icon circle
                         Container(
                           width: 52, height: 52,
                           decoration: BoxDecoration(
                             color: Colors.white,
                             shape: BoxShape.circle,
-                            boxShadow: [BoxShadow(color: darkTeal.withOpacity(0.3), blurRadius: 8, offset: const Offset(0, 2))],
+                            boxShadow: [BoxShadow(color: cardShadow.withOpacity(0.25), blurRadius: 8, offset: const Offset(0, 3))],
                           ),
-                          child: const Icon(Icons.lock_rounded, color: teal, size: 26),
+                          child: const Icon(Icons.lock_rounded, color: cardColor, size: 26),
                         ),
                         const SizedBox(width: 14),
                         Expanded(
@@ -316,14 +322,18 @@ class _CategoryCard extends StatelessWidget {
                                   border: Border.all(color: const Color(0xFFC8A830), width: 1.5),
                                 ),
                                 child: Text(category.title,
-                                    style: const TextStyle(color: Color(0xFF5A4A1A), fontWeight: FontWeight.bold, fontSize: 14)),
+                                    style: const TextStyle(
+                                        color: Color(0xFF5A4A1A),
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14)),
                               ),
                               const SizedBox(height: 6),
                               Text('${topics.length} topics',
                                   style: const TextStyle(color: Colors.white70, fontSize: 12)),
 
+                              // Progress bar for logged in users
                               if (!isGuest && user != null) ...[
-                                const SizedBox(height: 6),
+                                const SizedBox(height: 8),
                                 FutureBuilder<int>(
                                   future: completedCount(user, category.id, topics),
                                   builder: (context, snap) {
@@ -341,7 +351,7 @@ class _CategoryCard extends StatelessWidget {
                                             valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFE8C84A)),
                                           ),
                                         ),
-                                        const SizedBox(height: 3),
+                                        const SizedBox(height: 4),
                                         Text('$done / $total completed',
                                             style: const TextStyle(color: Colors.white70, fontSize: 11)),
                                       ],
@@ -375,8 +385,10 @@ class _CategoryCard extends StatelessWidget {
                         padding: const EdgeInsets.only(top: 9, right: 5),
                         child: Transform.rotate(
                           angle: 0.78,
-                          child: Text(hasNew ? 'NEW' : 'UPD',
-                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10)),
+                          child: Text(
+                            hasNew ? 'NEW' : 'UPD',
+                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10),
+                          ),
                         ),
                       ),
                     ),
@@ -384,10 +396,10 @@ class _CategoryCard extends StatelessWidget {
               ],
             ),
 
-            // Expanded topics — cream bg
+            // Expanded topics
             if (isExpanded)
               Container(
-                color: const Color(0xFFF5FAF7),
+                color: const Color(0xFFF0FBF9),
                 padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
                 child: Column(
                   children: topics.map((topic) => isGuest
@@ -419,7 +431,12 @@ class _TopicRow extends StatelessWidget {
   final double progress;
   final VoidCallback onTap;
 
-  const _TopicRow({required this.topic, required this.isDone, required this.progress, required this.onTap});
+  const _TopicRow({
+    required this.topic,
+    required this.isDone,
+    required this.progress,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -442,16 +459,22 @@ class _TopicRow extends StatelessWidget {
           children: [
             Row(
               children: [
-                Expanded(child: Text(topic.name,
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.bold,
-                        color: isDone ? const Color(0xFF8A6B12) : AppColors.textPrimary))),
+                Expanded(
+                  child: Text(topic.name,
+                      style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: isDone ? const Color(0xFF8A6B12) : AppColors.textPrimary)),
+                ),
                 if (topic.isNew)
-                  Container(margin: const EdgeInsets.only(left: 6),
+                  Container(
+                      margin: const EdgeInsets.only(left: 6),
                       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                       decoration: BoxDecoration(color: const Color(0xFFF45B8C), borderRadius: BorderRadius.circular(8)),
                       child: const Text('NEW', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold))),
                 if (topic.isUpdated)
-                  Container(margin: const EdgeInsets.only(left: 4),
+                  Container(
+                      margin: const EdgeInsets.only(left: 4),
                       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                       decoration: BoxDecoration(color: const Color(0xFFFFA726), borderRadius: BorderRadius.circular(8)),
                       child: const Text('UPD', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold))),
@@ -490,6 +513,7 @@ class _RibbonClipper extends CustomClipper<Path> {
     path.close();
     return path;
   }
+
   @override
   bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
