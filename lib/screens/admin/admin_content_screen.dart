@@ -7,6 +7,7 @@ import '../../services/learning_service.dart';
 import '../../services/topics_service.dart';
 import '../../widgets/admin_content_ui.dart';
 import '../../widgets/content_category_topic_section.dart';
+import '../../widgets/content_details_section.dart';
 import '../../widgets/content_type_selector.dart';
 import 'category_topic_manager_screen.dart';
 
@@ -415,71 +416,6 @@ class _AdminContentScreenState extends State<AdminContentScreen> {
                   : ListView(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
                 children: [
-                  AdminSectionCard(
-                    title: 'Where does this content belong?',
-                    child: Column(
-                      children: [
-                        const AdminSectionLabel('Category'),
-                        const SizedBox(height: 8),
-                        DropdownButtonFormField<String>(
-                          initialValue: _categoryId,
-                          decoration: AdminContentUi.inputDecoration(
-                            'Select category',
-                          ),
-                          items: _categories
-                              .map(
-                                (cat) => DropdownMenuItem(
-                              value: cat.id,
-                              child: Text(cat.title),
-                            ),
-                          )
-                              .toList(),
-                          onChanged: (val) async {
-                            if (val == null) return;
-                            setState(() {
-                              _categoryId = val;
-                              _topicId = null;
-                              _topics = [];
-                              _loading = true;
-                            });
-                            await _loadTopics(val);
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            const Expanded(
-                              child: AdminStaticLabel(text: 'Topic'),
-                            ),
-                            TextButton.icon(
-                              onPressed: _showQuickAddTopicSheet,
-                              icon:
-                              const Icon(Icons.add_rounded, size: 18),
-                              label: const Text('Add Topic'),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 8),
-                        DropdownButtonFormField<String>(
-                          initialValue: _topicId,
-                          decoration: AdminContentUi.inputDecoration(
-                            'Select topic',
-                          ),
-                          items: _topics
-                              .map(
-                                (topic) => DropdownMenuItem(
-                              value: topic.id,
-                              child: Text(topic.name),
-                            ),
-                          )
-                              .toList(),
-                          onChanged: (val) =>
-                              setState(() => _topicId = val),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 16),
                   ContentCategoryTopicSection(
                     categories: _categories,
                     topics: _topics,
@@ -504,6 +440,14 @@ class _AdminContentScreenState extends State<AdminContentScreen> {
                     onChanged: (type) => setState(() => _type = type),
                   ),
                   const SizedBox(height: 16),
+                  ContentDetailsSection(
+                    titleController: _titleController,
+                    descriptionController: _descriptionController,
+                    contentController: _contentController,
+                    thumbnailController: _thumbnailController,
+                    readTimeController: _readTimeController,
+                    type: _type,
+                  ),
                   const SizedBox(height: 20),
                   AdminPrimaryButton(
                     label: _isSaving ? 'Saving...' : 'Save Content',
@@ -513,52 +457,6 @@ class _AdminContentScreenState extends State<AdminContentScreen> {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-}
-
-class _TypeButton extends StatelessWidget {
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _TypeButton({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(vertical: 12),
-        decoration: BoxDecoration(
-          color: selected
-              ? AdminContentUi.teal.withOpacity(0.15)
-              : const Color(0xFFF8FAFC),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: selected
-                ? AdminContentUi.teal
-                : const Color(0xFFE5E7EB),
-            width: selected ? 2 : 1,
-          ),
-        ),
-        child: Text(
-          label,
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            color: selected
-                ? AdminContentUi.tealDark
-                : const Color(0xFF6B7280),
-            fontWeight: FontWeight.bold,
-            fontSize: 13,
-          ),
         ),
       ),
     );
