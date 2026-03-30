@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../../models/category_model.dart';
 import '../../models/enums.dart';
+import '../../models/learning_content_model.dart';
 import '../../models/question_model.dart';
 import '../../models/topic_model.dart';
+import '../../services/learning_service.dart';
 import '../../services/questions_service.dart';
 import '../../services/topics_service.dart';
 
@@ -20,15 +22,13 @@ class _AdminScreenState extends State<AdminScreen>
   late TabController _tabController;
 
   static const teal = Color(0xFF2BBFAA);
-  static const darkTeal = Color(0xFF1A9E8F);
   static const yellow = Color(0xFFE8C84A);
   static const yellowDark = Color(0xFFC8A830);
-  static const bg = Color(0xFFF5FAF7);
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
   }
 
   @override
@@ -40,11 +40,10 @@ class _AdminScreenState extends State<AdminScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: bg,
+      backgroundColor: const Color(0xFFF5FAF7),
       body: SafeArea(
         child: Column(
           children: [
-            // Header
             Container(
               color: teal,
               child: Column(
@@ -74,18 +73,19 @@ class _AdminScreenState extends State<AdminScreen>
                     labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                     tabs: const [
                       Tab(text: 'Questions'),
+                      Tab(text: 'Content'),
                       Tab(text: 'Manage'),
                     ],
                   ),
                 ],
               ),
             ),
-
             Expanded(
               child: TabBarView(
                 controller: _tabController,
                 children: const [
-                  _AddQuestionTab(),
+                  _QuestionsTab(),
+                  _ContentTab(),
                   _ManageTab(),
                 ],
               ),
@@ -97,22 +97,20 @@ class _AdminScreenState extends State<AdminScreen>
   }
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
 // TAB 1 — ADD QUESTION
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
 
-class _AddQuestionTab extends StatefulWidget {
-  const _AddQuestionTab();
-
+class _QuestionsTab extends StatefulWidget {
+  const _QuestionsTab();
   @override
-  State<_AddQuestionTab> createState() => _AddQuestionTabState();
+  State<_QuestionsTab> createState() => _QuestionsTabState();
 }
 
-class _AddQuestionTabState extends State<_AddQuestionTab> {
+class _QuestionsTabState extends State<_QuestionsTab> {
   static const teal = Color(0xFF2BBFAA);
   static const darkTeal = Color(0xFF1A9E8F);
   static const red = Color(0xFFE8524A);
-  static const bg = Color(0xFFF5FAF7);
 
   final _formKey = GlobalKey<FormState>();
   final _textCtrl = TextEditingController();
@@ -121,7 +119,6 @@ class _AddQuestionTabState extends State<_AddQuestionTab> {
   final _opt1Ctrl = TextEditingController();
   final _opt2Ctrl = TextEditingController();
   final _opt3Ctrl = TextEditingController();
-
   final TopicsService _topicsService = TopicsService();
 
   List<CategoryModel> _categories = [];
@@ -130,7 +127,6 @@ class _AddQuestionTabState extends State<_AddQuestionTab> {
   String? _topicId;
   bool _loading = true;
   bool _saving = false;
-
   QuestionType _type = QuestionType.multipleChoice;
   DifficultyLevel _difficulty = DifficultyLevel.beginner;
   int _correctIndex = 0;
@@ -138,26 +134,19 @@ class _AddQuestionTabState extends State<_AddQuestionTab> {
   @override
   void initState() {
     super.initState();
-    _loadCategories();
+    _load();
   }
 
   @override
   void dispose() {
-    _textCtrl.dispose();
-    _explanationCtrl.dispose();
-    _opt0Ctrl.dispose();
-    _opt1Ctrl.dispose();
-    _opt2Ctrl.dispose();
-    _opt3Ctrl.dispose();
+    _textCtrl.dispose(); _explanationCtrl.dispose();
+    _opt0Ctrl.dispose(); _opt1Ctrl.dispose(); _opt2Ctrl.dispose(); _opt3Ctrl.dispose();
     super.dispose();
   }
 
-  Future<void> _loadCategories() async {
+  Future<void> _load() async {
     final cats = await _topicsService.getCategories();
-    setState(() {
-      _categories = cats;
-      _categoryId = cats.isNotEmpty ? cats.first.id : null;
-    });
+    setState(() { _categories = cats; _categoryId = cats.isNotEmpty ? cats.first.id : null; });
     if (_categoryId != null) await _loadTopics(_categoryId!);
     else setState(() => _loading = false);
   }
@@ -165,51 +154,31 @@ class _AddQuestionTabState extends State<_AddQuestionTab> {
   Future<void> _loadTopics(String catId) async {
     setState(() => _loading = true);
     final topics = await _topicsService.getTopicsByCategory(catId);
-    setState(() {
-      _topics = topics;
-      _topicId = topics.isNotEmpty ? topics.first.id : null;
-      _loading = false;
-    });
+    setState(() { _topics = topics; _topicId = topics.isNotEmpty ? topics.first.id : null; _loading = false; });
   }
 
-  int get _points {
-    switch (_difficulty) {
-      case DifficultyLevel.beginner: return 10;
-      case DifficultyLevel.intermediate: return 20;
-      case DifficultyLevel.advanced: return 30;
-    }
-  }
+  int get _points => _difficulty == DifficultyLevel.beginner ? 10 : _difficulty == DifficultyLevel.intermediate ? 20 : 30;
 
   List<String> get _options => _type == QuestionType.trueFalse
       ? ['True', 'False']
       : [_opt0Ctrl.text.trim(), _opt1Ctrl.text.trim(), _opt2Ctrl.text.trim(), _opt3Ctrl.text.trim()];
 
   Future<void> _save() async {
-    if (_categoryId == null || _topicId == null) {
-      _snack('Select category and topic', isError: true); return;
-    }
+    if (_categoryId == null || _topicId == null) { _snack('Select category and topic', isError: true); return; }
     if (!_formKey.currentState!.validate()) return;
     if (_type == QuestionType.multipleChoice) {
       if ([_opt0Ctrl, _opt1Ctrl, _opt2Ctrl, _opt3Ctrl].any((c) => c.text.trim().isEmpty)) {
         _snack('Fill in all 4 options', isError: true); return;
       }
     }
-
     setState(() => _saving = true);
     try {
       await QuestionService().seedQuestions([QuestionModel(
-        id: '',
-        categoryId: _categoryId!,
-        topicId: _topicId!,
-        text: _textCtrl.text.trim(),
-        type: _type,
-        options: _options,
-        correctIndex: _correctIndex,
-        explanation: _explanationCtrl.text.trim(),
-        difficulty: _difficulty,
-        points: _points,
+        id: '', categoryId: _categoryId!, topicId: _topicId!,
+        text: _textCtrl.text.trim(), type: _type, options: _options,
+        correctIndex: _correctIndex, explanation: _explanationCtrl.text.trim(),
+        difficulty: _difficulty, points: _points,
       )]);
-
       _textCtrl.clear(); _explanationCtrl.clear();
       _opt0Ctrl.clear(); _opt1Ctrl.clear(); _opt2Ctrl.clear(); _opt3Ctrl.clear();
       setState(() { _correctIndex = 0; _saving = false; });
@@ -222,46 +191,35 @@ class _AddQuestionTabState extends State<_AddQuestionTab> {
 
   void _snack(String msg, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text(msg),
-      backgroundColor: isError ? red : darkTeal,
+      content: Text(msg), backgroundColor: isError ? red : const Color(0xFF1A9E8F),
     ));
   }
 
   @override
   Widget build(BuildContext context) {
     if (_loading) return const Center(child: CircularProgressIndicator(color: teal));
-
     return Form(
       key: _formKey,
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         children: [
-          // Category + Topic
           _Card(title: 'Where does this question belong?', child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const _Label('Category'),
               const SizedBox(height: 8),
-              _Dropdown<String>(
-                value: _categoryId,
-                items: _categories.map((c) => DropdownMenuItem(value: c.id, child: Text(c.title))).toList(),
-                hint: 'Select category',
-                onChanged: (val) async { if (val == null) return; setState(() { _categoryId = val; _topicId = null; }); await _loadTopics(val); },
-              ),
+              _Dropdown<String>(value: _categoryId, hint: 'Select category',
+                  items: _categories.map((c) => DropdownMenuItem(value: c.id, child: Text(c.title))).toList(),
+                  onChanged: (val) async { if (val == null) return; setState(() { _categoryId = val; _topicId = null; }); await _loadTopics(val); }),
               const SizedBox(height: 14),
               const _Label('Topic'),
               const SizedBox(height: 8),
-              _Dropdown<String>(
-                value: _topicId,
-                items: _topics.map((t) => DropdownMenuItem(value: t.id, child: Text(t.name))).toList(),
-                hint: 'Select topic',
-                onChanged: (val) => setState(() => _topicId = val),
-              ),
+              _Dropdown<String>(value: _topicId, hint: 'Select topic',
+                  items: _topics.map((t) => DropdownMenuItem(value: t.id, child: Text(t.name))).toList(),
+                  onChanged: (val) => setState(() => _topicId = val)),
             ],
           )),
           const SizedBox(height: 14),
-
-          // Type + Difficulty
           _Card(title: 'Question setup', child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -287,28 +245,22 @@ class _AddQuestionTabState extends State<_AddQuestionTab> {
             ],
           )),
           const SizedBox(height: 14),
-
-          // Question text + options
           _Card(title: 'Question', child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TextFormField(
-                controller: _textCtrl,
-                maxLines: 3,
-                decoration: _inputDec('Type your question here...'),
-                validator: (v) => v == null || v.isEmpty ? 'Required' : null,
-              ),
+              TextFormField(controller: _textCtrl, maxLines: 3, decoration: _inputDec('Type your question here...'),
+                  validator: (v) => v == null || v.isEmpty ? 'Required' : null),
               const SizedBox(height: 14),
               if (_type == QuestionType.multipleChoice) ...[
                 const _Label('Options — tap letter to mark correct'),
                 const SizedBox(height: 8),
-                _OptionField(ctrl: _opt0Ctrl, letter: 'A', index: 0, correctIndex: _correctIndex, onTap: () => setState(() => _correctIndex = 0)),
+                _OptionField(ctrl: _opt0Ctrl, letter: 'A', index: 0, correct: _correctIndex, onTap: () => setState(() => _correctIndex = 0)),
                 const SizedBox(height: 8),
-                _OptionField(ctrl: _opt1Ctrl, letter: 'B', index: 1, correctIndex: _correctIndex, onTap: () => setState(() => _correctIndex = 1)),
+                _OptionField(ctrl: _opt1Ctrl, letter: 'B', index: 1, correct: _correctIndex, onTap: () => setState(() => _correctIndex = 1)),
                 const SizedBox(height: 8),
-                _OptionField(ctrl: _opt2Ctrl, letter: 'C', index: 2, correctIndex: _correctIndex, onTap: () => setState(() => _correctIndex = 2)),
+                _OptionField(ctrl: _opt2Ctrl, letter: 'C', index: 2, correct: _correctIndex, onTap: () => setState(() => _correctIndex = 2)),
                 const SizedBox(height: 8),
-                _OptionField(ctrl: _opt3Ctrl, letter: 'D', index: 3, correctIndex: _correctIndex, onTap: () => setState(() => _correctIndex = 3)),
+                _OptionField(ctrl: _opt3Ctrl, letter: 'D', index: 3, correct: _correctIndex, onTap: () => setState(() => _correctIndex = 3)),
               ],
               if (_type == QuestionType.trueFalse) ...[
                 const _Label('Correct answer'),
@@ -322,16 +274,11 @@ class _AddQuestionTabState extends State<_AddQuestionTab> {
               const SizedBox(height: 14),
               const _Label('Explanation'),
               const SizedBox(height: 8),
-              TextFormField(
-                controller: _explanationCtrl,
-                maxLines: 3,
-                decoration: _inputDec('Why is this answer correct?'),
-                validator: (v) => v == null || v.isEmpty ? 'Required' : null,
-              ),
+              TextFormField(controller: _explanationCtrl, maxLines: 3, decoration: _inputDec('Why is this the correct answer?'),
+                  validator: (v) => v == null || v.isEmpty ? 'Required' : null),
             ],
           )),
           const SizedBox(height: 14),
-
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFE5E7EB))),
@@ -355,13 +302,166 @@ class _AddQuestionTabState extends State<_AddQuestionTab> {
   );
 }
 
-// ═══════════════════════════════════════════════════════════════════════════════
-// TAB 2 — MANAGE CATEGORIES & TOPICS
-// ═══════════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════
+// TAB 2 — ADD CONTENT
+// ═══════════════════════════════════════════════════════════════
+
+class _ContentTab extends StatefulWidget {
+  const _ContentTab();
+  @override
+  State<_ContentTab> createState() => _ContentTabState();
+}
+
+class _ContentTabState extends State<_ContentTab> {
+  static const teal = Color(0xFF2BBFAA);
+  static const red = Color(0xFFE8524A);
+
+  final _titleCtrl = TextEditingController();
+  final _descCtrl = TextEditingController();
+  final _contentCtrl = TextEditingController();
+  final _thumbCtrl = TextEditingController();
+  final _readTimeCtrl = TextEditingController();
+  final TopicsService _topicsService = TopicsService();
+  final LearningService _learningService = LearningService();
+
+  List<CategoryModel> _categories = [];
+  List<TopicModel> _topics = [];
+  String? _categoryId;
+  String? _topicId;
+  bool _loading = true;
+  bool _saving = false;
+  ContentType _type = ContentType.article;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  @override
+  void dispose() {
+    _titleCtrl.dispose(); _descCtrl.dispose(); _contentCtrl.dispose();
+    _thumbCtrl.dispose(); _readTimeCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _load() async {
+    final cats = await _topicsService.getCategories();
+    setState(() { _categories = cats; _categoryId = cats.isNotEmpty ? cats.first.id : null; });
+    if (_categoryId != null) await _loadTopics(_categoryId!);
+    else setState(() => _loading = false);
+  }
+
+  Future<void> _loadTopics(String catId) async {
+    setState(() => _loading = true);
+    final topics = await _topicsService.getTopicsByCategory(catId);
+    setState(() { _topics = topics; _topicId = topics.isNotEmpty ? topics.first.id : null; _loading = false; });
+  }
+
+  Future<void> _save() async {
+    if (_categoryId == null || _topicId == null) { _snack('Select category and topic', isError: true); return; }
+    if (_titleCtrl.text.trim().isEmpty || _contentCtrl.text.trim().isEmpty) { _snack('Title and content are required', isError: true); return; }
+    setState(() => _saving = true);
+    try {
+      await _learningService.saveContent(LearningContentModel(
+        id: '', categoryId: _categoryId!, topicId: _topicId!,
+        title: _titleCtrl.text.trim(), description: _descCtrl.text.trim(),
+        type: _type, content: _contentCtrl.text.trim(),
+        thumbnailUrl: _thumbCtrl.text.trim(),
+        readTimeMinutes: int.tryParse(_readTimeCtrl.text.trim()) ?? 0,
+        createdAt: DateTime.now(),
+      ));
+      _titleCtrl.clear(); _descCtrl.clear(); _contentCtrl.clear(); _thumbCtrl.clear(); _readTimeCtrl.clear();
+      setState(() => _saving = false);
+      _snack('Content saved!');
+    } catch (e) {
+      setState(() => _saving = false);
+      _snack('Error: $e', isError: true);
+    }
+  }
+
+  void _snack(String msg, {bool isError = false}) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(msg), backgroundColor: isError ? red : const Color(0xFF1A9E8F),
+    ));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_loading) return const Center(child: CircularProgressIndicator(color: teal));
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+      children: [
+        _Card(title: 'Where does this content belong?', child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const _Label('Category'),
+            const SizedBox(height: 8),
+            _Dropdown<String>(value: _categoryId, hint: 'Select category',
+                items: _categories.map((c) => DropdownMenuItem(value: c.id, child: Text(c.title))).toList(),
+                onChanged: (val) async { if (val == null) return; setState(() { _categoryId = val; _topicId = null; }); await _loadTopics(val); }),
+            const SizedBox(height: 14),
+            const _Label('Topic'),
+            const SizedBox(height: 8),
+            _Dropdown<String>(value: _topicId, hint: 'Select topic',
+                items: _topics.map((t) => DropdownMenuItem(value: t.id, child: Text(t.name))).toList(),
+                onChanged: (val) => setState(() => _topicId = val)),
+          ],
+        )),
+        const SizedBox(height: 14),
+
+        _Card(title: 'Content type', child: Row(children: [
+          Expanded(child: _TypeBtn(label: 'Article', icon: Icons.article_rounded, selected: _type == ContentType.article, onTap: () => setState(() => _type = ContentType.article))),
+          const SizedBox(width: 8),
+          Expanded(child: _TypeBtn(label: 'Video', icon: Icons.play_circle_rounded, selected: _type == ContentType.video, onTap: () => setState(() => _type = ContentType.video))),
+          const SizedBox(width: 8),
+          Expanded(child: _TypeBtn(label: 'Image', icon: Icons.image_rounded, selected: _type == ContentType.infographic, onTap: () => setState(() => _type = ContentType.infographic))),
+        ])),
+        const SizedBox(height: 14),
+
+        _Card(title: 'Content details', child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const _Label('Title'),
+            const SizedBox(height: 8),
+            _Field(controller: _titleCtrl, hint: 'Content title'),
+            const SizedBox(height: 14),
+            const _Label('Description'),
+            const SizedBox(height: 8),
+            _Field(controller: _descCtrl, hint: 'Short description shown on card', maxLines: 2),
+            const SizedBox(height: 14),
+            _Label(_type == ContentType.video ? 'YouTube Video ID' : _type == ContentType.infographic ? 'Image URL' : 'Article text'),
+            const SizedBox(height: 8),
+            _Field(
+              controller: _contentCtrl,
+              maxLines: _type == ContentType.article ? 8 : 1,
+              hint: _type == ContentType.video ? 'e.g. dQw4w9WgXcQ' : _type == ContentType.infographic ? 'https://example.com/image.jpg' : 'Write your article here...',
+            ),
+            const SizedBox(height: 14),
+            const _Label('Thumbnail URL (optional)'),
+            const SizedBox(height: 8),
+            _Field(controller: _thumbCtrl, hint: 'https://example.com/thumbnail.jpg'),
+            if (_type == ContentType.article) ...[
+              const SizedBox(height: 14),
+              const _Label('Read time (minutes)'),
+              const SizedBox(height: 8),
+              _Field(controller: _readTimeCtrl, hint: 'e.g. 3'),
+            ],
+          ],
+        )),
+        const SizedBox(height: 16),
+        _TealBtn(label: _saving ? 'Saving...' : 'Save Content', onTap: _saving ? () {} : _save),
+      ],
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// TAB 3 — MANAGE CATEGORIES & TOPICS
+// ═══════════════════════════════════════════════════════════════
 
 class _ManageTab extends StatefulWidget {
   const _ManageTab();
-
   @override
   State<_ManageTab> createState() => _ManageTabState();
 }
@@ -370,7 +470,6 @@ class _ManageTabState extends State<_ManageTab> {
   static const teal = Color(0xFF2BBFAA);
   static const darkTeal = Color(0xFF1A9E8F);
   static const red = Color(0xFFE8524A);
-  static const bg = Color(0xFFF5FAF7);
   static const yellow = Color(0xFFE8C84A);
   static const yellowDark = Color(0xFFC8A830);
 
@@ -390,11 +489,7 @@ class _ManageTabState extends State<_ManageTab> {
   Future<void> _loadCategories() async {
     setState(() => _loadingCats = true);
     final cats = await _service.getCategories();
-    setState(() {
-      _categories = cats;
-      _selectedCatId = cats.isNotEmpty ? cats.first.id : null;
-      _loadingCats = false;
-    });
+    setState(() { _categories = cats; _selectedCatId = cats.isNotEmpty ? cats.first.id : null; _loadingCats = false; });
     if (_selectedCatId != null) await _loadTopics(_selectedCatId!);
   }
 
@@ -406,11 +501,9 @@ class _ManageTabState extends State<_ManageTab> {
 
   Future<void> _showCategorySheet({CategoryModel? cat}) async {
     final titleCtrl = TextEditingController(text: cat?.title ?? '');
-    var order = cat?.order ?? (_categories.length + 1);
-
     await showModalBottomSheet(
       context: context, isScrollControlled: true, backgroundColor: Colors.transparent,
-      builder: (_) => StatefulBuilder(builder: (ctx, setS) => _BottomSheet(
+      builder: (_) => _BottomSheet(
         title: cat == null ? 'Add Category' : 'Edit Category',
         child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           const _Label('Category Name'),
@@ -418,33 +511,30 @@ class _ManageTabState extends State<_ManageTab> {
           _Field(controller: titleCtrl, hint: 'e.g. Privacy'),
           const SizedBox(height: 24),
           Row(children: [
-            Expanded(child: _OutBtn(label: 'Cancel', onTap: () => Navigator.pop(ctx))),
+            Expanded(child: _OutBtn(label: 'Cancel', onTap: () => Navigator.pop(context))),
             const SizedBox(width: 12),
             Expanded(child: _TealBtn(label: cat == null ? 'Save' : 'Update', onTap: () async {
               final title = titleCtrl.text.trim();
               if (title.isEmpty) return;
               await _service.saveCategory(CategoryModel(
                 id: cat?.id ?? FirebaseFirestore.instance.collection('categories').doc().id,
-                title: title,
-                order: order,
+                title: title, order: cat?.order ?? (_categories.length + 1),
               ));
               if (!mounted) return;
-              Navigator.pop(ctx);
+              Navigator.pop(context);
               await _loadCategories();
             })),
           ]),
         ]),
-      )),
+      ),
     );
   }
 
   Future<void> _showTopicSheet({required String catId, TopicModel? topic}) async {
     final nameCtrl = TextEditingController(text: topic?.name ?? '');
     final descCtrl = TextEditingController(text: topic?.desc ?? '');
-
-    // Only show isNew on create, only isUpdated on edit
-    var isNew = topic == null ? true : false;
-    var isUpdated = topic != null ? topic.isUpdated : false;
+    var isNew = topic == null;
+    var isUpdated = topic?.isUpdated ?? false;
 
     await showModalBottomSheet(
       context: context, isScrollControlled: true, backgroundColor: Colors.transparent,
@@ -459,27 +549,10 @@ class _ManageTabState extends State<_ManageTab> {
           const SizedBox(height: 8),
           _Field(controller: descCtrl, hint: 'Short description', maxLines: 2),
           const SizedBox(height: 14),
-
-          // NEW only on create
-          if (topic == null) ...[
-            _Toggle(
-              label: 'Mark as New',
-              value: isNew,
-              color: const Color(0xFFF45B8C),
-              onChanged: (v) => setS(() => isNew = v),
-            ),
-          ],
-
-          // UPDATED only on edit
-          if (topic != null) ...[
-            _Toggle(
-              label: 'Mark as Updated',
-              value: isUpdated,
-              color: const Color(0xFFFFA726),
-              onChanged: (v) => setS(() => isUpdated = v),
-            ),
-          ],
-
+          if (topic == null)
+            _Toggle(label: 'Mark as New', value: isNew, color: const Color(0xFFF45B8C), onChanged: (v) => setS(() => isNew = v)),
+          if (topic != null)
+            _Toggle(label: 'Mark as Updated', value: isUpdated, color: const Color(0xFFFFA726), onChanged: (v) => setS(() => isUpdated = v)),
           const SizedBox(height: 24),
           Row(children: [
             Expanded(child: _OutBtn(label: 'Cancel', onTap: () => Navigator.pop(ctx))),
@@ -488,17 +561,12 @@ class _ManageTabState extends State<_ManageTab> {
               final name = nameCtrl.text.trim();
               final desc = descCtrl.text.trim();
               if (name.isEmpty || desc.isEmpty) return;
-
-              final nextOrder = topic?.order ?? (_topics.length + 1);
-
               await _service.saveTopic(TopicModel(
                 id: topic?.id ?? FirebaseFirestore.instance.collection('topics').doc().id,
-                categoryId: catId,
-                name: name,
-                desc: desc,
-                isNew: topic == null ? isNew : false, // clear isNew on edit
+                categoryId: catId, name: name, desc: desc,
+                isNew: topic == null ? isNew : false,
                 isUpdated: topic != null ? isUpdated : false,
-                order: nextOrder,
+                order: topic?.order ?? (_topics.length + 1),
                 createdAt: topic?.createdAt ?? DateTime.now(),
                 updatedAt: DateTime.now(),
               ));
@@ -558,183 +626,164 @@ class _ManageTabState extends State<_ManageTab> {
   @override
   Widget build(BuildContext context) {
     final selCat = _categories.cast<CategoryModel?>().firstWhere((c) => c?.id == _selectedCatId, orElse: () => null);
-
     if (_loadingCats) return const Center(child: CircularProgressIndicator(color: teal));
 
-    return Row(
-      children: [
-        // Categories column
-        Container(
-          width: 220,
-          margin: const EdgeInsets.fromLTRB(12, 12, 6, 12),
+    return Row(children: [
+      // Categories
+      Container(
+        width: 200,
+        margin: const EdgeInsets.fromLTRB(12, 12, 6, 12),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20),
+            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))]),
+        child: Column(children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 8, 8),
+            child: Row(children: [
+              const Expanded(child: Text('Categories', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Color(0xFF111827)))),
+              IconButton(
+                icon: Container(padding: const EdgeInsets.all(4),
+                    decoration: BoxDecoration(color: yellow, shape: BoxShape.circle, border: Border.all(color: yellowDark)),
+                    child: const Icon(Icons.add_rounded, color: Color(0xFF5A7A6A), size: 16)),
+                onPressed: _showCategorySheet,
+              ),
+            ]),
+          ),
+          const Divider(height: 1),
+          Expanded(
+            child: _categories.isEmpty
+                ? const Center(child: Text('No categories', style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 12)))
+                : ListView.builder(
+              padding: const EdgeInsets.all(8),
+              itemCount: _categories.length,
+              itemBuilder: (_, i) {
+                final cat = _categories[i];
+                final sel = cat.id == _selectedCatId;
+                return GestureDetector(
+                  onTap: () async { setState(() => _selectedCatId = cat.id); await _loadTopics(cat.id); },
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 6),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: sel ? teal.withOpacity(0.1) : const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: sel ? teal : const Color(0xFFE5E7EB), width: sel ? 2 : 1),
+                    ),
+                    child: Row(children: [
+                      Expanded(child: Text(cat.title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12,
+                          color: sel ? darkTeal : const Color(0xFF111827)))),
+                      GestureDetector(onTap: () => _showCategorySheet(cat: cat), child: const Icon(Icons.edit_rounded, color: teal, size: 14)),
+                      const SizedBox(width: 4),
+                      GestureDetector(onTap: () => _deleteCat(cat), child: const Icon(Icons.delete_rounded, color: red, size: 14)),
+                    ]),
+                  ),
+                );
+              },
+            ),
+          ),
+        ]),
+      ),
+
+      // Topics
+      Expanded(
+        child: Container(
+          margin: const EdgeInsets.fromLTRB(6, 12, 12, 12),
           decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20),
               boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))]),
           child: Column(children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(14, 14, 8, 8),
+              padding: const EdgeInsets.fromLTRB(14, 12, 8, 8),
               child: Row(children: [
-                const Expanded(child: Text('Categories', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Color(0xFF111827)))),
-                IconButton(
-                  icon: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(color: yellow, shape: BoxShape.circle, border: Border.all(color: yellowDark)),
-                    child: const Icon(Icons.add_rounded, color: Color(0xFF5A7A6A), size: 18),
+                Expanded(child: Text(selCat == null ? 'Topics' : '${selCat.title}',
+                    style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14, color: Color(0xFF111827)))),
+                if (_selectedCatId != null)
+                  TextButton.icon(
+                    onPressed: () => _showTopicSheet(catId: _selectedCatId!),
+                    icon: const Icon(Icons.add_rounded, size: 14),
+                    label: const Text('Add', style: TextStyle(fontSize: 12)),
+                    style: TextButton.styleFrom(foregroundColor: teal),
                   ),
-                  onPressed: _showCategorySheet,
-                ),
               ]),
             ),
             const Divider(height: 1),
             Expanded(
-              child: _categories.isEmpty
-                  ? const Center(child: Text('No categories', style: TextStyle(color: Color(0xFF9CA3AF))))
+              child: _selectedCatId == null
+                  ? const Center(child: Text('Select a category', style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 12)))
+                  : _loadingTopics
+                  ? const Center(child: CircularProgressIndicator(color: teal))
+                  : _topics.isEmpty
+                  ? const Center(child: Text('No topics yet', style: TextStyle(color: Color(0xFF9CA3AF), fontSize: 12)))
                   : ListView.builder(
                 padding: const EdgeInsets.all(8),
-                itemCount: _categories.length,
+                itemCount: _topics.length,
                 itemBuilder: (_, i) {
-                  final cat = _categories[i];
-                  final sel = cat.id == _selectedCatId;
-                  return GestureDetector(
-                    onTap: () async { setState(() => _selectedCatId = cat.id); await _loadTopics(cat.id); },
-                    child: Container(
-                      margin: const EdgeInsets.only(bottom: 6),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: sel ? teal.withOpacity(0.1) : const Color(0xFFF8FAFC),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: sel ? teal : const Color(0xFFE5E7EB), width: sel ? 2 : 1),
-                      ),
-                      child: Row(children: [
-                        Expanded(child: Text(cat.title, style: TextStyle(fontWeight: FontWeight.bold,
-                            color: sel ? darkTeal : const Color(0xFF111827), fontSize: 13))),
-                        GestureDetector(onTap: () => _showCategorySheet(cat: cat),
-                            child: const Icon(Icons.edit_rounded, color: teal, size: 16)),
-                        const SizedBox(width: 6),
-                        GestureDetector(onTap: () => _deleteCat(cat),
-                            child: const Icon(Icons.delete_rounded, color: red, size: 16)),
-                      ]),
-                    ),
+                  final topic = _topics[i];
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 8),
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFE5E7EB))),
+                    child: Row(children: [
+                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                        Row(children: [
+                          Expanded(child: Text(topic.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF111827)))),
+                          if (topic.isNew) _MiniTag(text: 'NEW', color: const Color(0xFFF45B8C)),
+                          if (topic.isUpdated) _MiniTag(text: 'UPD', color: const Color(0xFFFFA726)),
+                        ]),
+                        Text(topic.desc, style: const TextStyle(color: Color(0xFF6B7280), fontSize: 11)),
+                      ])),
+                      IconButton(icon: const Icon(Icons.edit_rounded, color: teal, size: 16), onPressed: () => _showTopicSheet(catId: topic.categoryId, topic: topic)),
+                      IconButton(icon: const Icon(Icons.delete_rounded, color: red, size: 16), onPressed: () => _deleteTopic(topic)),
+                    ]),
                   );
                 },
               ),
             ),
           ]),
         ),
-
-        // Topics column
-        Expanded(
-          child: Container(
-            margin: const EdgeInsets.fromLTRB(6, 12, 12, 12),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20),
-                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))]),
-            child: Column(children: [
-              Padding(
-                padding: const EdgeInsets.fromLTRB(14, 14, 8, 8),
-                child: Row(children: [
-                  Expanded(child: Text(selCat == null ? 'Topics' : 'Topics in ${selCat.title}',
-                      style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Color(0xFF111827)))),
-                  if (_selectedCatId != null)
-                    TextButton.icon(
-                      onPressed: () => _showTopicSheet(catId: _selectedCatId!),
-                      icon: const Icon(Icons.add_rounded, size: 16),
-                      label: const Text('Add'),
-                      style: TextButton.styleFrom(foregroundColor: teal),
-                    ),
-                ]),
-              ),
-              const Divider(height: 1),
-              Expanded(
-                child: _selectedCatId == null
-                    ? const Center(child: Text('Select a category', style: TextStyle(color: Color(0xFF9CA3AF))))
-                    : _loadingTopics
-                    ? const Center(child: CircularProgressIndicator(color: teal))
-                    : _topics.isEmpty
-                    ? const Center(child: Text('No topics yet', style: TextStyle(color: Color(0xFF9CA3AF))))
-                    : ListView.builder(
-                  padding: const EdgeInsets.all(8),
-                  itemCount: _topics.length,
-                  itemBuilder: (_, i) {
-                    final topic = _topics[i];
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: const Color(0xFFE5E7EB))),
-                      child: Row(children: [
-                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Row(children: [
-                            Expanded(child: Text(topic.name, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF111827)))),
-                            if (topic.isNew) _MiniTag(text: 'NEW', color: const Color(0xFFF45B8C)),
-                            if (topic.isUpdated) _MiniTag(text: 'UPD', color: const Color(0xFFFFA726)),
-                          ]),
-                          Text(topic.desc, style: const TextStyle(color: Color(0xFF6B7280), fontSize: 12)),
-                        ])),
-                        IconButton(icon: const Icon(Icons.edit_rounded, color: teal, size: 18),
-                            onPressed: () => _showTopicSheet(catId: topic.categoryId, topic: topic)),
-                        IconButton(icon: const Icon(Icons.delete_rounded, color: red, size: 18),
-                            onPressed: () => _deleteTopic(topic)),
-                      ]),
-                    );
-                  },
-                ),
-              ),
-            ]),
-          ),
-        ),
-      ],
-    );
+      ),
+    ]);
   }
 }
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// SHARED WIDGETS
-// ═══════════════════════════════════════════════════════════════════════════════
 
 class _Card extends StatelessWidget {
   final String title;
   final Widget child;
   const _Card({required this.title, required this.child});
-
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(20),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 4))]),
-      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-        Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF111827))),
-        const SizedBox(height: 14),
-        child,
-      ]),
-    );
-  }
+  Widget build(BuildContext context) => Container(
+    padding: const EdgeInsets.all(16),
+    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(18),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 4))]),
+    child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+      Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Color(0xFF111827))),
+      const SizedBox(height: 14),
+      child,
+    ]),
+  );
 }
 
 class _BottomSheet extends StatelessWidget {
   final String title;
   final Widget child;
   const _BottomSheet({required this.title, required this.child});
-
   @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(left: 16, right: 16, top: 16, bottom: MediaQuery.of(context).viewInsets.bottom + 24),
-      child: Container(
-        decoration: BoxDecoration(color: const Color(0xFFF5FAF7), borderRadius: BorderRadius.circular(24),
-            boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 16, offset: const Offset(0, 8))]),
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
-          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Center(child: Container(width: 44, height: 5, decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(20)))),
-            const SizedBox(height: 14),
-            Text(title, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
-            const SizedBox(height: 16),
-            child,
-          ]),
-        ),
+  Widget build(BuildContext context) => Padding(
+    padding: EdgeInsets.only(left: 16, right: 16, top: 16, bottom: MediaQuery.of(context).viewInsets.bottom + 24),
+    child: Container(
+      decoration: BoxDecoration(color: const Color(0xFFF5FAF7), borderRadius: BorderRadius.circular(24),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 16, offset: const Offset(0, 8))]),
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Center(child: Container(width: 44, height: 5, decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(20)))),
+          const SizedBox(height: 14),
+          Text(title, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF111827))),
+          const SizedBox(height: 16),
+          child,
+        ]),
       ),
-    );
-  }
+    ),
+  );
 }
 
 class _Label extends StatelessWidget {
@@ -750,18 +799,15 @@ class _Field extends StatelessWidget {
   final String hint;
   final int maxLines;
   const _Field({required this.controller, required this.hint, this.maxLines = 1});
-
   @override
-  Widget build(BuildContext context) {
-    return TextField(
-      controller: controller, maxLines: maxLines,
-      decoration: InputDecoration(hintText: hint, filled: true, fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFF2BBFAA), width: 2))),
-    );
-  }
+  Widget build(BuildContext context) => TextField(
+    controller: controller, maxLines: maxLines,
+    decoration: InputDecoration(hintText: hint, filled: true, fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFF2BBFAA), width: 2))),
+  );
 }
 
 class _Dropdown<T> extends StatelessWidget {
@@ -770,18 +816,15 @@ class _Dropdown<T> extends StatelessWidget {
   final String hint;
   final ValueChanged<T?> onChanged;
   const _Dropdown({required this.value, required this.items, required this.hint, required this.onChanged});
-
   @override
-  Widget build(BuildContext context) {
-    return DropdownButtonFormField<T>(
-      value: value, items: items, onChanged: onChanged,
-      decoration: InputDecoration(hintText: hint, filled: true, fillColor: Colors.white,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
-          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
-          focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFF2BBFAA), width: 2))),
-    );
-  }
+  Widget build(BuildContext context) => DropdownButtonFormField<T>(
+    value: value, items: items, onChanged: onChanged,
+    decoration: InputDecoration(hintText: hint, filled: true, fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: const BorderSide(color: Color(0xFF2BBFAA), width: 2))),
+  );
 }
 
 class _Toggle extends StatelessWidget {
@@ -790,28 +833,52 @@ class _Toggle extends StatelessWidget {
   final Color color;
   final ValueChanged<bool> onChanged;
   const _Toggle({required this.label, required this.value, required this.color, required this.onChanged});
-
   @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: () => onChanged(!value),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-        decoration: BoxDecoration(
-          color: value ? color.withOpacity(0.1) : Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: value ? color : const Color(0xFFE5E7EB), width: value ? 2 : 1),
-        ),
-        child: Row(children: [
-          Icon(value ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-              color: value ? color : const Color(0xFF9CA3AF), size: 20),
-          const SizedBox(width: 8),
-          Text(label, style: TextStyle(fontWeight: FontWeight.bold, color: value ? color : const Color(0xFF6B7280))),
-        ]),
+  Widget build(BuildContext context) => GestureDetector(
+    onTap: () => onChanged(!value),
+    child: AnimatedContainer(
+      duration: const Duration(milliseconds: 150),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: value ? color.withOpacity(0.1) : Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: value ? color : const Color(0xFFE5E7EB), width: value ? 2 : 1),
       ),
-    );
-  }
+      child: Row(children: [
+        Icon(value ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
+            color: value ? color : const Color(0xFF9CA3AF), size: 20),
+        const SizedBox(width: 8),
+        Text(label, style: TextStyle(fontWeight: FontWeight.bold, color: value ? color : const Color(0xFF6B7280))),
+      ]),
+    ),
+  );
+}
+
+class _TypeBtn extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+  const _TypeBtn({required this.label, required this.icon, required this.selected, required this.onTap});
+  @override
+  Widget build(BuildContext context) => GestureDetector(
+    onTap: onTap,
+    child: AnimatedContainer(
+      duration: const Duration(milliseconds: 150),
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      decoration: BoxDecoration(
+        color: selected ? const Color(0xFF2BBFAA).withOpacity(0.12) : const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: selected ? const Color(0xFF2BBFAA) : const Color(0xFFE5E7EB), width: selected ? 2 : 1),
+      ),
+      child: Column(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon, color: selected ? const Color(0xFF2BBFAA) : const Color(0xFF9CA3AF), size: 20),
+        const SizedBox(height: 4),
+        Text(label, textAlign: TextAlign.center,
+            style: TextStyle(color: selected ? const Color(0xFF1A9E8F) : const Color(0xFF6B7280), fontWeight: FontWeight.bold, fontSize: 12)),
+      ]),
+    ),
+  );
 }
 
 class _ChoiceTile extends StatelessWidget {
@@ -820,14 +887,11 @@ class _ChoiceTile extends StatelessWidget {
   final Color? color;
   final VoidCallback onTap;
   const _ChoiceTile({required this.label, required this.selected, this.color, required this.onTap});
-
   @override
   Widget build(BuildContext context) {
     final c = color ?? const Color(0xFF2BBFAA);
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
+    return GestureDetector(onTap: onTap,
+      child: AnimatedContainer(duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(vertical: 11),
         decoration: BoxDecoration(
           color: selected ? c.withOpacity(0.12) : const Color(0xFFF8FAFC),
@@ -847,48 +911,37 @@ class _DiffTile extends StatelessWidget {
   final bool selected;
   final VoidCallback onTap;
   const _DiffTile({required this.label, required this.color, required this.selected, required this.onTap});
-
   @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        decoration: BoxDecoration(
-          color: selected ? color.withOpacity(0.12) : const Color(0xFFF8FAFC),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: selected ? color : const Color(0xFFE5E7EB), width: selected ? 2 : 1),
-        ),
-        child: Text(label, textAlign: TextAlign.center,
-            style: TextStyle(color: selected ? color : const Color(0xFF6B7280), fontWeight: FontWeight.bold, fontSize: 12)),
+  Widget build(BuildContext context) => GestureDetector(onTap: onTap,
+    child: AnimatedContainer(duration: const Duration(milliseconds: 150),
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      decoration: BoxDecoration(
+        color: selected ? color.withOpacity(0.12) : const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: selected ? color : const Color(0xFFE5E7EB), width: selected ? 2 : 1),
       ),
-    );
-  }
+      child: Text(label, textAlign: TextAlign.center,
+          style: TextStyle(color: selected ? color : const Color(0xFF6B7280), fontWeight: FontWeight.bold, fontSize: 12)),
+    ),
+  );
 }
 
 class _OptionField extends StatelessWidget {
   final TextEditingController ctrl;
   final String letter;
   final int index;
-  final int correctIndex;
+  final int correct;
   final VoidCallback onTap;
-  const _OptionField({required this.ctrl, required this.letter, required this.index, required this.correctIndex, required this.onTap});
-
+  const _OptionField({required this.ctrl, required this.letter, required this.index, required this.correct, required this.onTap});
   @override
   Widget build(BuildContext context) {
-    final isCorrect = correctIndex == index;
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 150),
-        decoration: BoxDecoration(
-          color: Colors.white, borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: isCorrect ? Colors.green : const Color(0xFFE5E7EB), width: isCorrect ? 2 : 1),
-        ),
+    final isCorrect = correct == index;
+    return GestureDetector(onTap: onTap,
+      child: AnimatedContainer(duration: const Duration(milliseconds: 150),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: isCorrect ? Colors.green : const Color(0xFFE5E7EB), width: isCorrect ? 2 : 1)),
         child: Row(children: [
-          Container(
-            width: 44, height: 52,
+          Container(width: 42, height: 50,
             decoration: BoxDecoration(
               color: isCorrect ? Colors.green.withOpacity(0.12) : const Color(0xFFF8FAFC),
               borderRadius: const BorderRadius.only(topLeft: Radius.circular(12), bottomLeft: Radius.circular(12)),
@@ -896,15 +949,9 @@ class _OptionField extends StatelessWidget {
             child: Center(child: Text(isCorrect ? '✓' : letter,
                 style: TextStyle(color: isCorrect ? Colors.green : const Color(0xFF9CA3AF), fontWeight: FontWeight.bold))),
           ),
-          Expanded(child: TextField(
-            controller: ctrl,
-            decoration: InputDecoration(
-              hintText: 'Option $letter',
-              hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 13),
-              border: InputBorder.none,
-              contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-            ),
-          )),
+          Expanded(child: TextField(controller: ctrl,
+              decoration: InputDecoration(hintText: 'Option $letter', hintStyle: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 13),
+                  border: InputBorder.none, contentPadding: const EdgeInsets.symmetric(horizontal: 12)))),
         ]),
       ),
     );
@@ -915,55 +962,40 @@ class _TealBtn extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
   const _TealBtn({required this.label, required this.onTap});
-
   @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 52,
-        decoration: BoxDecoration(
-          color: const Color(0xFF2BBFAA), borderRadius: BorderRadius.circular(14),
+  Widget build(BuildContext context) => GestureDetector(onTap: onTap,
+    child: Container(height: 52,
+      decoration: BoxDecoration(color: const Color(0xFF2BBFAA), borderRadius: BorderRadius.circular(14),
           border: Border.all(color: const Color(0xFF1A9E8F), width: 2),
-          boxShadow: const [BoxShadow(color: Color(0xFF1A9E8F), offset: Offset(0, 4), blurRadius: 0)],
-        ),
-        child: Center(child: Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15))),
-      ),
-    );
-  }
+          boxShadow: const [BoxShadow(color: Color(0xFF1A9E8F), offset: Offset(0, 4), blurRadius: 0)]),
+      child: Center(child: Text(label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15))),
+    ),
+  );
 }
 
 class _OutBtn extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
   const _OutBtn({required this.label, required this.onTap});
-
   @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 52,
-        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFFD1D5DB))),
-        child: Center(child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF374151)))),
-      ),
-    );
-  }
+  Widget build(BuildContext context) => GestureDetector(onTap: onTap,
+    child: Container(height: 52,
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFD1D5DB))),
+      child: Center(child: Text(label, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15, color: Color(0xFF374151)))),
+    ),
+  );
 }
 
 class _MiniTag extends StatelessWidget {
   final String text;
   final Color color;
   const _MiniTag({required this.text, required this.color});
-
   @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(left: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(8)),
-      child: Text(text, style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
-    );
-  }
+  Widget build(BuildContext context) => Container(
+    margin: const EdgeInsets.only(left: 4),
+    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+    decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(8)),
+    child: Text(text, style: const TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold)),
+  );
 }
