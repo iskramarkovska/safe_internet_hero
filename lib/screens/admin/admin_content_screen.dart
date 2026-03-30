@@ -7,6 +7,7 @@ import '../../services/learning_service.dart';
 import '../../services/topics_service.dart';
 import '../../widgets/admin_content_ui.dart';
 import '../../widgets/content_category_topic_section.dart';
+import '../../widgets/content_type_selector.dart';
 import 'category_topic_manager_screen.dart';
 
 class AdminContentScreen extends StatefulWidget {
@@ -498,76 +499,11 @@ class _AdminContentScreenState extends State<AdminContentScreen> {
                     },
                   ),
                   const SizedBox(height: 16),
-                  AdminSectionCard(
-                    title: 'Main content',
-                    child: Column(
-                      children: [
-                        const AdminSectionLabel('Title'),
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: _titleController,
-                          decoration: AdminContentUi.inputDecoration(
-                            'Content title',
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        const AdminSectionLabel('Short description'),
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: _descriptionController,
-                          maxLines: 2,
-                          decoration: AdminContentUi.inputDecoration(
-                            'Brief description shown on card',
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        AdminSectionLabel(
-                          _type == ContentType.video
-                              ? 'YouTube Video ID'
-                              : _type == ContentType.infographic
-                              ? 'Image URL'
-                              : 'Article text',
-                        ),
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: _contentController,
-                          maxLines: _type == ContentType.article ? 10 : 1,
-                          decoration: AdminContentUi.inputDecoration(
-                            _type == ContentType.video
-                                ? 'e.g. dQw4w9WgXcQ'
-                                : _type == ContentType.infographic
-                                ? 'https://example.com/image.jpg'
-                                : 'Write your article here...',
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        const AdminSectionLabel(
-                          'Thumbnail URL (optional)',
-                        ),
-                        const SizedBox(height: 8),
-                        TextField(
-                          controller: _thumbnailController,
-                          decoration: AdminContentUi.inputDecoration(
-                            'https://example.com/thumbnail.jpg',
-                          ),
-                        ),
-                        if (_type == ContentType.article) ...[
-                          const SizedBox(height: 16),
-                          const AdminSectionLabel(
-                            'Read time (minutes)',
-                          ),
-                          const SizedBox(height: 8),
-                          TextField(
-                            controller: _readTimeController,
-                            keyboardType: TextInputType.number,
-                            decoration: AdminContentUi.inputDecoration(
-                              'e.g. 3',
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
+                  ContentTypeSelector(
+                    selectedType: _type,
+                    onChanged: (type) => setState(() => _type = type),
                   ),
+                  const SizedBox(height: 16),
                   const SizedBox(height: 20),
                   AdminPrimaryButton(
                     label: _isSaving ? 'Saving...' : 'Save Content',
