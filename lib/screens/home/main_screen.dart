@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../core/theme.dart';
 import 'home_screen.dart';
 import '../learn/learn_screen.dart';
 import '../social/leaderboard_screen.dart';

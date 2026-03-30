@@ -5,7 +5,6 @@ import '../../providers/auth_provider.dart';
 import '../../models/activity_model.dart';
 import '../../services/friend_service.dart';
 import '../../models/user_model.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 class ActivityScreen extends StatefulWidget {
   const ActivityScreen({super.key});

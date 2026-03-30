@@ -741,15 +741,21 @@ class _ContentFormState extends State<_ContentForm> {
       _thumbCtrl.clear();
       _readTimeCtrl.clear();
 
-      if (_categories.isNotEmpty) {
-        _categoryId = _categories.first.id;
-        await _loadTopics(_categoryId!, preserveTopic: false);
-      }
-
       if (!mounted) return;
       setState(() {
         _type = ContentType.article;
+        _categoryId = _categories.isNotEmpty ? _categories.first.id : null;
+        _topicId = null;
+        _topics = [];
+        _loading = true;
       });
+
+      if (_categoryId != null) {
+        await _loadTopics(_categoryId!, preserveTopic: false);
+      } else {
+        if (!mounted) return;
+        setState(() => _loading = false);
+      }
       return;
     }
 
@@ -764,16 +770,20 @@ class _ContentFormState extends State<_ContentForm> {
 
     if (!mounted) return;
     setState(() {
+      _loading = true;
       _type = item.type;
       _categoryId = item.categoryId;
-      _topicId = item.topicId;
+      _topicId = null; 
+      _topics = [];
     });
 
-    await _loadTopics(item.categoryId, preserveTopic: true);
+    await _loadTopics(item.categoryId, preserveTopic: false);
 
     if (!mounted) return;
     setState(() {
-      _topicId = item.topicId;
+      final topicExists = _topics.any((t) => t.id == item.topicId);
+      _topicId = topicExists ? item.topicId : null;
+      _loading = false;
     });
   }
 
@@ -1999,8 +2009,11 @@ class _Dropdown<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final matches = items.where((item) => item.value == value).length;
+    final safeValue = matches == 1 ? value : null;
+
     return DropdownButtonFormField<T>(
-      value: value,
+      value: safeValue,
       items: items,
       onChanged: onChanged,
       decoration: InputDecoration(
