@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../models/category_model.dart';
 import '../../models/topic_model.dart';
 import '../../services/topics_service.dart';
+import '../../widgets/admin_widgets.dart';
 
 class CategoryTopicManagerScreen extends StatefulWidget {
   const CategoryTopicManagerScreen({super.key});
@@ -12,13 +13,6 @@ class CategoryTopicManagerScreen extends StatefulWidget {
 }
 
 class _CategoryTopicManagerScreenState extends State<CategoryTopicManagerScreen> {
-  static const Color teal = Color(0xFF38C6C6);
-  static const Color tealDark = Color(0xFF1CA7A7);
-  static const Color cream = Color(0xFFF5FAF7);
-  static const Color gold = Color(0xFFE8D07A);
-  static const Color goldDark = Color(0xFFC6A94F);
-  static const Color red = Color(0xFFE8524A);
-
   final TopicsService _topicsService = TopicsService();
 
   List<CategoryModel> _categories = [];
@@ -33,910 +27,351 @@ class _CategoryTopicManagerScreenState extends State<CategoryTopicManagerScreen>
     _loadCategories();
   }
 
+  // ── Data loading ────────────────────────────────────────────
+
   Future<void> _loadCategories() async {
     setState(() => _loadingCategories = true);
     final categories = await _topicsService.getCategories();
-
-    String? selected = _selectedCategoryId;
-    if (categories.isNotEmpty) {
-      final exists = categories.any((c) => c.id == selected);
-      selected = exists ? selected : categories.first.id;
-    } else {
-      selected = null;
-    }
-
-    setState(() {
-      _categories = categories;
-      _selectedCategoryId = selected;
-      _loadingCategories = false;
-    });
-
-    if (selected != null) {
-      await _loadTopics(selected);
-    } else {
-      setState(() => _topics = []);
-    }
+    final selected = categories.isEmpty ? null
+        : (categories.any((c) => c.id == _selectedCategoryId) ? _selectedCategoryId : categories.first.id);
+    setState(() { _categories = categories; _selectedCategoryId = selected; _loadingCategories = false; });
+    if (selected != null) await _loadTopics(selected);
+    else setState(() => _topics = []);
   }
 
   Future<void> _loadTopics(String categoryId) async {
     setState(() => _loadingTopics = true);
     final topics = await _topicsService.getTopicsByCategory(categoryId);
-    setState(() {
-      _topics = topics;
-      _loadingTopics = false;
-    });
+    setState(() { _topics = topics; _loadingTopics = false; });
   }
 
-  Future<void> _showCategorySheet({CategoryModel? category}) async {
-    final titleController = TextEditingController(text: category?.title ?? '');
-    int order = category?.order ?? (_categories.length + 1);
+  // ── Sheets ──────────────────────────────────────────────────
+
+  Future<void> _showCategorySheet({CategoryModel? cat}) async {
+    final titleCtrl = TextEditingController(text: cat?.title ?? '');
+    var order = cat?.order ?? (_categories.length + 1);
 
     await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                left: 16,
-                right: 16,
-                top: 16,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-              ),
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: cream,
-                  borderRadius: BorderRadius.circular(28),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 56,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    Text(
-                      category == null ? 'Add Category' : 'Edit Category',
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF111827),
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    _sectionLabel('Category Name'),
-                    const SizedBox(height: 8),
-                    _field(
-                      controller: titleController,
-                      hint: 'Enter category title',
-                    ),
-                    const SizedBox(height: 16),
-                    _sectionLabel('Order'),
-                    const SizedBox(height: 8),
-                    _orderStepper(
-                      value: order,
-                      onChanged: (value) => setModalState(() => order = value),
-                    ),
-                    const SizedBox(height: 20),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _secondaryButton(
-                            label: 'Cancel',
-                            onTap: () => Navigator.pop(context),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _primaryButton(
-                            label: category == null ? 'Save' : 'Update',
-                            onTap: () async {
-                              final title = titleController.text.trim();
-                              if (title.isEmpty) return;
-
-                              final model = CategoryModel(
-                                id: category?.id ?? FirebaseFirestore.instance.collection('categories').doc().id,
-                                title: title,
-                                order: order,
-                              );
-
-                              await _topicsService.saveCategory(model);
-                              if (!mounted) return;
-                              Navigator.pop(context);
-                              await _loadCategories();
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
+      context: context, isScrollControlled: true, backgroundColor: Colors.transparent,
+      builder: (_) => StatefulBuilder(builder: (ctx, setS) => AdminBottomSheet(
+        title: cat == null ? 'Add Category' : 'Edit Category',
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const AdminLabel('Category Name'), const SizedBox(height: 8),
+          AdminField(controller: titleCtrl, hint: 'Enter category title'),
+          const SizedBox(height: 16),
+          const AdminLabel('Order'), const SizedBox(height: 8),
+          _OrderStepper(value: order, onChanged: (v) => setS(() => order = v)),
+          const SizedBox(height: 24),
+          Row(children: [
+            Expanded(child: AdminSecondaryButton(label: 'Cancel', onTap: () => Navigator.pop(ctx))),
+            const SizedBox(width: 12),
+            Expanded(child: AdminPrimaryButton(
+              label: cat == null ? 'Save' : 'Update',
+              onTap: () async {
+                final title = titleCtrl.text.trim();
+                if (title.isEmpty) return;
+                await _topicsService.saveCategory(CategoryModel(
+                  id: cat?.id ?? FirebaseFirestore.instance.collection('categories').doc().id,
+                  title: title, order: order,
+                ));
+                if (!mounted) return;
+                Navigator.pop(ctx);
+                await _loadCategories();
+              },
+            )),
+          ]),
+        ]),
+      )),
     );
   }
 
-  Future<void> _showTopicSheet({
-    required String categoryId,
-    TopicModel? topic,
-  }) async {
-    final nameController = TextEditingController(text: topic?.name ?? '');
-    final descController = TextEditingController(text: topic?.desc ?? '');
-    int order = topic?.order ?? (_topics.length + 1);
-    bool isNew = topic?.isNew ?? true;
-    bool isUpdated = topic?.isUpdated ?? false;
+  Future<void> _showTopicSheet({required String categoryId, TopicModel? topic}) async {
+    final nameCtrl = TextEditingController(text: topic?.name ?? '');
+    final descCtrl = TextEditingController(text: topic?.desc ?? '');
+    var order = topic?.order ?? (_topics.length + 1);
+    var isNew = topic?.isNew ?? true;
+    var isUpdated = topic?.isUpdated ?? false;
 
     await showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setModalState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                left: 16,
-                right: 16,
-                top: 16,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-              ),
-              child: Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: cream,
-                  borderRadius: BorderRadius.circular(28),
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 56,
-                      height: 6,
-                      decoration: BoxDecoration(
-                        color: Colors.black.withOpacity(0.12),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    Text(
-                      topic == null ? 'Add Topic' : 'Edit Topic',
-                      style: const TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF111827),
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    _sectionLabel('Topic Name'),
-                    const SizedBox(height: 8),
-                    _field(
-                      controller: nameController,
-                      hint: 'Enter topic name',
-                    ),
-                    const SizedBox(height: 16),
-                    _sectionLabel('Description'),
-                    const SizedBox(height: 8),
-                    _field(
-                      controller: descController,
-                      hint: 'Short description',
-                      maxLines: 3,
-                    ),
-                    const SizedBox(height: 16),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _toggleCard(
-                            label: 'New',
-                            value: isNew,
-                            color: const Color(0xFFF45B8C),
-                            onTap: () => setModalState(() => isNew = !isNew),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _toggleCard(
-                            label: 'Updated',
-                            value: isUpdated,
-                            color: const Color(0xFFFFA726),
-                            onTap: () => setModalState(() => isUpdated = !isUpdated),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 16),
-                    _sectionLabel('Order'),
-                    const SizedBox(height: 8),
-                    _orderStepper(
-                      value: order,
-                      onChanged: (value) => setModalState(() => order = value),
-                    ),
-                    const SizedBox(height: 20),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _secondaryButton(
-                            label: 'Cancel',
-                            onTap: () => Navigator.pop(context),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _primaryButton(
-                            label: topic == null ? 'Save' : 'Update',
-                            onTap: () async {
-                              final name = nameController.text.trim();
-                              final desc = descController.text.trim();
-                              if (name.isEmpty || desc.isEmpty) return;
-
-                              final model = TopicModel(
-                                id: topic?.id ?? FirebaseFirestore.instance.collection('topics').doc().id,
-                                categoryId: categoryId,
-                                name: name,
-                                desc: desc,
-                                isNew: isNew,
-                                isUpdated: isUpdated,
-                                order: order,
-                                createdAt: topic?.createdAt ?? DateTime.now(),
-                                updatedAt: DateTime.now(),
-                              );
-
-                              await _topicsService.saveTopic(model);
-                              if (!mounted) return;
-                              Navigator.pop(context);
-                              await _loadTopics(categoryId);
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
+      context: context, isScrollControlled: true, backgroundColor: Colors.transparent,
+      builder: (_) => StatefulBuilder(builder: (ctx, setS) => AdminBottomSheet(
+        title: topic == null ? 'Add Topic' : 'Edit Topic',
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const AdminLabel('Topic Name'), const SizedBox(height: 8),
+          AdminField(controller: nameCtrl, hint: 'Enter topic name'),
+          const SizedBox(height: 14),
+          const AdminLabel('Description'), const SizedBox(height: 8),
+          AdminField(controller: descCtrl, hint: 'Short description', maxLines: 2),
+          const SizedBox(height: 14),
+          Row(children: [
+            Expanded(child: AdminToggle(label: 'New', value: isNew, color: const Color(0xFFF45B8C), onChanged: (v) => setS(() => isNew = v))),
+            const SizedBox(width: 12),
+            Expanded(child: AdminToggle(label: 'Updated', value: isUpdated, color: const Color(0xFFFFA726), onChanged: (v) => setS(() => isUpdated = v))),
+          ]),
+          const SizedBox(height: 14),
+          const AdminLabel('Order'), const SizedBox(height: 8),
+          _OrderStepper(value: order, onChanged: (v) => setS(() => order = v)),
+          const SizedBox(height: 24),
+          Row(children: [
+            Expanded(child: AdminSecondaryButton(label: 'Cancel', onTap: () => Navigator.pop(ctx))),
+            const SizedBox(width: 12),
+            Expanded(child: AdminPrimaryButton(
+              label: topic == null ? 'Save' : 'Update',
+              onTap: () async {
+                final name = nameCtrl.text.trim();
+                final desc = descCtrl.text.trim();
+                if (name.isEmpty || desc.isEmpty) return;
+                await _topicsService.saveTopic(TopicModel(
+                  id: topic?.id ?? FirebaseFirestore.instance.collection('topics').doc().id,
+                  categoryId: categoryId, name: name, desc: desc,
+                  isNew: isNew, isUpdated: isUpdated, order: order,
+                  createdAt: topic?.createdAt ?? DateTime.now(), updatedAt: DateTime.now(),
+                ));
+                if (!mounted) return;
+                Navigator.pop(ctx);
+                await _loadTopics(categoryId);
+              },
+            )),
+          ]),
+        ]),
+      )),
     );
   }
+
+  // ── Delete ──────────────────────────────────────────────────
 
   Future<void> _deleteTopic(TopicModel topic) async {
-    final confirmed = await _confirmDialog(
-      title: 'Delete Topic',
-      message: 'Delete "${topic.name}" and its related data?',
-    );
-
-    if (confirmed != true) return;
-
+    if (!await _confirm('Delete "${topic.name}"?', 'Related questions and content will also be deleted.')) return;
     final db = FirebaseFirestore.instance;
-
-    final questionSnap = await db.collection('questions').where('topicId', isEqualTo: topic.id).get();
-    for (final doc in questionSnap.docs) {
-      await doc.reference.delete();
+    for (final col in ['questions', 'learning_content']) {
+      final snap = await db.collection(col).where('topicId', isEqualTo: topic.id).get();
+      for (final d in snap.docs) await d.reference.delete();
     }
-
-    final contentSnap = await db.collection('learning_content').where('topicId', isEqualTo: topic.id).get();
-    for (final doc in contentSnap.docs) {
-      await doc.reference.delete();
-    }
-
     await _topicsService.deleteTopic(topic.id);
     await _loadTopics(topic.categoryId);
   }
 
-  Future<void> _deleteCategory(CategoryModel category) async {
-    final confirmed = await _confirmDialog(
-      title: 'Delete Category',
-      message: 'Delete "${category.title}", all its topics, questions, and content?',
-    );
-
-    if (confirmed != true) return;
-
+  Future<void> _deleteCategory(CategoryModel cat) async {
+    if (!await _confirm('Delete "${cat.title}"?', 'All topics, questions, and content will be deleted.')) return;
     final db = FirebaseFirestore.instance;
-    final topics = await _topicsService.getTopicsByCategory(category.id);
-
-    for (final topic in topics) {
-      final questionSnap = await db.collection('questions').where('topicId', isEqualTo: topic.id).get();
-      for (final doc in questionSnap.docs) {
-        await doc.reference.delete();
+    final topics = await _topicsService.getTopicsByCategory(cat.id);
+    for (final t in topics) {
+      for (final col in ['questions', 'learning_content']) {
+        final snap = await db.collection(col).where('topicId', isEqualTo: t.id).get();
+        for (final d in snap.docs) await d.reference.delete();
       }
-
-      final contentSnap = await db.collection('learning_content').where('topicId', isEqualTo: topic.id).get();
-      for (final doc in contentSnap.docs) {
-        await doc.reference.delete();
-      }
-
-      await _topicsService.deleteTopic(topic.id);
+      await _topicsService.deleteTopic(t.id);
     }
-
-    await _topicsService.deleteCategory(category.id);
+    await _topicsService.deleteCategory(cat.id);
     await _loadCategories();
   }
 
-  Future<bool?> _confirmDialog({
-    required String title,
-    required String message,
-  }) {
-    return showDialog<bool>(
+  Future<bool> _confirm(String title, String message) async {
+    final result = await showDialog<bool>(
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(title),
-        content: Text(message),
+        title: Text(title), content: Text(message),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text(
-              'Delete',
-              style: TextStyle(color: red),
-            ),
-          ),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
+          TextButton(onPressed: () => Navigator.pop(context, true),
+              child: const Text('Delete', style: TextStyle(color: AdminColors.red))),
         ],
       ),
     );
+    return result ?? false;
   }
+
+  // ── Build ───────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
-    final selectedCategory = _categories.where((c) => c.id == _selectedCategoryId).cast<CategoryModel?>().firstOrNull;
+    final selCat = _categories.cast<CategoryModel?>()
+        .firstWhere((c) => c?.id == _selectedCategoryId, orElse: () => null);
 
     return Scaffold(
-      backgroundColor: cream,
+      backgroundColor: AdminColors.cream,
       body: SafeArea(
-        child: Column(
-          children: [
-            Container(
-              decoration: const BoxDecoration(
-                color: teal,
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(26),
-                  bottomRight: Radius.circular(26),
+        child: Column(children: [
+          // Header
+          Container(
+            color: AdminColors.teal,
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+            child: Row(children: [
+              IconButton(
+                icon: const Icon(Icons.arrow_back_ios_rounded, color: Colors.white, size: 22),
+                onPressed: () => Navigator.pop(context),
+              ),
+              const Expanded(
+                child: Text('Categories & Topics', textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900)),
+              ),
+              // Add category button
+              Container(
+                decoration: BoxDecoration(color: AdminColors.yellow, shape: BoxShape.circle,
+                    border: Border.all(color: AdminColors.yellowDark, width: 2)),
+                child: IconButton(
+                  icon: const Icon(Icons.add_rounded, color: Color(0xFF5A7A6A)),
+                  onPressed: _showCategorySheet,
+                  tooltip: 'Add Category',
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 10,
-                    offset: Offset(0, 4),
-                  ),
-                ],
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-              child: Row(
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: const Color(0xFFFFF0C2), width: 2),
-                    ),
-                    child: IconButton(
-                      icon: const Icon(
-                        Icons.arrow_back_ios_new_rounded,
-                        color: tealDark,
-                        size: 20,
-                      ),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ),
-                  const Expanded(
-                    child: Text(
-                      'Manage Categories & Topics',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.w300,
-                      ),
-                    ),
-                  ),
-                  Container(
-                    decoration: BoxDecoration(
-                      color: gold,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: goldDark, width: 2),
-                    ),
-                    child: IconButton(
-                      icon: const Icon(
-                        Icons.add_rounded,
-                        color: Color(0xFF5A7A6A),
-                      ),
-                      onPressed: () => _showCategorySheet(),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: _loadingCategories
-                  ? const Center(child: CircularProgressIndicator())
-                  : Row(
-                children: [
-                  Expanded(
-                    flex: 4,
-                    child: Container(
-                      margin: const EdgeInsets.fromLTRB(16, 16, 8, 16),
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(22),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 10,
-                            offset: const Offset(0, 5),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Categories',
-                            style: TextStyle(
-                              color: Color(0xFF111827),
-                              fontWeight: FontWeight.w800,
-                              fontSize: 18,
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Expanded(
-                            child: _categories.isEmpty
-                                ? const Center(
-                              child: Text(
-                                'No categories yet',
-                                style: TextStyle(color: Color(0xFF6B7280)),
-                              ),
-                            )
-                                : ListView.builder(
-                              itemCount: _categories.length,
-                              itemBuilder: (context, index) {
-                                final category = _categories[index];
-                                final selected = category.id == _selectedCategoryId;
-
-                                return GestureDetector(
-                                  onTap: () async {
-                                    setState(() => _selectedCategoryId = category.id);
-                                    await _loadTopics(category.id);
-                                  },
-                                  child: Container(
-                                    margin: const EdgeInsets.only(bottom: 10),
-                                    padding: const EdgeInsets.all(14),
-                                    decoration: BoxDecoration(
-                                      color: selected
-                                          ? teal.withOpacity(0.12)
-                                          : const Color(0xFFF8FAFC),
-                                      borderRadius: BorderRadius.circular(18),
-                                      border: Border.all(
-                                        color: selected ? teal : const Color(0xFFE5E7EB),
-                                        width: selected ? 2 : 1,
-                                      ),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Expanded(
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                category.title,
-                                                style: TextStyle(
-                                                  color: selected ? tealDark : const Color(0xFF111827),
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 15,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 4),
-                                              Text(
-                                                'Order ${category.order}',
-                                                style: const TextStyle(
-                                                  color: Color(0xFF6B7280),
-                                                  fontSize: 12,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                        IconButton(
-                                          onPressed: () => _showCategorySheet(category: category),
-                                          icon: const Icon(Icons.edit_rounded, color: tealDark),
-                                        ),
-                                        IconButton(
-                                          onPressed: () => _deleteCategory(category),
-                                          icon: const Icon(Icons.delete_rounded, color: red),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    flex: 5,
-                    child: Container(
-                      margin: const EdgeInsets.fromLTRB(8, 16, 16, 16),
-                      padding: const EdgeInsets.all(14),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(22),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
-                            blurRadius: 10,
-                            offset: const Offset(0, 5),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Text(
-                                  selectedCategory == null
-                                      ? 'Topics'
-                                      : 'Topics in ${selectedCategory.title}',
-                                  style: const TextStyle(
-                                    color: Color(0xFF111827),
-                                    fontWeight: FontWeight.w800,
-                                    fontSize: 18,
-                                  ),
-                                ),
-                              ),
-                              if (_selectedCategoryId != null)
-                                _primaryButton(
-                                  label: 'Add Topic',
-                                  compact: true,
-                                  onTap: () => _showTopicSheet(
-                                    categoryId: _selectedCategoryId!,
-                                  ),
-                                ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          Expanded(
-                            child: _selectedCategoryId == null
-                                ? const Center(
-                              child: Text(
-                                'Select a category first',
-                                style: TextStyle(color: Color(0xFF6B7280)),
-                              ),
-                            )
-                                : _loadingTopics
-                                ? const Center(child: CircularProgressIndicator())
-                                : _topics.isEmpty
-                                ? const Center(
-                              child: Text(
-                                'No topics yet',
-                                style: TextStyle(color: Color(0xFF6B7280)),
-                              ),
-                            )
-                                : ListView.builder(
-                              itemCount: _topics.length,
-                              itemBuilder: (context, index) {
-                                final topic = _topics[index];
-
-                                return Container(
-                                  margin: const EdgeInsets.only(bottom: 10),
-                                  padding: const EdgeInsets.all(14),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFF8FAFC),
-                                    borderRadius: BorderRadius.circular(18),
-                                    border: Border.all(
-                                      color: const Color(0xFFE5E7EB),
-                                    ),
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          children: [
-                                            Row(
-                                              children: [
-                                                Expanded(
-                                                  child: Text(
-                                                    topic.name,
-                                                    style: const TextStyle(
-                                                      color: Color(0xFF111827),
-                                                      fontWeight: FontWeight.bold,
-                                                      fontSize: 15,
-                                                    ),
-                                                  ),
-                                                ),
-                                                if (topic.isNew)
-                                                  const _MiniBadge(
-                                                    text: 'NEW',
-                                                    color: Color(0xFFF45B8C),
-                                                  ),
-                                                if (topic.isUpdated)
-                                                  const Padding(
-                                                    padding: EdgeInsets.only(left: 6),
-                                                    child: _MiniBadge(
-                                                      text: 'UPDATED',
-                                                      color: Color(0xFFFFA726),
-                                                    ),
-                                                  ),
-                                              ],
-                                            ),
-                                            const SizedBox(height: 4),
-                                            Text(
-                                              topic.desc,
-                                              style: const TextStyle(
-                                                color: Color(0xFF6B7280),
-                                                fontSize: 12.5,
-                                              ),
-                                            ),
-                                            const SizedBox(height: 6),
-                                            Text(
-                                              'Order ${topic.order}',
-                                              style: const TextStyle(
-                                                color: Color(0xFF9CA3AF),
-                                                fontSize: 11.5,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      IconButton(
-                                        onPressed: () => _showTopicSheet(
-                                          categoryId: topic.categoryId,
-                                          topic: topic,
-                                        ),
-                                        icon: const Icon(Icons.edit_rounded, color: tealDark),
-                                      ),
-                                      IconButton(
-                                        onPressed: () => _deleteTopic(topic),
-                                        icon: const Icon(Icons.delete_rounded, color: red),
-                                      ),
-                                    ],
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _sectionLabel(String text) {
-    return Text(
-      text,
-      style: const TextStyle(
-        color: Color(0xFF374151),
-        fontWeight: FontWeight.bold,
-        fontSize: 14,
-      ),
-    );
-  }
-
-  Widget _field({
-    required TextEditingController controller,
-    required String hint,
-    int maxLines = 1,
-  }) {
-    return TextField(
-      controller: controller,
-      maxLines: maxLines,
-      decoration: InputDecoration(
-        hintText: hint,
-        hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
-        filled: true,
-        fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: teal, width: 2),
-        ),
-      ),
-    );
-  }
-
-  Widget _orderStepper({
-    required int value,
-    required ValueChanged<int> onChanged,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-      ),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: value > 1 ? () => onChanged(value - 1) : null,
-            icon: const Icon(Icons.remove_rounded),
+            ]),
           ),
+
+          // Split view
           Expanded(
-            child: Center(
-              child: Text(
-                '$value',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
+            child: _loadingCategories
+                ? const Center(child: CircularProgressIndicator(color: AdminColors.teal))
+                : Row(children: [
+              // Categories panel
+              _Panel(
+                width: 200,
+                margin: const EdgeInsets.fromLTRB(12, 12, 6, 12),
+                child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                  const Text('Categories', style: TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF111827))),
+                  const SizedBox(height: 10),
+                  const Divider(height: 1),
+                  const SizedBox(height: 8),
+                  Expanded(
+                    child: _categories.isEmpty
+                        ? const Center(child: Text('No categories', style: TextStyle(color: Color(0xFF9CA3AF))))
+                        : ListView.builder(
+                      itemCount: _categories.length,
+                      itemBuilder: (_, i) {
+                        final cat = _categories[i];
+                        final sel = cat.id == _selectedCategoryId;
+                        return GestureDetector(
+                          onTap: () async { setState(() => _selectedCategoryId = cat.id); await _loadTopics(cat.id); },
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: 6),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: sel ? AdminColors.teal.withOpacity(0.1) : const Color(0xFFF8FAFC),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: sel ? AdminColors.teal : const Color(0xFFE5E7EB), width: sel ? 2 : 1),
+                            ),
+                            child: Row(children: [
+                              Expanded(child: Text(cat.title, style: TextStyle(
+                                  fontWeight: FontWeight.bold, fontSize: 13,
+                                  color: sel ? AdminColors.darkTeal : const Color(0xFF111827)))),
+                              GestureDetector(onTap: () => _showCategorySheet(cat: cat),
+                                  child: const Icon(Icons.edit_rounded, color: AdminColors.teal, size: 15)),
+                              const SizedBox(width: 4),
+                              GestureDetector(onTap: () => _deleteCategory(cat),
+                                  child: const Icon(Icons.delete_rounded, color: AdminColors.red, size: 15)),
+                            ]),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ]),
+              ),
+
+              // Topics panel
+              Expanded(
+                child: _Panel(
+                  margin: const EdgeInsets.fromLTRB(6, 12, 12, 12),
+                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    Row(children: [
+                      Expanded(child: Text(
+                        selCat == null ? 'Topics' : 'Topics in ${selCat.title}',
+                        style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 16, color: Color(0xFF111827)),
+                      )),
+                      if (_selectedCategoryId != null)
+                        TextButton.icon(
+                          onPressed: () => _showTopicSheet(categoryId: _selectedCategoryId!),
+                          icon: const Icon(Icons.add_rounded, size: 14),
+                          label: const Text('Add', style: TextStyle(fontSize: 12)),
+                          style: TextButton.styleFrom(foregroundColor: AdminColors.teal),
+                        ),
+                    ]),
+                    const Divider(height: 16),
+                    Expanded(
+                      child: _selectedCategoryId == null
+                          ? const Center(child: Text('Select a category', style: TextStyle(color: Color(0xFF9CA3AF))))
+                          : _loadingTopics
+                          ? const Center(child: CircularProgressIndicator(color: AdminColors.teal))
+                          : _topics.isEmpty
+                          ? const Center(child: Text('No topics yet', style: TextStyle(color: Color(0xFF9CA3AF))))
+                          : ListView.builder(
+                        itemCount: _topics.length,
+                        itemBuilder: (_, i) {
+                          final topic = _topics[i];
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 8),
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(color: const Color(0xFFF8FAFC),
+                                borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE5E7EB))),
+                            child: Row(children: [
+                              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                Row(children: [
+                                  Expanded(child: Text(topic.name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: Color(0xFF111827)))),
+                                  if (topic.isNew) AdminBadge(text: 'NEW', color: const Color(0xFFF45B8C)),
+                                  if (topic.isUpdated) AdminBadge(text: 'UPD', color: const Color(0xFFFFA726)),
+                                ]),
+                                Text(topic.desc, style: const TextStyle(color: Color(0xFF6B7280), fontSize: 11)),
+                              ])),
+                              IconButton(icon: const Icon(Icons.edit_rounded, color: AdminColors.teal, size: 16),
+                                  onPressed: () => _showTopicSheet(categoryId: topic.categoryId, topic: topic)),
+                              IconButton(icon: const Icon(Icons.delete_rounded, color: AdminColors.red, size: 16),
+                                  onPressed: () => _deleteTopic(topic)),
+                            ]),
+                          );
+                        },
+                      ),
+                    ),
+                  ]),
                 ),
               ),
-            ),
+            ]),
           ),
-          IconButton(
-            onPressed: () => onChanged(value + 1),
-            icon: const Icon(Icons.add_rounded),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _toggleCard({
-    required String label,
-    required bool value,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-        decoration: BoxDecoration(
-          color: value ? color.withOpacity(0.12) : Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: value ? color : const Color(0xFFE5E7EB),
-            width: value ? 2 : 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              value ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-              color: value ? color : const Color(0xFF9CA3AF),
-            ),
-            const SizedBox(width: 10),
-            Text(
-              label,
-              style: TextStyle(
-                color: value ? color : const Color(0xFF6B7280),
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _primaryButton({
-    required String label,
-    required VoidCallback onTap,
-    bool compact = false,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: compact ? 42 : 54,
-        padding: EdgeInsets.symmetric(horizontal: compact ? 14 : 20),
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [
-              Color(0xFF2BBFAA),
-              Color(0xFF1FA090),
-            ],
-          ),
-          borderRadius: BorderRadius.circular(compact ? 20 : 28),
-          border: Border.all(color: const Color(0xFF16897B), width: 2),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0xFF16897B),
-              offset: Offset(0, 4),
-              blurRadius: 0,
-            ),
-          ],
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w900,
-              fontSize: compact ? 13 : 16,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _secondaryButton({
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 54,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: const Color(0xFFD1D5DB), width: 1.5),
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: const TextStyle(
-              color: Color(0xFF374151),
-              fontWeight: FontWeight.bold,
-              fontSize: 15,
-            ),
-          ),
-        ),
+        ]),
       ),
     );
   }
 }
 
-class _MiniBadge extends StatelessWidget {
-  final String text;
-  final Color color;
+// ── Local widgets (only used here) ─────────────────────────────
 
-  const _MiniBadge({
-    required this.text,
-    required this.color,
-  });
+class _Panel extends StatelessWidget {
+  final Widget child;
+  final EdgeInsets margin;
+  final double? width;
+  const _Panel({required this.child, required this.margin, this.width});
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      width: width,
+      margin: margin,
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color,
-        borderRadius: BorderRadius.circular(12),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
       ),
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 10,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
+      child: child,
+    );
+  }
+}
+
+class _OrderStepper extends StatelessWidget {
+  final int value;
+  final ValueChanged<int> onChanged;
+  const _OrderStepper({required this.value, required this.onChanged});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFE5E7EB))),
+      child: Row(children: [
+        IconButton(onPressed: value > 1 ? () => onChanged(value - 1) : null, icon: const Icon(Icons.remove_rounded)),
+        Expanded(child: Center(child: Text('$value', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)))),
+        IconButton(onPressed: () => onChanged(value + 1), icon: const Icon(Icons.add_rounded)),
+      ]),
     );
   }
 }
