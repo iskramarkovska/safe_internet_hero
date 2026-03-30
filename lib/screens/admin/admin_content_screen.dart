@@ -5,6 +5,7 @@ import '../../models/learning_content_model.dart';
 import '../../models/topic_model.dart';
 import '../../services/learning_service.dart';
 import '../../services/topics_service.dart';
+import '../../widgets/admin_content_ui.dart';
 import 'category_topic_manager_screen.dart';
 
 class AdminContentScreen extends StatefulWidget {
@@ -15,13 +16,6 @@ class AdminContentScreen extends StatefulWidget {
 }
 
 class _AdminContentScreenState extends State<AdminContentScreen> {
-  static const Color teal = Color(0xFF38C6C6);
-  static const Color tealDark = Color(0xFF1CA7A7);
-  static const Color cream = Color(0xFFF5FAF7);
-  static const Color gold = Color(0xFFE8D07A);
-  static const Color goldDark = Color(0xFFC6A94F);
-  static const Color red = Color(0xFFE8524A);
-
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _contentController = TextEditingController();
@@ -141,7 +135,7 @@ class _AdminContentScreenState extends State<AdminContentScreen> {
               child: Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: cream,
+                  color: AdminContentUi.cream,
                   borderRadius: BorderRadius.circular(28),
                 ),
                 child: Column(
@@ -166,61 +160,67 @@ class _AdminContentScreenState extends State<AdminContentScreen> {
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 18),
-                    _sectionLabel('Topic Name'),
+                    const AdminSectionLabel('Topic Name'),
                     const SizedBox(height: 8),
                     TextField(
                       controller: nameController,
-                      decoration: _inputDecoration('Enter topic name'),
+                      decoration:
+                      AdminContentUi.inputDecoration('Enter topic name'),
                     ),
                     const SizedBox(height: 16),
-                    _sectionLabel('Description'),
+                    const AdminSectionLabel('Description'),
                     const SizedBox(height: 8),
                     TextField(
                       controller: descController,
                       maxLines: 3,
-                      decoration: _inputDecoration('Short description'),
+                      decoration:
+                      AdminContentUi.inputDecoration('Short description'),
                     ),
                     const SizedBox(height: 16),
                     Row(
                       children: [
                         Expanded(
-                          child: _toggleCard(
+                          child: AdminToggleCard(
                             label: 'New',
                             value: isNew,
                             color: const Color(0xFFF45B8C),
-                            onTap: () => setModalState(() => isNew = !isNew),
+                            onTap: () =>
+                                setModalState(() => isNew = !isNew),
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: _toggleCard(
+                          child: AdminToggleCard(
                             label: 'Updated',
                             value: isUpdated,
                             color: const Color(0xFFFFA726),
-                            onTap: () => setModalState(() => isUpdated = !isUpdated),
+                            onTap: () => setModalState(
+                                  () => isUpdated = !isUpdated,
+                            ),
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 16),
-                    _sectionLabel('Order'),
+                    const AdminSectionLabel('Order'),
                     const SizedBox(height: 8),
-                    _orderStepper(
+                    AdminOrderStepper(
                       value: order,
-                      onChanged: (value) => setModalState(() => order = value),
+                      onChanged: (value) =>
+                          setModalState(() => order = value),
                     ),
                     const SizedBox(height: 20),
                     Row(
                       children: [
                         Expanded(
-                          child: _secondaryButton(
+                          child: AdminSecondaryButton(
                             label: 'Cancel',
                             onTap: () => Navigator.pop(context),
                           ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: _primaryButton(
+                          child: AdminPrimaryButton(
                             label: 'Save Topic',
                             onTap: () async {
                               final name = nameController.text.trim();
@@ -228,7 +228,10 @@ class _AdminContentScreenState extends State<AdminContentScreen> {
                               if (name.isEmpty || desc.isEmpty) return;
 
                               final topic = TopicModel(
-                                id: FirebaseFirestore.instance.collection('topics').doc().id,
+                                id: FirebaseFirestore.instance
+                                    .collection('topics')
+                                    .doc()
+                                    .id,
                                 categoryId: category.id,
                                 name: name,
                                 desc: desc,
@@ -265,7 +268,8 @@ class _AdminContentScreenState extends State<AdminContentScreen> {
       return;
     }
 
-    if (_titleController.text.trim().isEmpty || _contentController.text.trim().isEmpty) {
+    if (_titleController.text.trim().isEmpty ||
+        _contentController.text.trim().isEmpty) {
       _showSnack('Title and content are required', isError: true);
       return;
     }
@@ -305,7 +309,8 @@ class _AdminContentScreenState extends State<AdminContentScreen> {
   void _showSnack(String message, {bool isError = false}) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        backgroundColor: isError ? red : tealDark,
+        backgroundColor:
+        isError ? AdminContentUi.red : AdminContentUi.tealDark,
         content: Text(message),
       ),
     );
@@ -314,13 +319,13 @@ class _AdminContentScreenState extends State<AdminContentScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: cream,
+      backgroundColor: AdminContentUi.cream,
       body: SafeArea(
         child: Column(
           children: [
             Container(
               decoration: const BoxDecoration(
-                color: teal,
+                color: AdminContentUi.teal,
                 borderRadius: BorderRadius.only(
                   bottomLeft: Radius.circular(26),
                   bottomRight: Radius.circular(26),
@@ -340,12 +345,15 @@ class _AdminContentScreenState extends State<AdminContentScreen> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       shape: BoxShape.circle,
-                      border: Border.all(color: const Color(0xFFFFF0C2), width: 2),
+                      border: Border.all(
+                        color: const Color(0xFFFFF0C2),
+                        width: 2,
+                      ),
                     ),
                     child: IconButton(
                       icon: const Icon(
                         Icons.arrow_back_ios_new_rounded,
-                        color: tealDark,
+                        color: AdminContentUi.tealDark,
                         size: 20,
                       ),
                       onPressed: () => Navigator.pop(context),
@@ -380,9 +388,12 @@ class _AdminContentScreenState extends State<AdminContentScreen> {
                     ],
                     child: Container(
                       decoration: BoxDecoration(
-                        color: gold,
+                        color: AdminContentUi.gold,
                         shape: BoxShape.circle,
-                        border: Border.all(color: goldDark, width: 2),
+                        border: Border.all(
+                          color: AdminContentUi.goldDark,
+                          width: 2,
+                        ),
                       ),
                       child: const Padding(
                         padding: EdgeInsets.all(10),
@@ -402,15 +413,17 @@ class _AdminContentScreenState extends State<AdminContentScreen> {
                   : ListView(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
                 children: [
-                  _sectionCard(
+                  AdminSectionCard(
                     title: 'Where does this content belong?',
                     child: Column(
                       children: [
-                        _sectionLabel('Category'),
+                        const AdminSectionLabel('Category'),
                         const SizedBox(height: 8),
                         DropdownButtonFormField<String>(
                           initialValue: _categoryId,
-                          decoration: _inputDecoration('Select category'),
+                          decoration: AdminContentUi.inputDecoration(
+                            'Select category',
+                          ),
                           items: _categories
                               .map(
                                 (cat) => DropdownMenuItem(
@@ -434,11 +447,12 @@ class _AdminContentScreenState extends State<AdminContentScreen> {
                         Row(
                           children: [
                             const Expanded(
-                              child: _StaticLabel(text: 'Topic'),
+                              child: AdminStaticLabel(text: 'Topic'),
                             ),
                             TextButton.icon(
                               onPressed: _showQuickAddTopicSheet,
-                              icon: const Icon(Icons.add_rounded, size: 18),
+                              icon:
+                              const Icon(Icons.add_rounded, size: 18),
                               label: const Text('Add Topic'),
                             ),
                           ],
@@ -446,7 +460,9 @@ class _AdminContentScreenState extends State<AdminContentScreen> {
                         const SizedBox(height: 8),
                         DropdownButtonFormField<String>(
                           initialValue: _topicId,
-                          decoration: _inputDecoration('Select topic'),
+                          decoration: AdminContentUi.inputDecoration(
+                            'Select topic',
+                          ),
                           items: _topics
                               .map(
                                 (topic) => DropdownMenuItem(
@@ -455,45 +471,74 @@ class _AdminContentScreenState extends State<AdminContentScreen> {
                             ),
                           )
                               .toList(),
-                          onChanged: (val) => setState(() => _topicId = val),
+                          onChanged: (val) =>
+                              setState(() => _topicId = val),
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 16),
-                  _sectionCard(
+                  AdminSectionCard(
                     title: 'Content type',
                     child: Row(
                       children: [
-                        Expanded(child: _typeButton('Article', ContentType.article)),
+                        Expanded(
+                          child: _TypeButton(
+                            label: 'Article',
+                            selected: _type == ContentType.article,
+                            onTap: () => setState(
+                                  () => _type = ContentType.article,
+                            ),
+                          ),
+                        ),
                         const SizedBox(width: 8),
-                        Expanded(child: _typeButton('Video', ContentType.video)),
+                        Expanded(
+                          child: _TypeButton(
+                            label: 'Video',
+                            selected: _type == ContentType.video,
+                            onTap: () => setState(
+                                  () => _type = ContentType.video,
+                            ),
+                          ),
+                        ),
                         const SizedBox(width: 8),
-                        Expanded(child: _typeButton('Image', ContentType.infographic)),
+                        Expanded(
+                          child: _TypeButton(
+                            label: 'Image',
+                            selected: _type == ContentType.infographic,
+                            onTap: () => setState(
+                                  () => _type = ContentType.infographic,
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 16),
-                  _sectionCard(
+                  AdminSectionCard(
                     title: 'Main content',
                     child: Column(
                       children: [
-                        _sectionLabel('Title'),
+                        const AdminSectionLabel('Title'),
                         const SizedBox(height: 8),
                         TextField(
                           controller: _titleController,
-                          decoration: _inputDecoration('Content title'),
+                          decoration: AdminContentUi.inputDecoration(
+                            'Content title',
+                          ),
                         ),
                         const SizedBox(height: 16),
-                        _sectionLabel('Short description'),
+                        const AdminSectionLabel('Short description'),
                         const SizedBox(height: 8),
                         TextField(
                           controller: _descriptionController,
                           maxLines: 2,
-                          decoration: _inputDecoration('Brief description shown on card'),
+                          decoration: AdminContentUi.inputDecoration(
+                            'Brief description shown on card',
+                          ),
                         ),
                         const SizedBox(height: 16),
-                        _sectionLabel(
+                        AdminSectionLabel(
                           _type == ContentType.video
                               ? 'YouTube Video ID'
                               : _type == ContentType.infographic
@@ -504,7 +549,7 @@ class _AdminContentScreenState extends State<AdminContentScreen> {
                         TextField(
                           controller: _contentController,
                           maxLines: _type == ContentType.article ? 10 : 1,
-                          decoration: _inputDecoration(
+                          decoration: AdminContentUi.inputDecoration(
                             _type == ContentType.video
                                 ? 'e.g. dQw4w9WgXcQ'
                                 : _type == ContentType.infographic
@@ -513,27 +558,35 @@ class _AdminContentScreenState extends State<AdminContentScreen> {
                           ),
                         ),
                         const SizedBox(height: 16),
-                        _sectionLabel('Thumbnail URL (optional)'),
+                        const AdminSectionLabel(
+                          'Thumbnail URL (optional)',
+                        ),
                         const SizedBox(height: 8),
                         TextField(
                           controller: _thumbnailController,
-                          decoration: _inputDecoration('https://example.com/thumbnail.jpg'),
+                          decoration: AdminContentUi.inputDecoration(
+                            'https://example.com/thumbnail.jpg',
+                          ),
                         ),
                         if (_type == ContentType.article) ...[
                           const SizedBox(height: 16),
-                          _sectionLabel('Read time (minutes)'),
+                          const AdminSectionLabel(
+                            'Read time (minutes)',
+                          ),
                           const SizedBox(height: 8),
                           TextField(
                             controller: _readTimeController,
                             keyboardType: TextInputType.number,
-                            decoration: _inputDecoration('e.g. 3'),
+                            decoration: AdminContentUi.inputDecoration(
+                              'e.g. 3',
+                            ),
                           ),
                         ],
                       ],
                     ),
                   ),
                   const SizedBox(height: 20),
-                  _primaryButton(
+                  AdminPrimaryButton(
                     label: _isSaving ? 'Saving...' : 'Save Content',
                     onTap: _isSaving ? () {} : _save,
                   ),
@@ -545,88 +598,35 @@ class _AdminContentScreenState extends State<AdminContentScreen> {
       ),
     );
   }
+}
 
-  Widget _sectionCard({
-    required String title,
-    required Widget child,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: const TextStyle(
-              color: Color(0xFF111827),
-              fontWeight: FontWeight.w800,
-              fontSize: 18,
-            ),
-          ),
-          const SizedBox(height: 16),
-          child,
-        ],
-      ),
-    );
-  }
+class _TypeButton extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
 
-  Widget _sectionLabel(String text) {
-    return Text(
-      text,
-      style: const TextStyle(
-        color: Color(0xFF374151),
-        fontWeight: FontWeight.bold,
-        fontSize: 14,
-      ),
-    );
-  }
+  const _TypeButton({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
 
-  InputDecoration _inputDecoration(String hint) {
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: const TextStyle(color: Color(0xFF9CA3AF)),
-      filled: true,
-      fillColor: Colors.white,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: Color(0xFFE5E7EB)),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: teal, width: 2),
-      ),
-    );
-  }
-
-  Widget _typeButton(String label, ContentType type) {
-    final selected = _type == type;
-
+  @override
+  Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: () => setState(() => _type = type),
+      onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
         padding: const EdgeInsets.symmetric(vertical: 12),
         decoration: BoxDecoration(
-          color: selected ? teal.withOpacity(0.15) : const Color(0xFFF8FAFC),
+          color: selected
+              ? AdminContentUi.teal.withOpacity(0.15)
+              : const Color(0xFFF8FAFC),
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: selected ? teal : const Color(0xFFE5E7EB),
+            color: selected
+                ? AdminContentUi.teal
+                : const Color(0xFFE5E7EB),
             width: selected ? 2 : 1,
           ),
         ),
@@ -634,171 +634,13 @@ class _AdminContentScreenState extends State<AdminContentScreen> {
           label,
           textAlign: TextAlign.center,
           style: TextStyle(
-            color: selected ? tealDark : const Color(0xFF6B7280),
+            color: selected
+                ? AdminContentUi.tealDark
+                : const Color(0xFF6B7280),
             fontWeight: FontWeight.bold,
             fontSize: 13,
           ),
         ),
-      ),
-    );
-  }
-
-  Widget _toggleCard({
-    required String label,
-    required bool value,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-        decoration: BoxDecoration(
-          color: value ? color.withOpacity(0.12) : Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: value ? color : const Color(0xFFE5E7EB),
-            width: value ? 2 : 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              value ? Icons.check_circle_rounded : Icons.radio_button_unchecked_rounded,
-              color: value ? color : const Color(0xFF9CA3AF),
-            ),
-            const SizedBox(width: 10),
-            Text(
-              label,
-              style: TextStyle(
-                color: value ? color : const Color(0xFF6B7280),
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _orderStepper({
-    required int value,
-    required ValueChanged<int> onChanged,
-  }) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-      ),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: value > 1 ? () => onChanged(value - 1) : null,
-            icon: const Icon(Icons.remove_rounded),
-          ),
-          Expanded(
-            child: Center(
-              child: Text(
-                '$value',
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-            ),
-          ),
-          IconButton(
-            onPressed: () => onChanged(value + 1),
-            icon: const Icon(Icons.add_rounded),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _primaryButton({
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 56,
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [
-              Color(0xFF2BBFAA),
-              Color(0xFF1FA090),
-            ],
-          ),
-          borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: const Color(0xFF16897B), width: 2),
-          boxShadow: const [
-            BoxShadow(
-              color: Color(0xFF16897B),
-              offset: Offset(0, 4),
-              blurRadius: 0,
-            ),
-          ],
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.w900,
-              fontSize: 16,
-              letterSpacing: 0.8,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _secondaryButton({
-    required String label,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 54,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(28),
-          border: Border.all(color: const Color(0xFFD1D5DB), width: 1.5),
-        ),
-        child: Center(
-          child: Text(
-            label,
-            style: const TextStyle(
-              color: Color(0xFF374151),
-              fontWeight: FontWeight.bold,
-              fontSize: 15,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _StaticLabel extends StatelessWidget {
-  final String text;
-
-  const _StaticLabel({required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: const TextStyle(
-        color: Color(0xFF374151),
-        fontWeight: FontWeight.bold,
-        fontSize: 14,
       ),
     );
   }
