@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../core/theme.dart';
-import '../providers/auth_provider.dart';
-import 'admin_screen.dart';
-import 'topics_screen.dart';
-import 'splash_screen.dart';
+import '../../core/theme.dart';
+import '../../providers/auth_provider.dart';
+import '../admin/admin_screen.dart';
+import '../quiz/topics_screen.dart';
+import '../auth/splash_screen.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});

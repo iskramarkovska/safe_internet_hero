@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../models/learning_content_model.dart';
+import '../../models/learning_content_model.dart';
 
 class VideoScreen extends StatelessWidget {
   final LearningContentModel content;

@@ -1,7 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import '../models/learning_content_model.dart';
-import '../services/learning_service.dart';
+import '../../models/learning_content_model.dart';
+import '../../services/learning_service.dart';
 import 'article_screen.dart';
 import 'video_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';

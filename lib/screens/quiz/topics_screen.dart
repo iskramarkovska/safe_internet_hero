@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../core/theme.dart';
-import '../models/category_model.dart';
-import '../models/topic_model.dart';
-import '../models/user_model.dart';
-import '../providers/auth_provider.dart';
-import '../services/questions_service.dart';
-import '../services/topics_service.dart';
+import '../../core/theme.dart';
+import '../../models/category_model.dart';
+import '../../models/topic_model.dart';
+import '../../models/user_model.dart';
+import '../../providers/auth_provider.dart';
+import '../../services/questions_service.dart';
+import '../../services/topics_service.dart';
 import 'quiz_screen.dart';
 
 class TopicsScreen extends StatefulWidget {

@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../core/theme.dart';
-import '../models/quiz_result_model.dart';
-import '../providers/auth_provider.dart';
-import '../services/questions_service.dart';
+import '../../core/theme.dart';
+import '../../models/quiz_result_model.dart';
+import '../../providers/auth_provider.dart';
+import '../../services/questions_service.dart';
 
 class QuizResultScreen extends StatefulWidget {
   final QuizResultModel result;

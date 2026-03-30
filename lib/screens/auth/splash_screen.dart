@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../core/theme.dart';
-import '../providers/auth_provider.dart';
-import 'main_screen.dart';
+import '../../core/theme.dart';
+import '../../providers/auth_provider.dart';
+import '../home/main_screen.dart';
 import 'login_screen.dart';
 
 class SplashScreen extends StatefulWidget {

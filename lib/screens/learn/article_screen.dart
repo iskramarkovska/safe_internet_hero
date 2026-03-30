@@ -1,6 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import '../models/learning_content_model.dart';
+import '../../models/learning_content_model.dart';
 
 class ArticleScreen extends StatelessWidget {
   final LearningContentModel content;
