@@ -80,4 +80,17 @@ class QuestionService {
     final snap = await query.get();
     return snap.docs.length;
   }
+
+  Stream<List<QuestionModel>> watchAllQuestions() {
+    return _db
+        .collection('questions')
+        .snapshots()
+        .map((snap) => snap.docs
+        .map((doc) => QuestionModel.fromMap({'id': doc.id, ...doc.data()}))
+        .toList());
+  }
+
+  Future<void> deleteQuestion(String id) async {
+    await _db.collection('questions').doc(id).delete();
+  }
 }

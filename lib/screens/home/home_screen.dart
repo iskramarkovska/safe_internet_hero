@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme.dart';
 import '../../providers/auth_provider.dart';
-import '../admin/admin_screen.dart';
+import '../admin/admin_dashboard_screen.dart';
 import '../quiz/topics_screen.dart';
 import '../auth/splash_screen.dart';
 
@@ -114,7 +114,7 @@ class HomeScreen extends StatelessWidget {
                               icon: Icons.admin_panel_settings_rounded,
                               borderColor: const Color(0xFFC8A830),
                               shadowColor: const Color(0xFFC8A830),
-                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminScreen())),
+                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminDashboardScreen())),
                             ),
                           ],
                         ],
