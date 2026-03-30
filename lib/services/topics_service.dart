@@ -90,23 +90,19 @@ class TopicsService {
 
   Future<void> seedCategories(List<CategoryModel> categories) async {
     final batch = _db.batch();
-
     for (final category in categories) {
       final docRef = _db.collection('categories').doc(category.id);
       batch.set(docRef, category.toMap());
     }
-
     await batch.commit();
   }
 
   Future<void> seedTopics(List<TopicModel> topics) async {
     final batch = _db.batch();
-
     for (final topic in topics) {
       final docRef = _db.collection('topics').doc(topic.id);
       batch.set(docRef, topic.toMap());
     }
-
     await batch.commit();
   }
 

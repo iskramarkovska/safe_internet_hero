@@ -5,7 +5,6 @@ class TopicModel {
   final String categoryId;
   final String name;
   final String desc;
-  final String iconName;
   final bool isNew;
   final bool isUpdated;
   final int order;
@@ -17,7 +16,6 @@ class TopicModel {
     required this.categoryId,
     required this.name,
     required this.desc,
-    required this.iconName,
     required this.isNew,
     required this.isUpdated,
     required this.order,
@@ -31,7 +29,6 @@ class TopicModel {
       categoryId: map['categoryId'] ?? '',
       name: map['name'] ?? '',
       desc: map['desc'] ?? '',
-      iconName: map['iconName'] ?? '',
       isNew: map['isNew'] ?? false,
       isUpdated: map['isUpdated'] ?? false,
       order: map['order'] ?? 0,
@@ -46,7 +43,6 @@ class TopicModel {
       'categoryId': categoryId,
       'name': name,
       'desc': desc,
-      'iconName': iconName,
       'isNew': isNew,
       'isUpdated': isUpdated,
       'order': order,

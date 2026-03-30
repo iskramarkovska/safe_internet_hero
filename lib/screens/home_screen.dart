@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../core/theme.dart';
 import '../providers/auth_provider.dart';
+import 'admin_screen.dart';
 import 'topics_screen.dart';
 import 'splash_screen.dart';
 
@@ -37,8 +38,11 @@ class HomeScreen extends StatelessWidget {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       IconButton(
-                        icon: const Icon(Icons.logout_rounded,
-                            color: Colors.white, size: 22),
+                        icon: const Icon(
+                          Icons.logout_rounded,
+                          color: Colors.white,
+                          size: 22,
+                        ),
                         onPressed: () => _confirmLogout(context),
                       ),
                       Row(
@@ -58,8 +62,7 @@ class HomeScreen extends StatelessWidget {
                             decoration: BoxDecoration(
                               color: Colors.white,
                               shape: BoxShape.circle,
-                              border: Border.all(
-                                  color: Colors.white, width: 2),
+                              border: Border.all(color: Colors.white, width: 2),
                               boxShadow: [
                                 BoxShadow(
                                   color: Colors.black.withOpacity(0.15),
@@ -114,12 +117,15 @@ class HomeScreen extends StatelessWidget {
                                   color: red,
                                   shape: BoxShape.circle,
                                 ),
-                                child: const Icon(Icons.bolt_rounded,
-                                    color: Colors.white, size: 64),
+                                child: const Icon(
+                                  Icons.bolt_rounded,
+                                  color: Colors.white,
+                                  size: 64,
+                                ),
                               ),
                             ),
                           ),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 100),
                           const Text(
                             'Safe Internet Hero',
                             textAlign: TextAlign.center,
@@ -131,13 +137,37 @@ class HomeScreen extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 56),
-                          _QuizUpPlayButton(
+                          _QuizUpActionButton(
+                            label: 'PLAY',
+                            color: const Color(0xFF1FA090),
+                            textColor: Colors.white,
+                            icon: Icons.send_rounded,
+                            borderColor: const Color(0xFF168C7F),
+                            shadowColor: const Color(0xFF168C7F),
                             onTap: () => Navigator.push(
                               context,
                               MaterialPageRoute(
-                                  builder: (_) => const TopicsScreen()),
+                                builder: (_) => const TopicsScreen(),
+                              ),
                             ),
                           ),
+                          if (user?.isAdmin == true) ...[
+                            const SizedBox(height: 18),
+                            _QuizUpActionButton(
+                              label: 'ADMIN PANEL',
+                              color: const Color(0xFFE8C84A),
+                              textColor: const Color(0xFF5A7A6A),
+                              icon: Icons.admin_panel_settings_rounded,
+                              borderColor: const Color(0xFFC8A830),
+                              shadowColor: const Color(0xFFC8A830),
+                              onTap: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const AdminScreen(),
+                                ),
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                     ),
@@ -156,7 +186,8 @@ class HomeScreen extends StatelessWidget {
       context: context,
       builder: (_) => Dialog(
         shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24)),
+          borderRadius: BorderRadius.circular(24),
+        ),
         backgroundColor: const Color(0xFFF0FEFA),
         elevation: 20,
         child: Padding(
@@ -164,7 +195,6 @@ class HomeScreen extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Title pill
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 10),
@@ -233,7 +263,10 @@ class _DialogButton extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
 
-  const _DialogButton({required this.label, required this.onTap});
+  const _DialogButton({
+    required this.label,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -244,7 +277,6 @@ class _DialogButton extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 14),
           decoration: BoxDecoration(
-            // Gradient to simulate 3D effect like QuizUp
             gradient: const LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
@@ -254,20 +286,17 @@ class _DialogButton extends StatelessWidget {
               ],
             ),
             borderRadius: BorderRadius.circular(32),
-            // Outer border (darker yellow = shadow line at bottom)
             border: Border.all(
               color: const Color(0xFFC8A830),
               width: 2.5,
             ),
             boxShadow: [
-              // Bottom shadow — gives 3D pressed look
               const BoxShadow(
                 color: Color(0xFFC8A830),
                 offset: Offset(0, 4),
                 blurRadius: 0,
                 spreadRadius: 0,
               ),
-              // Soft outer glow
               BoxShadow(
                 color: Colors.black.withOpacity(0.1),
                 offset: const Offset(0, 6),
@@ -291,58 +320,119 @@ class _DialogButton extends StatelessWidget {
   }
 }
 
-class _QuizUpPlayButton extends StatelessWidget {
+class _QuizUpActionButton extends StatelessWidget {
+  final String label;
+  final Color color;
+  final Color textColor;
+  final IconData icon;
+  final Color borderColor;
+  final Color shadowColor;
   final VoidCallback onTap;
 
-  const _QuizUpPlayButton({required this.onTap});
+  const _QuizUpActionButton({
+    required this.label,
+    required this.color,
+    required this.textColor,
+    required this.icon,
+    required this.borderColor,
+    required this.shadowColor,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    const color = Color(0xFF1FA090);
-    const shape = RoundedRectangleBorder(
-      borderRadius: BorderRadius.all(Radius.circular(32)),
+    final shape = RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(32),
     );
 
     return MouseRegion(
       cursor: SystemMouseCursors.click,
-      child: Material(
-        color: color,
-        shape: shape,
-        shadowColor: Colors.black26,
-        elevation: 8,
-        child: InkWell(
-          onTap: onTap,
-          customBorder: shape,
-          child: Padding(
-            padding: const EdgeInsets.only(
-                left: 32, top: 14, bottom: 14, right: 12),
-            child: Row(
-              children: [
-                const Expanded(
-                  child: Text(
-                    'PLAY',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.w900,
-                      letterSpacing: 2,
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(32),
+          boxShadow: [
+            BoxShadow(
+              color: shadowColor.withOpacity(0.9),
+              offset: const Offset(0, 5),
+              blurRadius: 0,
+              spreadRadius: 0,
+            ),
+            BoxShadow(
+              color: Colors.black.withOpacity(0.12),
+              offset: const Offset(0, 8),
+              blurRadius: 12,
+            ),
+          ],
+        ),
+        child: Material(
+          color: color,
+          shape: shape,
+          child: InkWell(
+            onTap: onTap,
+            customBorder: shape,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.only(
+                left: 32,
+                top: 14,
+                bottom: 14,
+                right: 12,
+              ),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(32),
+                border: Border.all(
+                  color: borderColor,
+                  width: 2.5,
+                ),
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    color.withOpacity(0.96),
+                    color,
+                  ],
+                ),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      label,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: textColor,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 1.6,
+                      ),
                     ),
                   ),
-                ),
-                Container(
-                  width: 44,
-                  height: 44,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.15),
-                    shape: BoxShape.circle,
-                    border: Border.all(
-                        color: Colors.white.withOpacity(0.5), width: 2),
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.16),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: Colors.white.withOpacity(0.45),
+                        width: 2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.08),
+                          blurRadius: 6,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      icon,
+                      color: textColor,
+                      size: 22,
+                    ),
                   ),
-                  child: const Icon(Icons.send_rounded,
-                      color: Colors.white, size: 20),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ),
@@ -375,22 +465,37 @@ class _BackgroundPainter extends CustomPainter {
       ..color = Colors.white.withOpacity(0.07)
       ..style = PaintingStyle.fill;
 
-    canvas.drawCircle(Offset(size.width * 0.85, size.height * 0.05),
-        size.width * 0.28, circlePaint);
-    canvas.drawCircle(Offset(size.width * 0.08, size.height * 0.18),
-        size.width * 0.18, circlePaint);
-    canvas.drawCircle(Offset(size.width * 0.15, size.height * 0.38),
-        size.width * 0.10, circlePaint);
+    canvas.drawCircle(
+      Offset(size.width * 0.85, size.height * 0.05),
+      size.width * 0.28,
+      circlePaint,
+    );
+    canvas.drawCircle(
+      Offset(size.width * 0.08, size.height * 0.18),
+      size.width * 0.18,
+      circlePaint,
+    );
+    canvas.drawCircle(
+      Offset(size.width * 0.15, size.height * 0.38),
+      size.width * 0.10,
+      circlePaint,
+    );
 
     final ringPaint = Paint()
       ..color = Colors.white.withOpacity(0.06)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 18;
 
-    canvas.drawCircle(Offset(size.width * 0.9, size.height * 0.28),
-        size.width * 0.22, ringPaint);
-    canvas.drawCircle(Offset(size.width * 0.05, size.height * 0.08),
-        size.width * 0.15, ringPaint);
+    canvas.drawCircle(
+      Offset(size.width * 0.9, size.height * 0.28),
+      size.width * 0.22,
+      ringPaint,
+    );
+    canvas.drawCircle(
+      Offset(size.width * 0.05, size.height * 0.08),
+      size.width * 0.15,
+      ringPaint,
+    );
 
     final dotPaint = Paint()
       ..color = teal.withOpacity(0.15)
@@ -412,20 +517,32 @@ class _BackgroundPainter extends CustomPainter {
       ..color = lightTeal.withOpacity(0.2)
       ..style = PaintingStyle.fill;
 
-    canvas.drawCircle(Offset(size.width * 0.05, size.height * 0.85),
-        size.width * 0.12, accentPaint);
-    canvas.drawCircle(Offset(size.width * 0.92, size.height * 0.75),
-        size.width * 0.09, accentPaint);
-    canvas.drawCircle(Offset(size.width * 0.78, size.height * 0.92),
-        size.width * 0.06, accentPaint);
+    canvas.drawCircle(
+      Offset(size.width * 0.05, size.height * 0.85),
+      size.width * 0.12,
+      accentPaint,
+    );
+    canvas.drawCircle(
+      Offset(size.width * 0.92, size.height * 0.75),
+      size.width * 0.09,
+      accentPaint,
+    );
+    canvas.drawCircle(
+      Offset(size.width * 0.78, size.height * 0.92),
+      size.width * 0.06,
+      accentPaint,
+    );
 
     final ringPaint2 = Paint()
       ..color = teal.withOpacity(0.12)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 12;
 
-    canvas.drawCircle(Offset(size.width * 0.1, size.height * 0.9),
-        size.width * 0.18, ringPaint2);
+    canvas.drawCircle(
+      Offset(size.width * 0.1, size.height * 0.9),
+      size.width * 0.18,
+      ringPaint2,
+    );
   }
 
   @override
