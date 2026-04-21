@@ -9,8 +9,6 @@ import '../auth/splash_screen.dart';
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
-  static const red = Color(0xFFE8524A);
-  static const teal = Color(0xFF2BBFAA);
 
   @override
   Widget build(BuildContext context) {
@@ -57,7 +55,7 @@ class HomeScreen extends StatelessWidget {
                             ),
                             child: Center(
                               child: Text(initial,
-                                  style: const TextStyle(color: teal, fontWeight: FontWeight.bold, fontSize: 16)),
+                                  style: const TextStyle(color: AppColors.teal, fontWeight: FontWeight.bold, fontSize: 16)),
                             ),
                           ),
                         ],
@@ -84,7 +82,7 @@ class HomeScreen extends StatelessWidget {
                             child: Padding(
                               padding: const EdgeInsets.all(8),
                               child: Container(
-                                decoration: const BoxDecoration(color: red, shape: BoxShape.circle),
+                                decoration: const BoxDecoration(color: AppColors.hero, shape: BoxShape.circle),
                                 child: const Icon(Icons.bolt_rounded, color: Colors.white, size: 64),
                               ),
                             ),
@@ -93,7 +91,7 @@ class HomeScreen extends StatelessWidget {
                           const Text(
                             'Safe Internet Hero',
                             textAlign: TextAlign.center,
-                            style: TextStyle(color: teal, fontSize: 26, fontWeight: FontWeight.w900, letterSpacing: 0.3),
+                            style: TextStyle(color: AppColors.teal, fontSize: 26, fontWeight: FontWeight.w900, letterSpacing: 0.3),
                           ),
                           const SizedBox(height: 56),
                           _QuizUpActionButton(
@@ -149,20 +147,20 @@ class HomeScreen extends StatelessWidget {
                   width: double.infinity,
                   padding: const EdgeInsets.symmetric(vertical: 10),
                   decoration: BoxDecoration(
-                    color: teal.withOpacity(0.15),
+                    color: AppColors.teal.withOpacity(0.15),
                     borderRadius: BorderRadius.circular(32),
                   ),
                   child: const Text(
                     'Sign out',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: teal, fontWeight: FontWeight.bold, fontSize: 18),
+                    style: TextStyle(color: AppColors.teal, fontWeight: FontWeight.bold, fontSize: 18),
                   ),
                 ),
                 const SizedBox(height: 24),
                 const Text(
                   'Are you sure you want to sign out?',
                   textAlign: TextAlign.center,
-                  style: TextStyle(color: teal, fontSize: 16, height: 1.4),
+                  style: TextStyle(color: AppColors.teal, fontSize: 16, height: 1.4),
                 ),
                 const SizedBox(height: 28),
                 Builder(builder: (ctx) => Row(
@@ -311,10 +309,7 @@ class _QuizUpActionButton extends StatelessWidget {
 class _BackgroundPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    const teal = Color(0xFF2BBFAA);
-    const lightTeal = Color(0xFF4DD0C4);
-
-    final headerPaint = Paint()..color = teal;
+    final headerPaint = Paint()..color = AppColors.teal;
     final headerPath = Path();
     headerPath.moveTo(0, 0);
     headerPath.lineTo(size.width, 0);
@@ -332,7 +327,7 @@ class _BackgroundPainter extends CustomPainter {
     canvas.drawCircle(Offset(size.width * 0.9, size.height * 0.28), size.width * 0.22, ringPaint);
     canvas.drawCircle(Offset(size.width * 0.05, size.height * 0.08), size.width * 0.15, ringPaint);
 
-    final dotPaint = Paint()..color = teal.withOpacity(0.15)..style = PaintingStyle.fill;
+    final dotPaint = Paint()..color = AppColors.teal.withOpacity(0.15)..style = PaintingStyle.fill;
     final dotSpacingX = size.width / 10;
     final dotSpacingY = size.height / 16;
     final startY = size.height * 0.48;
@@ -344,12 +339,12 @@ class _BackgroundPainter extends CustomPainter {
       }
     }
 
-    final accentPaint = Paint()..color = lightTeal.withOpacity(0.2)..style = PaintingStyle.fill;
+    final accentPaint = Paint()..color = AppColors.tealLight.withOpacity(0.2)..style = PaintingStyle.fill;
     canvas.drawCircle(Offset(size.width * 0.05, size.height * 0.85), size.width * 0.12, accentPaint);
     canvas.drawCircle(Offset(size.width * 0.92, size.height * 0.75), size.width * 0.09, accentPaint);
     canvas.drawCircle(Offset(size.width * 0.78, size.height * 0.92), size.width * 0.06, accentPaint);
 
-    final ringPaint2 = Paint()..color = teal.withOpacity(0.12)..style = PaintingStyle.stroke..strokeWidth = 12;
+    final ringPaint2 = Paint()..color = AppColors.teal.withOpacity(0.12)..style = PaintingStyle.stroke..strokeWidth = 12;
     canvas.drawCircle(Offset(size.width * 0.1, size.height * 0.9), size.width * 0.18, ringPaint2);
   }
 

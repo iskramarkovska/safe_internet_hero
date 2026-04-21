@@ -17,8 +17,6 @@ class TopicsScreen extends StatefulWidget {
 }
 
 class _TopicsScreenState extends State<TopicsScreen> {
-  static const teal = Color(0xFF2BBFAA);
-  static const darkTeal = Color(0xFF1A9E8F);
 
   final TopicsService _topicsService = TopicsService();
   final TextEditingController _searchController = TextEditingController();
@@ -86,7 +84,7 @@ class _TopicsScreenState extends State<TopicsScreen> {
                 const SizedBox(height: 20),
                 SizedBox(width: double.infinity, child: ElevatedButton(
                   onPressed: () => Navigator.pop(context),
-                  style: ElevatedButton.styleFrom(backgroundColor: teal, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
+                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.teal, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
                   child: const Text('Back to Topics'),
                 )),
               ],
@@ -103,7 +101,7 @@ class _TopicsScreenState extends State<TopicsScreen> {
       categoryName: category.title,
       topicId: topic.id,
       topicName: topic.name,
-      color: teal,
+      color: AppColors.teal,
     )));
   }
 
@@ -120,7 +118,7 @@ class _TopicsScreenState extends State<TopicsScreen> {
           children: [
             // Header
             Container(
-              color: teal,
+              color: AppColors.teal,
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
               child: Row(
                 children: [
@@ -142,14 +140,14 @@ class _TopicsScreenState extends State<TopicsScreen> {
                 stream: _topicsService.watchCategories(),
                 builder: (context, catSnap) {
                   if (!catSnap.hasData) {
-                    return const Center(child: CircularProgressIndicator(color: teal));
+                    return const Center(child: CircularProgressIndicator(color: AppColors.teal));
                   }
 
                   return StreamBuilder<List<TopicModel>>(
                     stream: _topicsService.watchAllTopics(),
                     builder: (context, topicSnap) {
                       if (!topicSnap.hasData) {
-                        return const Center(child: CircularProgressIndicator(color: teal));
+                        return const Center(child: CircularProgressIndicator(color: AppColors.teal));
                       }
 
                       final categories = catSnap.data!;
@@ -191,7 +189,7 @@ class _TopicsScreenState extends State<TopicsScreen> {
                               decoration: InputDecoration(
                                 hintText: 'Search topics...',
                                 hintStyle: const TextStyle(color: AppColors.textLight),
-                                prefixIcon: const Icon(Icons.search_rounded, color: teal),
+                                prefixIcon: const Icon(Icons.search_rounded, color: AppColors.teal),
                                 suffixIcon: _searchText.isNotEmpty
                                     ? IconButton(
                                     icon: const Icon(Icons.close_rounded),
@@ -264,10 +262,9 @@ class _CategoryCard extends StatelessWidget {
     required this.completedCount,
   });
 
-  // Light teal for cards — distinct from nav bar
   static const cardColor = Color(0xFF4ECFBC);
-  static const cardBorder = Color(0xFF2BBFAA);
-  static const cardShadow = Color(0xFF1A9E8F);
+  static const cardBorder = AppColors.teal;
+  static const cardShadow = AppColors.darkTeal;
 
   @override
   Widget build(BuildContext context) {
@@ -319,7 +316,7 @@ class _CategoryCard extends StatelessWidget {
                                 decoration: BoxDecoration(
                                   color: const Color(0xFFE8C84A),
                                   borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(color: const Color(0xFFC8A830), width: 1.5),
+                                  border: Border.all(color: AppColors.goldDark, width: 1.5),
                                 ),
                                 child: Text(category.title,
                                     style: const TextStyle(
@@ -380,7 +377,7 @@ class _CategoryCard extends StatelessWidget {
                       clipper: _RibbonClipper(),
                       child: Container(
                         width: 68, height: 68,
-                        color: hasNew ? const Color(0xFFF45B8C) : const Color(0xFFFFA726),
+                        color: hasNew ? AppColors.pink : AppColors.amber,
                         alignment: Alignment.topRight,
                         padding: const EdgeInsets.only(top: 9, right: 5),
                         child: Transform.rotate(
@@ -449,7 +446,7 @@ class _TopicRow extends StatelessWidget {
           color: isDone ? const Color(0xFFFFF9E7) : Colors.white,
           borderRadius: BorderRadius.circular(14),
           border: Border.all(
-            color: isDone ? const Color(0xFFC8A830) : const Color(0xFFE0E0E0),
+            color: isDone ? AppColors.goldDark : const Color(0xFFE0E0E0),
             width: isDone ? 1.5 : 1,
           ),
           boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 4, offset: const Offset(0, 2))],
@@ -470,13 +467,13 @@ class _TopicRow extends StatelessWidget {
                   Container(
                       margin: const EdgeInsets.only(left: 6),
                       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                      decoration: BoxDecoration(color: const Color(0xFFF45B8C), borderRadius: BorderRadius.circular(8)),
+                      decoration: BoxDecoration(color: AppColors.pink, borderRadius: BorderRadius.circular(8)),
                       child: const Text('NEW', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold))),
                 if (topic.isUpdated)
                   Container(
                       margin: const EdgeInsets.only(left: 4),
                       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                      decoration: BoxDecoration(color: const Color(0xFFFFA726), borderRadius: BorderRadius.circular(8)),
+                      decoration: BoxDecoration(color: AppColors.amber, borderRadius: BorderRadius.circular(8)),
                       child: const Text('UPD', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold))),
                 const SizedBox(width: 8),
                 isDone
@@ -493,7 +490,7 @@ class _TopicRow extends StatelessWidget {
                 value: progress,
                 minHeight: 5,
                 backgroundColor: const Color(0xFFEEEEEE),
-                valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF2BBFAA)),
+                valueColor: const AlwaysStoppedAnimation<Color>(AppColors.teal),
               ),
             ),
           ],

@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
+import '../core/theme.dart';
 
-// ─────────────────────────────────────────────────────────────
-// COLORS  (one place, used everywhere in admin)
-// ─────────────────────────────────────────────────────────────
+// AdminColors delegates to AppColors so all admin screens keep working
+// without modification while color values live in one place.
 class AdminColors {
-  static const teal    = Color(0xFF2BBFAA);
-  static const darkTeal = Color(0xFF1A9E8F);
-  static const red     = Color(0xFFE8524A);
-  static const yellow  = Color(0xFFE8C84A);
-  static const yellowDark = Color(0xFFC8A830);
-  static const cream   = Color(0xFFF5FAF7);
+  static const teal = AppColors.teal;
+  static const darkTeal = AppColors.darkTeal;
+  static const red = AppColors.hero;
+  static const yellow = AppColors.gold;
+  static const yellowDark = AppColors.goldDark;
+  static const cream = AppColors.cream;
 }
 
 // ─────────────────────────────────────────────────────────────

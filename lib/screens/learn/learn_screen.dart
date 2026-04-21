@@ -15,7 +15,6 @@ class LearnScreen extends StatefulWidget {
 }
 
 class _LearnScreenState extends State<LearnScreen> {
-  static const teal = Color(0xFF2BBFAA);
 
   final LearningService _learningService = LearningService();
   final TopicsService _topicsService = TopicsService();
@@ -55,7 +54,7 @@ class _LearnScreenState extends State<LearnScreen> {
           children: [
             // Teal header with category chips
             Container(
-              color: teal,
+              color: AppColors.teal,
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -92,7 +91,7 @@ class _LearnScreenState extends State<LearnScreen> {
                     ? _learningService.getAllContent()
                     : _learningService.getContentByCategory(_selectedCatId),
                 builder: (context, snap) {
-                  if (!snap.hasData) return const Center(child: CircularProgressIndicator(color: teal));
+                  if (!snap.hasData) return const Center(child: CircularProgressIndicator(color: AppColors.teal));
 
                   final items = snap.data!;
                   if (items.isEmpty) {
@@ -102,8 +101,8 @@ class _LearnScreenState extends State<LearnScreen> {
                         children: [
                           Container(
                             width: 80, height: 80,
-                            decoration: BoxDecoration(color: teal.withOpacity(0.1), shape: BoxShape.circle),
-                            child: const Icon(Icons.menu_book_rounded, color: teal, size: 40),
+                            decoration: BoxDecoration(color: AppColors.teal.withOpacity(0.1), shape: BoxShape.circle),
+                            child: const Icon(Icons.menu_book_rounded, color: AppColors.teal, size: 40),
                           ),
                           const SizedBox(height: 16),
                           const Text('No content yet', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
@@ -149,7 +148,7 @@ class _Chip extends StatelessWidget {
           border: Border.all(color: selected ? Colors.white : Colors.white38, width: 1.5),
         ),
         child: Text(label, style: TextStyle(
-          color: selected ? const Color(0xFF1A9E8F) : Colors.white,
+          color: selected ? AppColors.darkTeal : Colors.white,
           fontWeight: FontWeight.bold, fontSize: 13,
         )),
       ),
@@ -219,10 +218,10 @@ class _ContentCard extends StatelessWidget {
   Widget _placeholder(bool isVideo, bool isImage) {
     return Container(
       height: 140, width: double.infinity,
-      color: const Color(0xFFE8F5F3),
+      color: AppColors.background,
       child: Center(child: Icon(
         isVideo ? Icons.play_circle_rounded : isImage ? Icons.image_rounded : Icons.article_rounded,
-        color: const Color(0xFF2BBFAA), size: 48,
+        color: AppColors.teal, size: 48,
       )),
     );
   }
@@ -236,7 +235,7 @@ class _TypeBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     final isVideo = type == ContentType.video;
     final isImage = type == ContentType.infographic;
-    final color = isVideo ? const Color(0xFFE8524A) : isImage ? const Color(0xFFFFB300) : const Color(0xFF2BBFAA);
+    final color = isVideo ? AppColors.hero : isImage ? AppColors.amber : AppColors.teal;
     final label = isVideo ? 'VIDEO' : isImage ? 'IMAGE' : 'ARTICLE';
     final icon = isVideo ? Icons.play_circle_rounded : isImage ? Icons.image_rounded : Icons.article_rounded;
 

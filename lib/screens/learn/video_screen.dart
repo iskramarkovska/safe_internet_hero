@@ -7,7 +7,6 @@ class VideoScreen extends StatelessWidget {
   final LearningContentModel content;
   const VideoScreen({super.key, required this.content});
 
-  static const teal = Color(0xFF2BBFAA);
 
   Future<void> _openVideo() async {
     final videoId = content.content.trim();
@@ -33,7 +32,7 @@ class VideoScreen extends StatelessWidget {
         child: Column(
           children: [
             Container(
-              color: teal,
+              color: AppColors.teal,
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
               child: Row(
                 children: [
@@ -68,10 +67,10 @@ class VideoScreen extends StatelessWidget {
                               errorBuilder: (_, __, ___) => Container(
                                 height: 210,
                                 decoration: BoxDecoration(
-                                  color: teal.withOpacity(0.1),
+                                  color: AppColors.teal.withOpacity(0.1),
                                   borderRadius: BorderRadius.circular(18),
                                 ),
-                                child: const Center(child: Icon(Icons.play_circle_outline_rounded, color: teal, size: 64)),
+                                child: const Center(child: Icon(Icons.play_circle_outline_rounded, color: AppColors.teal, size: 64)),
                               ),
                             ),
                           ),
@@ -94,7 +93,7 @@ class VideoScreen extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                          color: const Color(0xFFE8524A).withOpacity(0.12),
+                          color: AppColors.hero.withOpacity(0.12),
                           borderRadius: BorderRadius.circular(10)),
                       child: const Row(mainAxisSize: MainAxisSize.min, children: [
                         Icon(Icons.play_circle_rounded, color: Color(0xFFE8524A), size: 13),
@@ -119,7 +118,7 @@ class VideoScreen extends StatelessWidget {
                       child: Container(
                         height: 52, width: double.infinity,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFE8524A),
+                          color: AppColors.hero,
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(color: const Color(0xFFC62828), width: 2),
                           boxShadow: const [BoxShadow(color: Color(0xFFC62828), offset: Offset(0, 4), blurRadius: 0)],

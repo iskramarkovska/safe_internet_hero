@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/theme.dart';
 import 'home_screen.dart';
 import '../learn/learn_screen.dart';
 import '../social/leaderboard_screen.dart';
@@ -39,8 +40,6 @@ class _TealBottomNav extends StatelessWidget {
 
   const _TealBottomNav({required this.currentIndex, required this.onTap});
 
-  static const teal = Color(0xFF2BBFAA);
-
   static const _items = [
     (icon: Icons.home_rounded, label: 'Home'),
     (icon: Icons.menu_book_rounded, label: 'Learn'),
@@ -52,7 +51,7 @@ class _TealBottomNav extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color: teal,
+        color: AppColors.teal,
         boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, -2))],
       ),
       child: SafeArea(

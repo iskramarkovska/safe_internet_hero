@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../core/theme.dart';
 import '../../models/enums.dart';
 import '../../providers/auth_provider.dart';
 import '../../models/activity_model.dart';
@@ -44,9 +45,12 @@ class _ActivityScreenState extends State<ActivityScreen> {
 
   String _activityEmoji(ActivityType type) {
     switch (type) {
-      case ActivityType.quizCompleted: return '🎯';
-      case ActivityType.topicCompleted: return '✅';
-      case ActivityType.badgeEarned: return '🏆';
+      case ActivityType.quizCompleted:
+        return '🎯';
+      case ActivityType.topicCompleted:
+        return '✅';
+      case ActivityType.badgeEarned:
+        return '🏆';
     }
   }
 
@@ -55,105 +59,102 @@ class _ActivityScreenState extends State<ActivityScreen> {
     final auth = context.watch<AuthProvider>();
     final user = auth.user;
 
-    return Container(
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF1A1A2E), Color(0xFF16213E), Color(0xFF0F3460)],
-        ),
-      ),
-      child: SafeArea(
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: SafeArea(
         child: Column(
           children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            Container(
+              color: AppColors.teal,
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Activity',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 26,
-                      fontWeight: FontWeight.w900,
-                    ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Activity',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      IconButton(
+                        icon: Icon(
+                          _isSearching
+                              ? Icons.close
+                              : Icons.person_add_rounded,
+                          color: Colors.white,
+                        ),
+                        onPressed: () {
+                          setState(() {
+                            _isSearching = !_isSearching;
+                            if (!_isSearching) {
+                              _searchController.clear();
+                              _searchResults = [];
+                            }
+                          });
+                        },
+                      ),
+                    ],
                   ),
-                  IconButton(
-                    icon: Icon(
-                      _isSearching ? Icons.close : Icons.person_add_rounded,
-                      color: Colors.white70,
+                  if (_isSearching) ...[
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _searchController,
+                      onChanged: _search,
+                      style: const TextStyle(color: Colors.white),
+                      decoration: InputDecoration(
+                        hintText: 'Search by username...',
+                        hintStyle: const TextStyle(color: Colors.white60),
+                        prefixIcon: const Icon(Icons.search,
+                            color: Colors.white70),
+                        filled: true,
+                        fillColor: Colors.white.withOpacity(0.15),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                      ),
                     ),
-                    onPressed: () {
-                      setState(() {
-                        _isSearching = !_isSearching;
-                        if (!_isSearching) {
-                          _searchController.clear();
-                          _searchResults = [];
-                        }
-                      });
-                    },
-                  ),
+                  ],
                 ],
               ),
             ),
 
-
-            // Search bar
-            if (_isSearching)
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 20, vertical: 8),
-                child: TextField(
-                  controller: _searchController,
-                  onChanged: _search,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: InputDecoration(
-                    hintText: 'Search by username...',
-                    hintStyle: const TextStyle(color: Colors.white38),
-                    prefixIcon:
-                    const Icon(Icons.search, color: Colors.white54),
-                    filled: true,
-                    fillColor: Colors.white.withOpacity(0.08),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      borderSide: BorderSide.none,
-                    ),
-                  ),
-                ),
-              ),
-
-            // Search results
             if (_searchResults.isNotEmpty)
               _buildSearchResults(user),
 
-            // Activity feed
             if (!_isSearching || _searchResults.isEmpty)
               Expanded(
                 child: user == null || user.friends.isEmpty
                     ? _buildEmptyState()
                     : StreamBuilder<List<ActivityModel>>(
-                  stream: _friendService
-                      .getFriendsActivity(user.friends),
-                  builder: (context, snapshot) {
-                    if (!snapshot.hasData) {
-                      return const Center(
-                          child: CircularProgressIndicator());
-                    }
-                    if (snapshot.data!.isEmpty) {
-                      return _buildEmptyState();
-                    }
-                    return ListView.builder(
-                      padding: const EdgeInsets.all(16),
-                      itemCount: snapshot.data!.length,
-                      itemBuilder: (context, index) {
-                        final activity = snapshot.data![index];
-                        return _buildActivityItem(activity);
-                      },
-                    );
-                  },
-                ),
+                        stream: _friendService
+                            .getFriendsActivity(user.friends),
+                        builder: (context, snapshot) {
+                          if (!snapshot.hasData) {
+                            return const Center(
+                                child: CircularProgressIndicator(
+                                    color: AppColors.teal));
+                          }
+                          if (snapshot.data!.isEmpty) {
+                            return _buildEmptyState();
+                          }
+                          return ListView.builder(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: snapshot.data!.length,
+                            itemBuilder: (context, index) {
+                              return _buildActivityItem(
+                                  snapshot.data![index]);
+                            },
+                          );
+                        },
+                      ),
               ),
           ],
         ),
@@ -161,34 +162,44 @@ class _ActivityScreenState extends State<ActivityScreen> {
     );
   }
 
-
   Widget _buildSearchResults(UserModel? currentUser) {
     return Expanded(
       child: ListView.builder(
-        padding: const EdgeInsets.symmetric(horizontal: 20),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
         itemCount: _searchResults.length,
         itemBuilder: (context, index) {
           final result = _searchResults[index];
           if (result.id == currentUser?.id) return const SizedBox();
-          final isFriend = currentUser?.friends.contains(result.id) ?? false;
+          final isFriend =
+              currentUser?.friends.contains(result.id) ?? false;
           final isRequested =
-          result.friendRequests.contains(currentUser?.id);
+              result.friendRequests.contains(currentUser?.id);
 
           return Container(
             margin: const EdgeInsets.only(bottom: 10),
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(12),
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppColors.border),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.04),
+                  blurRadius: 6,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: Row(
               children: [
                 CircleAvatar(
-                  backgroundColor:
-                  const Color(0xFF00D4FF).withOpacity(0.2),
+                  backgroundColor: AppColors.teal.withOpacity(0.15),
                   child: Text(
                     result.username[0].toUpperCase(),
-                    style: const TextStyle(color: Color(0xFF00D4FF)),
+                    style: const TextStyle(
+                      color: AppColors.teal,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -198,42 +209,50 @@ class _ActivityScreenState extends State<ActivityScreen> {
                     children: [
                       Text(result.username,
                           style: const TextStyle(
-                              color: Colors.white,
+                              color: AppColors.textPrimary,
                               fontWeight: FontWeight.bold)),
                       Text(result.ageGroup.label,
                           style: const TextStyle(
-                              color: Colors.white38, fontSize: 12)),
+                              color: AppColors.textLight,
+                              fontSize: 12)),
                     ],
                   ),
                 ),
                 if (isFriend)
                   const Text('✅ Friends',
-                      style: TextStyle(color: Colors.green, fontSize: 12))
+                      style: TextStyle(
+                          color: AppColors.correct, fontSize: 12))
                 else if (isRequested)
                   const Text('Requested',
-                      style:
-                      TextStyle(color: Colors.white38, fontSize: 12))
+                      style: TextStyle(
+                          color: AppColors.textLight, fontSize: 12))
                 else
                   ElevatedButton(
                     onPressed: () async {
                       await _friendService.sendFriendRequest(
                           currentUser!.id, result.id);
+                      if (!mounted) return;
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Friend request sent!'),
-                          backgroundColor: Colors.green,
+                        SnackBar(
+                          content: const Text('Friend request sent!'),
+                          backgroundColor: AppColors.correct,
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10)),
                         ),
                       );
                     },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF00D4FF),
+                      backgroundColor: AppColors.teal,
+                      foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 6),
+                          horizontal: 14, vertical: 8),
                       shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8)),
+                          borderRadius: BorderRadius.circular(10)),
+                      elevation: 0,
                     ),
                     child: const Text('Add',
-                        style: TextStyle(color: Colors.black)),
+                        style: TextStyle(fontWeight: FontWeight.bold)),
                   ),
               ],
             ),
@@ -248,8 +267,16 @@ class _ActivityScreenState extends State<ActivityScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         children: [
@@ -263,19 +290,20 @@ class _ActivityScreenState extends State<ActivityScreen> {
                 Text(
                   activity.username,
                   style: const TextStyle(
-                      color: Color(0xFF00D4FF),
+                      color: AppColors.teal,
                       fontWeight: FontWeight.bold,
                       fontSize: 13),
                 ),
                 Text(
                   activity.title,
                   style: const TextStyle(
-                      color: Colors.white, fontWeight: FontWeight.w600),
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w600),
                 ),
                 Text(
                   activity.description,
                   style: const TextStyle(
-                      color: Colors.white54, fontSize: 12),
+                      color: AppColors.textSecondary, fontSize: 12),
                 ),
               ],
             ),
@@ -286,13 +314,12 @@ class _ActivityScreenState extends State<ActivityScreen> {
               Text(
                 '+${activity.starsEarned} ⭐',
                 style: const TextStyle(
-                    color: Color(0xFFFFD700),
-                    fontWeight: FontWeight.bold),
+                    color: AppColors.gold, fontWeight: FontWeight.bold),
               ),
               Text(
                 _timeAgo(activity.createdAt),
-                style:
-                const TextStyle(color: Colors.white38, fontSize: 11),
+                style: const TextStyle(
+                    color: AppColors.textLight, fontSize: 11),
               ),
             ],
           ),
@@ -311,14 +338,14 @@ class _ActivityScreenState extends State<ActivityScreen> {
           const Text(
             'No activity yet',
             style: TextStyle(
-                color: Colors.white,
+                color: AppColors.textPrimary,
                 fontSize: 18,
                 fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           const Text(
             'Add friends to see their activity here',
-            style: TextStyle(color: Colors.white54),
+            style: TextStyle(color: AppColors.textSecondary),
           ),
           const SizedBox(height: 24),
           ElevatedButton.icon(
@@ -326,17 +353,17 @@ class _ActivityScreenState extends State<ActivityScreen> {
             icon: const Icon(Icons.person_add_rounded),
             label: const Text('Find Friends'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF00D4FF),
-              foregroundColor: Colors.black,
+              backgroundColor: AppColors.teal,
+              foregroundColor: Colors.white,
               padding:
-              const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
               shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12)),
+              elevation: 0,
             ),
           ),
         ],
       ),
     );
   }
-
 }

@@ -6,7 +6,6 @@ class ArticleScreen extends StatelessWidget {
   final LearningContentModel content;
   const ArticleScreen({super.key, required this.content});
 
-  static const teal = Color(0xFF2BBFAA);
 
   @override
   Widget build(BuildContext context) {
@@ -16,7 +15,7 @@ class ArticleScreen extends StatelessWidget {
         child: Column(
           children: [
             Container(
-              color: teal,
+              color: AppColors.teal,
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
               child: Row(
                 children: [
@@ -49,11 +48,11 @@ class ArticleScreen extends StatelessWidget {
                           Row(children: [
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(color: teal.withOpacity(0.12), borderRadius: BorderRadius.circular(10)),
+                              decoration: BoxDecoration(color: AppColors.teal.withOpacity(0.12), borderRadius: BorderRadius.circular(10)),
                               child: const Row(mainAxisSize: MainAxisSize.min, children: [
-                                Icon(Icons.article_rounded, color: teal, size: 13),
+                                Icon(Icons.article_rounded, color: AppColors.teal, size: 13),
                                 SizedBox(width: 4),
-                                Text('ARTICLE', style: TextStyle(color: teal, fontWeight: FontWeight.bold, fontSize: 10)),
+                                Text('ARTICLE', style: TextStyle(color: AppColors.teal, fontWeight: FontWeight.bold, fontSize: 10)),
                               ]),
                             ),
                             if (content.readTimeMinutes > 0) ...[

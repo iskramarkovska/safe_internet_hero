@@ -74,11 +74,11 @@ class _SplashBody extends StatelessWidget {
               width: 120,
               height: 120,
               decoration: BoxDecoration(
-                color: const Color(0xFFE8524A),
+                color: AppColors.hero,
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: const Color(0xFFE8524A).withOpacity(0.3),
+                    color: AppColors.hero.withOpacity(0.3),
                     blurRadius: 24,
                     offset: const Offset(0, 8),
                   ),
@@ -91,7 +91,7 @@ class _SplashBody extends StatelessWidget {
             const Text(
               'Safe Internet Hero',
               style: TextStyle(
-                color: Color(0xFF2BBFAA),
+                color: AppColors.teal,
                 fontSize: 28,
                 fontWeight: FontWeight.w900,
               ),
@@ -107,7 +107,7 @@ class _SplashBody extends StatelessWidget {
               height: 32,
               child: CircularProgressIndicator(
                 strokeWidth: 3,
-                color: Color(0xFF2BBFAA),
+                color: AppColors.teal,
               ),
             ),
           ],

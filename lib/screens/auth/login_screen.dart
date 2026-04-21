@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme.dart';
 import '../../providers/auth_provider.dart';
+import '../../widgets/app_widgets.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -17,8 +18,6 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _showForm = false;
   bool _obscurePassword = true;
 
-  static const red = Color(0xFFE8524A);
-  static const teal = Color(0xFF2BBFAA);
 
   @override
   void dispose() {
@@ -66,11 +65,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   width: 110,
                   height: 110,
                   decoration: BoxDecoration(
-                    color: red,
+                    color: AppColors.hero,
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: red.withOpacity(0.3),
+                        color: AppColors.hero.withOpacity(0.3),
                         blurRadius: 24,
                         offset: const Offset(0, 8),
                       ),
@@ -83,7 +82,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 const Text(
                   'Safe Internet Hero',
                   style: TextStyle(
-                    color: teal,
+                    color: AppColors.teal,
                     fontSize: 26,
                     fontWeight: FontWeight.w900,
                   ),
@@ -91,31 +90,31 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 48),
 
                 if (!_showForm) ...[
-                  _SolidButton(
+                  AppSolidButton(
                     label: 'Sign in with email',
                     icon: Icons.email_outlined,
-                    color: red,
+                    color: AppColors.hero,
                     onTap: () => setState(() => _showForm = true),
                   ),
                   const SizedBox(height: 14),
                   const Divider(thickness: 1, color: Color(0xFFCCE8E4)),
                   const SizedBox(height: 14),
-                  _OutlineButton(
+                  AppOutlineButton(
                     label: 'Continue as Guest',
                     icon: Icons.person_outline_rounded,
-                    color: teal,
+                    color: AppColors.teal,
                     onTap: () =>
                         context.read<AuthProvider>().continueAsGuest(),
                   ),
                 ] else ...[
-                  _RoundedField(
+                  AppTextField(
                     controller: _emailController,
                     hint: 'Email',
                     icon: Icons.email_outlined,
                     keyboardType: TextInputType.emailAddress,
                   ),
                   const SizedBox(height: 12),
-                  _RoundedField(
+                  AppTextField(
                     controller: _passwordController,
                     hint: 'Password',
                     icon: Icons.lock_outline_rounded,
@@ -136,17 +135,17 @@ class _LoginScreenState extends State<LoginScreen> {
                   Row(
                     children: [
                       Expanded(
-                        child: _OutlineButton(
+                        child: AppOutlineButton(
                           label: 'Cancel',
-                          color: teal,
+                          color: AppColors.teal,
                           onTap: () => setState(() => _showForm = false),
                         ),
                       ),
                       const SizedBox(width: 12),
                       Expanded(
-                        child: _SolidButton(
+                        child: AppSolidButton(
                           label: auth.isLoading ? '...' : 'Log In',
-                          color: red,
+                          color: AppColors.hero,
                           onTap: auth.isLoading ? null : _login,
                         ),
                       ),
@@ -165,7 +164,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     child: const Text(
                       "Don't have an account? Register",
-                      style: TextStyle(color: teal),
+                      style: TextStyle(color: AppColors.teal),
                     ),
                   ),
                 ),
@@ -179,167 +178,3 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 }
 
-class _RoundedField extends StatelessWidget {
-  final TextEditingController controller;
-  final String hint;
-  final IconData icon;
-  final TextInputType keyboardType;
-  final bool obscure;
-  final Widget? suffixIcon;
-
-  const _RoundedField({
-    required this.controller,
-    required this.hint,
-    required this.icon,
-    this.keyboardType = TextInputType.text,
-    this.obscure = false,
-    this.suffixIcon,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(32),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: TextField(
-        controller: controller,
-        keyboardType: keyboardType,
-        obscureText: obscure,
-        decoration: InputDecoration(
-          hintText: hint,
-          hintStyle: const TextStyle(color: AppColors.textLight),
-          prefixIcon:
-          Icon(icon, color: const Color(0xFF2BBFAA), size: 20),
-          suffixIcon: suffixIcon,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(32),
-            borderSide: BorderSide.none,
-          ),
-          filled: true,
-          fillColor: Colors.transparent,
-          contentPadding:
-          const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        ),
-      ),
-    );
-  }
-}
-
-class _SolidButton extends StatelessWidget {
-  final String label;
-  final IconData? icon;
-  final Color color;
-  final VoidCallback? onTap;
-
-  const _SolidButton({
-    required this.label,
-    required this.color,
-    this.icon,
-    this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    const shape = RoundedRectangleBorder(
-      borderRadius: BorderRadius.all(Radius.circular(32)),
-    );
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: Material(
-        color: color,
-        shape: shape,
-        shadowColor: color,
-        elevation: 4,
-        child: InkWell(
-          onTap: onTap,
-          customBorder: shape,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (icon != null) ...[
-                  Icon(icon, color: Colors.white, size: 20),
-                  const SizedBox(width: 10),
-                ],
-                Text(
-                  label,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.3,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _OutlineButton extends StatelessWidget {
-  final String label;
-  final IconData? icon;
-  final Color color;
-  final VoidCallback? onTap;
-
-  const _OutlineButton({
-    required this.label,
-    required this.color,
-    this.icon,
-    this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final shape = RoundedRectangleBorder(
-      borderRadius: const BorderRadius.all(Radius.circular(32)),
-      side: BorderSide(color: color, width: 2),
-    );
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: Material(
-        color: Colors.white,
-        shape: shape,
-        elevation: 0,
-        child: InkWell(
-          onTap: onTap,
-          customBorder: shape,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (icon != null) ...[
-                  Icon(icon, color: color, size: 20),
-                  const SizedBox(width: 10),
-                ],
-                Text(
-                  label,
-                  style: TextStyle(
-                    color: color,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.3,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}

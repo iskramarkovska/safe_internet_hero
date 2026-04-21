@@ -5,8 +5,6 @@ import 'package:safe_internet_hero/screens/auth/splash_screen.dart';
 import 'firebase_options.dart';
 import 'core/theme.dart';
 import 'providers/auth_provider.dart';
-import 'screens/home/main_screen.dart';
-import 'screens/auth/login_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -33,17 +31,3 @@ class MyApp extends StatelessWidget {
   }
 }
 
-class AuthGate extends StatelessWidget {
-  const AuthGate({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    final auth = context.watch<AuthProvider>();
-    if (auth.isLoading) {
-      return const Scaffold(
-        body: Center(child: CircularProgressIndicator()),
-      );
-    }
-    return auth.isLoggedIn ? const MainScreen() : const LoginScreen();
-  }
-}
