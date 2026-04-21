@@ -1,9 +1,11 @@
-import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme.dart';
 import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
+import '../../widgets/skeleton_loader.dart';
 
 class LeaderboardScreen extends StatelessWidget {
   const LeaderboardScreen({super.key});
@@ -17,22 +19,33 @@ class LeaderboardScreen extends StatelessWidget {
       body: SafeArea(
         child: Column(
           children: [
-            const Padding(
-              padding: EdgeInsets.fromLTRB(20, 16, 20, 12),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Text(
-                  'Leaderboard',
-                  style: TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
+            // Teal header
+            Container(
+              color: AppColors.teal,
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+              child: const Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '🏆 Leaderboard',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900),
                   ),
-                ),
+                  SizedBox(height: 2),
+                  Text(
+                    'See how you rank against others',
+                    style: TextStyle(color: Colors.white70, fontSize: 13),
+                  ),
+                ],
               ),
             ),
 
-            // Podium
+            const SizedBox(height: 16),
+
+            // Podium — top 3
             StreamBuilder<QuerySnapshot>(
               stream: FirebaseFirestore.instance
                   .collection('users')
@@ -41,10 +54,7 @@ class LeaderboardScreen extends StatelessWidget {
                   .snapshots(),
               builder: (context, snap) {
                 if (!snap.hasData) {
-                  return const SizedBox(
-                      height: 140,
-                      child:
-                      Center(child: CircularProgressIndicator()));
+                  return const LeaderboardPodiumSkeleton();
                 }
                 final top3 = snap.data!.docs;
                 return Container(
@@ -53,15 +63,15 @@ class LeaderboardScreen extends StatelessWidget {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        AppColors.primary.withOpacity(0.08),
-                        AppColors.primary.withOpacity(0.03),
+                        AppColors.teal.withOpacity(0.08),
+                        AppColors.teal.withOpacity(0.03),
                       ],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                        color: AppColors.primary.withOpacity(0.1)),
+                        color: AppColors.teal.withOpacity(0.12)),
                   ),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -75,12 +85,13 @@ class LeaderboardScreen extends StatelessWidget {
                         _podiumItem(top3[2], '🥉', 60, currentUser),
                     ],
                   ),
-                );
+                ).animate().fadeIn(duration: const Duration(milliseconds: 400));
               },
             ),
+
             const SizedBox(height: 16),
 
-            // Full list
+            // Full ranked list
             Expanded(
               child: StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
@@ -89,8 +100,11 @@ class LeaderboardScreen extends StatelessWidget {
                     .snapshots(),
                 builder: (context, snap) {
                   if (!snap.hasData) {
-                    return const Center(
-                        child: CircularProgressIndicator());
+                    return ListView(
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      children:
+                          List.generate(8, (_) => const LeaderboardRowSkeleton()),
+                    );
                   }
                   final users = snap.data!.docs;
                   return ListView.builder(
@@ -98,7 +112,7 @@ class LeaderboardScreen extends StatelessWidget {
                     itemCount: users.length,
                     itemBuilder: (context, index) {
                       final data =
-                      users[index].data() as Map<String, dynamic>;
+                          users[index].data() as Map<String, dynamic>;
                       final isMe = data['uid'] == currentUser?.id;
 
                       return Container(
@@ -107,24 +121,24 @@ class LeaderboardScreen extends StatelessWidget {
                             horizontal: 14, vertical: 12),
                         decoration: BoxDecoration(
                           color: isMe
-                              ? AppColors.primary.withOpacity(0.08)
+                              ? AppColors.teal.withOpacity(0.08)
                               : Colors.white,
                           borderRadius: BorderRadius.circular(14),
                           border: Border.all(
                             color: isMe
-                                ? AppColors.primary
+                                ? AppColors.teal
                                 : const Color(0xFFE5E7EB),
                             width: isMe ? 2 : 1,
                           ),
                           boxShadow: isMe
                               ? null
                               : [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.03),
-                              blurRadius: 6,
-                              offset: const Offset(0, 2),
-                            )
-                          ],
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.03),
+                                    blurRadius: 6,
+                                    offset: const Offset(0, 2),
+                                  )
+                                ],
                         ),
                         child: Row(
                           children: [
@@ -134,10 +148,10 @@ class LeaderboardScreen extends StatelessWidget {
                                 index == 0
                                     ? '🥇'
                                     : index == 1
-                                    ? '🥈'
-                                    : index == 2
-                                    ? '🥉'
-                                    : '${index + 1}',
+                                        ? '🥈'
+                                        : index == 2
+                                            ? '🥉'
+                                            : '${index + 1}',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   color: AppColors.textSecondary,
@@ -150,12 +164,13 @@ class LeaderboardScreen extends StatelessWidget {
                             CircleAvatar(
                               radius: 18,
                               backgroundColor:
-                              AppColors.primary.withOpacity(0.12),
+                                  AppColors.teal.withOpacity(0.12),
                               child: Text(
-                                (data['username'] ?? '?')[0]
-                                    .toUpperCase(),
-                                style: const TextStyle(
-                                  color: AppColors.primary,
+                                (data['username'] ?? '?')[0].toUpperCase(),
+                                style: TextStyle(
+                                  color: isMe
+                                      ? AppColors.teal
+                                      : AppColors.darkTeal,
                                   fontWeight: FontWeight.bold,
                                 ),
                               ),
@@ -166,7 +181,7 @@ class LeaderboardScreen extends StatelessWidget {
                                 data['username'] ?? 'Unknown',
                                 style: TextStyle(
                                   color: isMe
-                                      ? AppColors.primary
+                                      ? AppColors.teal
                                       : AppColors.textPrimary,
                                   fontWeight: FontWeight.bold,
                                   fontSize: 14,
@@ -190,7 +205,15 @@ class LeaderboardScreen extends StatelessWidget {
                             ),
                           ],
                         ),
-                      );
+                      )
+                          .animate(
+                              delay: Duration(
+                                  milliseconds: (index * 40).clamp(0, 400)))
+                          .fadeIn(duration: const Duration(milliseconds: 300))
+                          .slideX(
+                              begin: 0.05,
+                              end: 0,
+                              duration: const Duration(milliseconds: 300));
                     },
                   );
                 },
@@ -212,11 +235,12 @@ class LeaderboardScreen extends StatelessWidget {
       children: [
         CircleAvatar(
           radius: 20,
-          backgroundColor: AppColors.primary.withOpacity(0.12),
+          backgroundColor: AppColors.teal.withOpacity(0.12),
           child: Text(
             (data['username'] ?? '?')[0].toUpperCase(),
-            style: const TextStyle(
-                color: AppColors.primary, fontWeight: FontWeight.bold),
+            style: TextStyle(
+                color: isMe ? AppColors.teal : AppColors.darkTeal,
+                fontWeight: FontWeight.bold),
           ),
         ),
         const SizedBox(height: 4),
@@ -227,14 +251,14 @@ class LeaderboardScreen extends StatelessWidget {
           height: height,
           decoration: BoxDecoration(
             color: isMe
-                ? AppColors.primary.withOpacity(0.2)
+                ? AppColors.teal.withOpacity(0.2)
                 : const Color(0xFFE5E7EB),
             borderRadius: const BorderRadius.only(
               topLeft: Radius.circular(8),
               topRight: Radius.circular(8),
             ),
             border: Border.all(
-              color: isMe ? AppColors.primary : const Color(0xFFD1D5DB),
+              color: isMe ? AppColors.teal : const Color(0xFFD1D5DB),
             ),
           ),
           child: Column(
@@ -251,8 +275,8 @@ class LeaderboardScreen extends StatelessWidget {
               ),
               Text(
                 '⭐ ${data['totalStars'] ?? 0}',
-                style: const TextStyle(
-                    color: AppColors.gold, fontSize: 10),
+                style:
+                    const TextStyle(color: AppColors.gold, fontSize: 10),
               ),
             ],
           ),

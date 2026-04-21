@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:shimmer/shimmer.dart';
 
+// ignore_for_file: unused_element
+
 class _Bone extends StatelessWidget {
   final double width;
   final double height;
@@ -111,6 +113,85 @@ class ContentSkeletonCard extends StatelessWidget {
                 ],
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────
+// Leaderboard skeletons
+// ─────────────────────────────────────────────────────
+
+class LeaderboardPodiumSkeleton extends StatelessWidget {
+  const LeaderboardPodiumSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return _shimmer(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 20),
+        padding: const EdgeInsets.fromLTRB(12, 16, 12, 0),
+        height: 185,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            _PodiumColSkeleton(height: 90),
+            _PodiumColSkeleton(height: 120),
+            _PodiumColSkeleton(height: 70),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PodiumColSkeleton extends StatelessWidget {
+  final double height;
+  const _PodiumColSkeleton({required this.height});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.end,
+      children: [
+        const _Bone(width: 40, height: 40, radius: 20),
+        const SizedBox(height: 8),
+        _Bone(width: 76, height: height, radius: 6),
+      ],
+    );
+  }
+}
+
+class LeaderboardRowSkeleton extends StatelessWidget {
+  const LeaderboardRowSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return _shimmer(
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: const Row(
+          children: [
+            _Bone(width: 28, height: 14, radius: 7),
+            SizedBox(width: 10),
+            _Bone(width: 36, height: 36, radius: 18),
+            SizedBox(width: 12),
+            Expanded(
+                child: _Bone(width: double.infinity, height: 14, radius: 7)),
+            SizedBox(width: 12),
+            _Bone(width: 44, height: 14, radius: 7),
           ],
         ),
       ),

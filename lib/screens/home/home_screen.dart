@@ -1,11 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import '../../core/app_page_route.dart';
 import '../../core/theme.dart';
 import '../../providers/auth_provider.dart';
 import '../admin/admin_dashboard_screen.dart';
+import '../profile/profile_screen.dart';
 import '../quiz/topics_screen.dart';
 import '../auth/splash_screen.dart';
+
+String _tierLabel(int stars) {
+  if (stars >= 60) return 'Cyber Legend';
+  if (stars >= 30) return 'Internet Guardian';
+  if (stars >= 15) return 'Hero in Training';
+  if (stars >= 5) return 'Apprentice';
+  return 'Rookie';
+}
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -46,17 +56,20 @@ class HomeScreen extends StatelessWidget {
                               style: const TextStyle(
                                   color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
                           const SizedBox(width: 10),
-                          Container(
-                            width: 40, height: 40,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 2),
-                              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 8, offset: const Offset(0, 2))],
-                            ),
-                            child: Center(
-                              child: Text(initial,
-                                  style: const TextStyle(color: AppColors.teal, fontWeight: FontWeight.bold, fontSize: 16)),
+                          GestureDetector(
+                            onTap: isGuest ? null : () => Navigator.push(context, AppPageRoute(builder: (_) => const ProfileScreen())),
+                            child: Container(
+                              width: 40, height: 40,
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 2),
+                                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 8, offset: const Offset(0, 2))],
+                              ),
+                              child: Center(
+                                child: Text(initial,
+                                    style: const TextStyle(color: AppColors.teal, fontWeight: FontWeight.bold, fontSize: 16)),
+                              ),
                             ),
                           ),
                         ],
@@ -87,14 +100,44 @@ class HomeScreen extends StatelessWidget {
                                 child: const Icon(Icons.bolt_rounded, color: Colors.white, size: 64),
                               ),
                             ),
+                          ).animate().scale(
+                            begin: const Offset(0.7, 0.7),
+                            end: const Offset(1, 1),
+                            curve: Curves.elasticOut,
+                            duration: const Duration(milliseconds: 700),
                           ),
-                          const SizedBox(height: 100),
+                          const SizedBox(height: 20),
                           const Text(
                             'Safe Internet Hero',
                             textAlign: TextAlign.center,
                             style: TextStyle(color: AppColors.teal, fontSize: 26, fontWeight: FontWeight.w900, letterSpacing: 0.3),
-                          ),
-                          const SizedBox(height: 56),
+                          ).animate(delay: const Duration(milliseconds: 200)).fadeIn().slideY(begin: 0.1, end: 0, duration: const Duration(milliseconds: 350)),
+                          const SizedBox(height: 10),
+                          if (!isGuest && user != null)
+                            GestureDetector(
+                              onTap: () => Navigator.push(context, AppPageRoute(builder: (_) => const ProfileScreen())),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: AppColors.gold.withOpacity(0.12),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: AppColors.goldDark.withOpacity(0.3)),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Text('⭐', style: TextStyle(fontSize: 14)),
+                                    const SizedBox(width: 6),
+                                    Text('${user.totalStars} stars',
+                                        style: const TextStyle(color: AppColors.goldDark, fontWeight: FontWeight.bold, fontSize: 13)),
+                                    const SizedBox(width: 8),
+                                    Text('· ${_tierLabel(user.totalStars)}',
+                                        style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                                  ],
+                                ),
+                              ),
+                            ).animate(delay: const Duration(milliseconds: 350)).fadeIn().scale(begin: const Offset(0.9, 0.9), end: const Offset(1, 1)),
+                          const SizedBox(height: 32),
                           _QuizUpActionButton(
                             label: 'PLAY',
                             color: const Color(0xFF1FA090),
@@ -103,7 +146,7 @@ class HomeScreen extends StatelessWidget {
                             borderColor: const Color(0xFF168C7F),
                             shadowColor: const Color(0xFF168C7F),
                             onTap: () => Navigator.push(context, AppPageRoute(builder: (_) => const TopicsScreen())),
-                          ),
+                          ).animate(delay: const Duration(milliseconds: 450)).fadeIn().slideY(begin: 0.15, end: 0, duration: const Duration(milliseconds: 350)),
                           if (user?.isAdmin == true) ...[
                             const SizedBox(height: 18),
                             _QuizUpActionButton(
@@ -114,7 +157,7 @@ class HomeScreen extends StatelessWidget {
                               borderColor: const Color(0xFFC8A830),
                               shadowColor: const Color(0xFFC8A830),
                               onTap: () => Navigator.push(context, AppPageRoute(builder: (_) => const AdminDashboardScreen())),
-                            ),
+                            ).animate(delay: const Duration(milliseconds: 530)).fadeIn().slideY(begin: 0.15, end: 0, duration: const Duration(milliseconds: 350)),
                           ],
                         ],
                       ),
