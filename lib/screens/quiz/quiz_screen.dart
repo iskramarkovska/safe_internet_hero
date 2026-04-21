@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
+import '../../core/app_page_route.dart';
 import '../../core/theme.dart';
 import '../../models/question_model.dart';
 import '../../models/enums.dart';
@@ -111,7 +113,7 @@ class _QuizScreenState extends State<QuizScreen> {
 
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (_) => QuizResultScreen(result: result)),
+      AppPageRoute(builder: (_) => QuizResultScreen(result: result)),
     );
   }
 
@@ -333,7 +335,7 @@ class _QuizScreenState extends State<QuizScreen> {
                       index == _selectedAnswer &&
                       !isCorrect;
 
-                  return GestureDetector(
+                  Widget option = GestureDetector(
                     onTap: () => _selectAnswer(index),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 250),
@@ -413,6 +415,26 @@ class _QuizScreenState extends State<QuizScreen> {
                       ),
                     ),
                   );
+
+                  if (isWrong) {
+                    return option
+                        .animate(key: ValueKey('wrong_${_currentIndex}_$index'))
+                        .shake(
+                            duration: const Duration(milliseconds: 400),
+                            hz: 4,
+                            offset: const Offset(6, 0));
+                  }
+                  if (isCorrect) {
+                    return option
+                        .animate(
+                            key: ValueKey('correct_${_currentIndex}_$index'))
+                        .scale(
+                            begin: const Offset(1.06, 1.06),
+                            end: const Offset(1, 1),
+                            duration: const Duration(milliseconds: 400),
+                            curve: Curves.elasticOut);
+                  }
+                  return option;
                 }),
 
                 // Explanation
@@ -455,7 +477,14 @@ class _QuizScreenState extends State<QuizScreen> {
                         ),
                       ],
                     ),
-                  ),
+                  )
+                      .animate(key: ValueKey('exp_$_currentIndex'))
+                      .slideY(
+                          begin: 0.2,
+                          end: 0,
+                          duration: const Duration(milliseconds: 350),
+                          curve: Curves.easeOut)
+                      .fadeIn(duration: const Duration(milliseconds: 300)),
                   const SizedBox(height: 16),
                   SizedBox(
                     width: double.infinity,

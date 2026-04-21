@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:lottie/lottie.dart';
 import 'package:provider/provider.dart';
+import '../../core/app_page_route.dart';
 import '../../core/theme.dart';
 import '../../models/category_model.dart';
 import '../../models/topic_model.dart';
@@ -7,6 +10,7 @@ import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/questions_service.dart';
 import '../../services/topics_service.dart';
+import '../../widgets/skeleton_loader.dart';
 import 'quiz_screen.dart';
 
 class TopicsScreen extends StatefulWidget {
@@ -76,8 +80,9 @@ class _TopicsScreenState extends State<TopicsScreen> {
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Text('🏆', style: TextStyle(fontSize: 56)),
-                const SizedBox(height: 12),
+                Lottie.asset('assets/lottie/trophy.json',
+                    width: 100, height: 100, repeat: false),
+                const SizedBox(height: 4),
                 const Text('Topic Completed!', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
                 const SizedBox(height: 8),
                 Text('All questions in ${topic.name} answered!', textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textSecondary)),
@@ -96,7 +101,7 @@ class _TopicsScreenState extends State<TopicsScreen> {
     }
 
     if (!context.mounted) return;
-    Navigator.push(context, MaterialPageRoute(builder: (_) => QuizScreen(
+    Navigator.push(context, AppPageRoute(builder: (_) => QuizScreen(
       categoryId: category.id,
       categoryName: category.title,
       topicId: topic.id,
@@ -140,14 +145,20 @@ class _TopicsScreenState extends State<TopicsScreen> {
                 stream: _topicsService.watchCategories(),
                 builder: (context, catSnap) {
                   if (!catSnap.hasData) {
-                    return const Center(child: CircularProgressIndicator(color: AppColors.teal));
+                    return ListView(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                      children: List.generate(4, (_) => const TopicSkeletonCard()),
+                    );
                   }
 
                   return StreamBuilder<List<TopicModel>>(
                     stream: _topicsService.watchAllTopics(),
                     builder: (context, topicSnap) {
                       if (!topicSnap.hasData) {
-                        return const Center(child: CircularProgressIndicator(color: AppColors.teal));
+                        return ListView(
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                          children: List.generate(4, (_) => const TopicSkeletonCard()),
+                        );
                       }
 
                       final categories = catSnap.data!;
@@ -208,21 +219,28 @@ class _TopicsScreenState extends State<TopicsScreen> {
                               child: Text('No topics found', style: TextStyle(color: AppColors.textSecondary, fontSize: 16)),
                             )),
 
-                          for (final item in filtered)
+                          for (int i = 0; i < filtered.length; i++)
                             _CategoryCard(
-                              category: item.cat,
-                              topics: item.topics,
-                              isExpanded: _expandedCategoryId == item.cat.id,
+                              category: filtered[i].cat,
+                              topics: filtered[i].topics,
+                              isExpanded: _expandedCategoryId == filtered[i].cat.id,
                               user: user,
                               isGuest: isGuest,
                               onExpandToggle: () => setState(() {
-                                _expandedCategoryId = _expandedCategoryId == item.cat.id ? null : item.cat.id;
+                                _expandedCategoryId = _expandedCategoryId == filtered[i].cat.id ? null : filtered[i].cat.id;
                               }),
-                              onOpenQuiz: (t) => _openQuiz(context, category: item.cat, topic: t),
+                              onOpenQuiz: (t) => _openQuiz(context, category: filtered[i].cat, topic: t),
                               isTopicCompleted: _isTopicCompleted,
                               topicProgress: _topicProgress,
                               completedCount: _completedCount,
-                            ),
+                            )
+                                .animate(delay: Duration(milliseconds: i * 80))
+                                .slideY(
+                                    begin: 0.15,
+                                    end: 0,
+                                    duration: const Duration(milliseconds: 350),
+                                    curve: Curves.easeOut)
+                                .fadeIn(duration: const Duration(milliseconds: 300)),
                         ],
                       );
                     },

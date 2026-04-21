@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../core/app_page_route.dart';
 import '../../core/theme.dart';
 import '../../providers/auth_provider.dart';
 import '../admin/admin_dashboard_screen.dart';
@@ -101,7 +102,7 @@ class HomeScreen extends StatelessWidget {
                             icon: Icons.send_rounded,
                             borderColor: const Color(0xFF168C7F),
                             shadowColor: const Color(0xFF168C7F),
-                            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const TopicsScreen())),
+                            onTap: () => Navigator.push(context, AppPageRoute(builder: (_) => const TopicsScreen())),
                           ),
                           if (user?.isAdmin == true) ...[
                             const SizedBox(height: 18),
@@ -112,7 +113,7 @@ class HomeScreen extends StatelessWidget {
                               icon: Icons.admin_panel_settings_rounded,
                               borderColor: const Color(0xFFC8A830),
                               shadowColor: const Color(0xFFC8A830),
-                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminDashboardScreen())),
+                              onTap: () => Navigator.push(context, AppPageRoute(builder: (_) => const AdminDashboardScreen())),
                             ),
                           ],
                         ],

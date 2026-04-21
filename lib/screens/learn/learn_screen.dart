@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import '../../core/app_page_route.dart';
 import '../../core/theme.dart';
 import '../../models/category_model.dart';
 import '../../models/learning_content_model.dart';
 import '../../services/learning_service.dart';
 import '../../services/topics_service.dart';
+import '../../widgets/skeleton_loader.dart';
 import 'article_screen.dart';
 import 'video_screen.dart';
 
@@ -38,7 +41,7 @@ class _LearnScreenState extends State<LearnScreen> {
   }
 
   void _openContent(LearningContentModel item) {
-    Navigator.push(context, MaterialPageRoute(
+    Navigator.push(context, AppPageRoute(
       builder: (_) => item.type == ContentType.video
           ? VideoScreen(content: item)
           : ArticleScreen(content: item),
@@ -91,7 +94,12 @@ class _LearnScreenState extends State<LearnScreen> {
                     ? _learningService.getAllContent()
                     : _learningService.getContentByCategory(_selectedCatId),
                 builder: (context, snap) {
-                  if (!snap.hasData) return const Center(child: CircularProgressIndicator(color: AppColors.teal));
+                  if (!snap.hasData) {
+                    return ListView(
+                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                      children: List.generate(4, (_) => const ContentSkeletonCard()),
+                    );
+                  }
 
                   final items = snap.data!;
                   if (items.isEmpty) {
@@ -116,7 +124,10 @@ class _LearnScreenState extends State<LearnScreen> {
                   return ListView.builder(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
                     itemCount: items.length,
-                    itemBuilder: (_, i) => _ContentCard(item: items[i], onTap: () => _openContent(items[i])),
+                    itemBuilder: (_, i) => _ContentCard(item: items[i], onTap: () => _openContent(items[i]))
+                        .animate(delay: Duration(milliseconds: i * 60))
+                        .slideY(begin: 0.1, end: 0, duration: const Duration(milliseconds: 350), curve: Curves.easeOut)
+                        .fadeIn(duration: const Duration(milliseconds: 300)),
                   );
                 },
               ),
