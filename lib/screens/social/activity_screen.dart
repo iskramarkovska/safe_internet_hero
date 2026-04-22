@@ -43,14 +43,25 @@ class _ActivityScreenState extends State<ActivityScreen> {
     return '${diff.inDays}d ago';
   }
 
-  String _activityEmoji(ActivityType type) {
+  IconData _activityIcon(ActivityType type) {
     switch (type) {
       case ActivityType.quizCompleted:
-        return '🎯';
+        return Icons.quiz_rounded;
       case ActivityType.topicCompleted:
-        return '✅';
+        return Icons.check_circle_rounded;
       case ActivityType.badgeEarned:
-        return '🏆';
+        return Icons.emoji_events_rounded;
+    }
+  }
+
+  Color _activityColor(ActivityType type) {
+    switch (type) {
+      case ActivityType.quizCompleted:
+        return AppColors.blue;
+      case ActivityType.topicCompleted:
+        return AppColors.green;
+      case ActivityType.badgeEarned:
+        return AppColors.gold;
     }
   }
 
@@ -61,12 +72,20 @@ class _ActivityScreenState extends State<ActivityScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Container(
-              color: AppColors.teal,
+      body: Column(
+        children: [
+          SafeArea(
+            bottom: false,
+            child: Container(
+              width: double.infinity,
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [AppColors.blue, Color(0xFF5AB4F7)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -108,11 +127,12 @@ class _ActivityScreenState extends State<ActivityScreen> {
                       style: const TextStyle(color: Colors.white),
                       decoration: InputDecoration(
                         hintText: 'Search by username...',
-                        hintStyle: const TextStyle(color: Colors.white60),
+                        hintStyle:
+                            const TextStyle(color: Colors.white60),
                         prefixIcon: const Icon(Icons.search,
                             color: Colors.white70),
                         filled: true,
-                        fillColor: Colors.white.withOpacity(0.15),
+                        fillColor: Colors.white.withValues(alpha: 0.15),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide.none,
@@ -125,6 +145,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                 ],
               ),
             ),
+          ),
 
             if (_searchResults.isNotEmpty)
               _buildSearchResults(user),
@@ -140,7 +161,7 @@ class _ActivityScreenState extends State<ActivityScreen> {
                           if (!snapshot.hasData) {
                             return const Center(
                                 child: CircularProgressIndicator(
-                                    color: AppColors.teal));
+                                    color: AppColors.blue));
                           }
                           if (snapshot.data!.isEmpty) {
                             return _buildEmptyState();
@@ -158,7 +179,6 @@ class _ActivityScreenState extends State<ActivityScreen> {
               ),
           ],
         ),
-      ),
     );
   }
 
@@ -280,8 +300,15 @@ class _ActivityScreenState extends State<ActivityScreen> {
       ),
       child: Row(
         children: [
-          Text(_activityEmoji(activity.type),
-              style: const TextStyle(fontSize: 28)),
+          Container(
+            width: 46, height: 46,
+            decoration: BoxDecoration(
+              color: _activityColor(activity.type).withOpacity(0.12),
+              borderRadius: BorderRadius.circular(13),
+            ),
+            child: Icon(_activityIcon(activity.type),
+                color: _activityColor(activity.type), size: 24),
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -311,10 +338,16 @@ class _ActivityScreenState extends State<ActivityScreen> {
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              Text(
-                '+${activity.starsEarned} ⭐',
-                style: const TextStyle(
-                    color: AppColors.gold, fontWeight: FontWeight.bold),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('+${activity.starsEarned} ',
+                      style: const TextStyle(
+                          color: AppColors.gold,
+                          fontWeight: FontWeight.bold)),
+                  const Icon(Icons.star_rounded,
+                      color: AppColors.gold, size: 14),
+                ],
               ),
               Text(
                 _timeAgo(activity.createdAt),

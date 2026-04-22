@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import '../../core/app_page_route.dart';
 import '../../core/theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/app_widgets.dart';
@@ -15,9 +18,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  bool _showForm = false;
   bool _obscurePassword = true;
-
 
   @override
   void dispose() {
@@ -35,9 +36,10 @@ class _LoginScreenState extends State<LoginScreen> {
     if (!success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(auth.errorMessage ?? 'Login failed'),
-        backgroundColor: AppColors.wrong,
+        backgroundColor: AppColors.red,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ));
     }
   }
@@ -45,136 +47,199 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
-    final size = MediaQuery.of(context).size;
-    final isWide = size.width > 600;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: EdgeInsets.symmetric(
-              horizontal: isWide ? size.width * 0.25 : 32,
-              vertical: 24,
-            ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const SizedBox(height: 24),
-                Container(
-                  width: 110,
-                  height: 110,
-                  decoration: BoxDecoration(
-                    color: AppColors.hero,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.hero.withOpacity(0.3),
-                        blurRadius: 24,
-                        offset: const Offset(0, 8),
-                      ),
-                    ],
-                  ),
-                  child: const Icon(Icons.bolt_rounded,
-                      color: Colors.white, size: 60),
-                ),
-                const SizedBox(height: 16),
-                const Text(
-                  'Safe Internet Hero',
-                  style: TextStyle(
-                    color: AppColors.teal,
-                    fontSize: 26,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 48),
-
-                if (!_showForm) ...[
-                  AppSolidButton(
-                    label: 'Sign in with email',
-                    icon: Icons.email_outlined,
-                    color: AppColors.hero,
-                    onTap: () => setState(() => _showForm = true),
-                  ),
-                  const SizedBox(height: 14),
-                  const Divider(thickness: 1, color: Color(0xFFCCE8E4)),
-                  const SizedBox(height: 14),
-                  AppOutlineButton(
-                    label: 'Continue as Guest',
-                    icon: Icons.person_outline_rounded,
-                    color: AppColors.teal,
-                    onTap: () =>
-                        context.read<AuthProvider>().continueAsGuest(),
-                  ),
-                ] else ...[
-                  AppTextField(
-                    controller: _emailController,
-                    hint: 'Email',
-                    icon: Icons.email_outlined,
-                    keyboardType: TextInputType.emailAddress,
-                  ),
-                  const SizedBox(height: 12),
-                  AppTextField(
-                    controller: _passwordController,
-                    hint: 'Password',
-                    icon: Icons.lock_outline_rounded,
-                    obscure: _obscurePassword,
-                    suffixIcon: IconButton(
-                      icon: Icon(
-                        _obscurePassword
-                            ? Icons.visibility_outlined
-                            : Icons.visibility_off_outlined,
-                        color: AppColors.textLight,
-                        size: 20,
-                      ),
-                      onPressed: () => setState(
-                              () => _obscurePassword = !_obscurePassword),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
+      backgroundColor: AppColors.blue,
+      body: Column(
+        children: [
+          // ── Blue header ────────────────────────────────────────────────────
+          SafeArea(
+            bottom: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(4, 4, 16, 24),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Row(
                     children: [
-                      Expanded(
-                        child: AppOutlineButton(
-                          label: 'Cancel',
-                          color: AppColors.teal,
-                          onTap: () => setState(() => _showForm = false),
-                        ),
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back_ios_rounded,
+                            color: Colors.white, size: 22),
+                        onPressed: () => Navigator.pop(context),
                       ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: AppSolidButton(
-                          label: auth.isLoading ? '...' : 'Log In',
-                          color: AppColors.hero,
-                          onTap: auth.isLoading ? null : _login,
-                        ),
-                      ),
+                      const Spacer(),
                     ],
                   ),
-                ],
-
-                const SizedBox(height: 28),
-                MouseRegion(
-                  cursor: SystemMouseCursors.click,
-                  child: GestureDetector(
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => const RegisterScreen()),
-                    ),
-                    child: const Text(
-                      "Don't have an account? Register",
-                      style: TextStyle(color: AppColors.teal),
+                  const SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Welcome back!',
+                          style: GoogleFonts.nunito(
+                            color: Colors.white,
+                            fontSize: 30,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        )
+                            .animate()
+                            .fadeIn(duration: const Duration(milliseconds: 350))
+                            .slideY(begin: 0.1, end: 0),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Login to continue your journey',
+                          style: GoogleFonts.nunito(
+                            color: Colors.white.withOpacity(0.85),
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        )
+                            .animate(delay: 100.ms)
+                            .fadeIn(duration: const Duration(milliseconds: 300)),
+                      ],
                     ),
                   ),
-                ),
-                const SizedBox(height: 24),
-              ],
+                ],
+              ),
             ),
           ),
-        ),
+
+          // ── White form body ────────────────────────────────────────────────
+          Expanded(
+            child: Container(
+              width: double.infinity,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius:
+                    BorderRadius.vertical(top: Radius.circular(36)),
+              ),
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(28, 36, 28, 32),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // Email
+                    AppTextField(
+                      controller: _emailController,
+                      hint: 'Email address',
+                      icon: Icons.email_outlined,
+                      keyboardType: TextInputType.emailAddress,
+                    )
+                        .animate(delay: 150.ms)
+                        .fadeIn(duration: 350.ms)
+                        .slideY(begin: 0.1, end: 0),
+
+                    const SizedBox(height: 14),
+
+                    // Password
+                    AppTextField(
+                      controller: _passwordController,
+                      hint: 'Password',
+                      icon: Icons.lock_outline_rounded,
+                      obscure: _obscurePassword,
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword
+                              ? Icons.visibility_outlined
+                              : Icons.visibility_off_outlined,
+                          color: AppColors.textLight,
+                          size: 20,
+                        ),
+                        onPressed: () => setState(
+                            () => _obscurePassword = !_obscurePassword),
+                      ),
+                    )
+                        .animate(delay: 220.ms)
+                        .fadeIn(duration: 350.ms)
+                        .slideY(begin: 0.1, end: 0),
+
+                    const SizedBox(height: 32),
+
+                    AppButton(
+                      label: auth.isLoading ? 'Logging in…' : 'LOG IN',
+                      variant: AppButtonVariant.primary,
+                      onTap: auth.isLoading ? null : _login,
+                    )
+                        .animate(delay: 300.ms)
+                        .fadeIn(duration: 350.ms)
+                        .slideY(begin: 0.1, end: 0),
+
+                    const SizedBox(height: 24),
+
+                    // Divider
+                    Row(
+                      children: [
+                        const Expanded(
+                            child: Divider(color: AppColors.border,
+                                thickness: 1.5)),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Text('OR',
+                              style: GoogleFonts.nunito(
+                                  color: AppColors.textLight,
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 1)),
+                        ),
+                        const Expanded(
+                            child: Divider(color: AppColors.border,
+                                thickness: 1.5)),
+                      ],
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    AppButton(
+                      label: 'Continue as Guest',
+                      variant: AppButtonVariant.secondary,
+                      icon: Icons.person_outline_rounded,
+                      onTap: () =>
+                          context.read<AuthProvider>().continueAsGuest(),
+                    )
+                        .animate(delay: 380.ms)
+                        .fadeIn(duration: 350.ms),
+
+                    const SizedBox(height: 28),
+
+                    Center(
+                      child: MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        child: GestureDetector(
+                          onTap: () => Navigator.pushReplacement(
+                              context,
+                              AppPageRoute(
+                                  builder: (_) => const RegisterScreen())),
+                          child: RichText(
+                            text: TextSpan(
+                              style: GoogleFonts.nunito(
+                                  color: AppColors.textSecondary,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600),
+                              children: [
+                                const TextSpan(
+                                    text: "Don't have an account? "),
+                                TextSpan(
+                                  text: 'Create one',
+                                  style: GoogleFonts.nunito(
+                                    color: AppColors.blue,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
-

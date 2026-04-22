@@ -1,7 +1,269 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../core/theme.dart';
+import 'app_avatar.dart';
 
-/// Full-width solid button used across auth and main flows.
+// ─── AppButton ─────────────────────────────────────────────────────────────────
+// Duolingo-style 3D press button.
+// FIX: uses onTap (not onTapUp) so mouse-click on web always fires the callback.
+
+enum AppButtonVariant { primary, secondary, danger, success }
+
+class AppButton extends StatefulWidget {
+  final String label;
+  final AppButtonVariant variant;
+  final IconData? icon;
+  final VoidCallback? onTap;
+
+  const AppButton({
+    super.key,
+    required this.label,
+    this.variant = AppButtonVariant.primary,
+    this.icon,
+    this.onTap,
+  });
+
+  @override
+  State<AppButton> createState() => _AppButtonState();
+}
+
+class _AppButtonState extends State<AppButton> {
+  bool _pressed = false;
+
+  static const _depth = 4.0;
+
+  Color get _bg => switch (widget.variant) {
+        AppButtonVariant.primary => AppColors.blue,
+        AppButtonVariant.secondary => Colors.white,
+        AppButtonVariant.danger => AppColors.red,
+        AppButtonVariant.success => AppColors.green,
+      };
+
+  Color get _shadow => switch (widget.variant) {
+        AppButtonVariant.primary => AppColors.blueDark,
+        AppButtonVariant.secondary => AppColors.borderDark,
+        AppButtonVariant.danger => AppColors.redDark,
+        AppButtonVariant.success => AppColors.greenDark,
+      };
+
+  Color get _fg => widget.variant == AppButtonVariant.secondary
+      ? AppColors.blue
+      : Colors.white;
+
+  @override
+  Widget build(BuildContext context) {
+    final disabled = widget.onTap == null;
+
+    final content = Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        if (widget.icon != null) ...[
+          Icon(widget.icon, color: _fg, size: 20),
+          const SizedBox(width: 8),
+        ],
+        Text(
+          widget.label,
+          style: GoogleFonts.nunito(
+            color: _fg,
+            fontSize: 16,
+            fontWeight: FontWeight.w800,
+            letterSpacing: 0.3,
+          ),
+        ),
+      ],
+    );
+
+    return MouseRegion(
+      cursor:
+          disabled ? SystemMouseCursors.basic : SystemMouseCursors.click,
+      child: GestureDetector(
+        // onTap fires reliably on both web mouse-click and mobile touch.
+        onTap: disabled ? null : widget.onTap,
+        onTapDown:
+            disabled ? null : (_) => setState(() => _pressed = true),
+        onTapUp:
+            disabled ? null : (_) => setState(() => _pressed = false),
+        onTapCancel: () => setState(() => _pressed = false),
+        child: Opacity(
+          opacity: disabled ? 0.55 : 1.0,
+          child: Stack(
+            alignment: Alignment.topCenter,
+            children: [
+              // Shadow layer — always offset _depth below
+              Padding(
+                padding: const EdgeInsets.only(top: _depth),
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                      vertical: 15, horizontal: 24),
+                  decoration: BoxDecoration(
+                    color: _shadow,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Opacity(opacity: 0, child: content),
+                ),
+              ),
+              // Button body — slides down on press, covering shadow
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 80),
+                width: double.infinity,
+                margin: EdgeInsets.only(top: _pressed ? _depth : 0),
+                padding: const EdgeInsets.symmetric(
+                    vertical: 15, horizontal: 24),
+                decoration: BoxDecoration(
+                  color: _bg,
+                  borderRadius: BorderRadius.circular(16),
+                  border: widget.variant == AppButtonVariant.secondary
+                      ? Border.all(color: AppColors.borderDark, width: 2)
+                      : null,
+                ),
+                child: content,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── AppCard ───────────────────────────────────────────────────────────────────
+
+class AppCard extends StatelessWidget {
+  final Widget child;
+  final EdgeInsetsGeometry? padding;
+  final Color? color;
+  final VoidCallback? onTap;
+  final BorderRadius? borderRadius;
+
+  const AppCard({
+    super.key,
+    required this.child,
+    this.padding,
+    this.color,
+    this.onTap,
+    this.borderRadius,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final br = borderRadius ?? BorderRadius.circular(20);
+    return MouseRegion(
+      cursor:
+          onTap != null ? SystemMouseCursors.click : MouseCursor.defer,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: double.infinity,
+          padding: padding ?? const EdgeInsets.all(AppSpacing.md),
+          decoration: BoxDecoration(
+            color: color ?? AppColors.card,
+            borderRadius: br,
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.06),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
+}
+
+// ─── AppTopBar ─────────────────────────────────────────────────────────────────
+
+class AppTopBar extends StatelessWidget {
+  final int stars;
+  final int streak;
+  final String? username;
+  final VoidCallback? onAvatarTap;
+
+  const AppTopBar({
+    super.key,
+    required this.stars,
+    required this.streak,
+    this.username,
+    this.onAvatarTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.md, vertical: AppSpacing.sm),
+      child: Row(
+        children: [
+          _Chip(icon: Icons.local_fire_department_rounded,
+              value: '$streak', color: AppColors.orange),
+          const Spacer(),
+          _Chip(icon: Icons.star_rounded,
+              value: '$stars', color: AppColors.gold),
+          const SizedBox(width: AppSpacing.sm),
+          _Chip(icon: Icons.monetization_on_rounded,
+              value: '${stars * 10}', color: AppColors.orangeDark),
+          if (username != null) ...[
+            const SizedBox(width: 12),
+            MouseRegion(
+              cursor: onAvatarTap != null
+                  ? SystemMouseCursors.click
+                  : MouseCursor.defer,
+              child: GestureDetector(
+                onTap: onAvatarTap,
+                child: AppAvatar(name: username!, size: 34),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _Chip extends StatelessWidget {
+  final IconData icon;
+  final String value;
+  final Color color;
+
+  const _Chip(
+      {required this.icon, required this.value, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding:
+          const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(20),
+        border:
+            Border.all(color: color.withOpacity(0.35), width: 1.5),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: color, size: 16),
+          const SizedBox(width: 5),
+          Text(
+            value,
+            style: GoogleFonts.nunito(
+              color: color,
+              fontWeight: FontWeight.w800,
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Legacy widgets — kept for auth screens ────────────────────────────────────
+
 class AppSolidButton extends StatelessWidget {
   final String label;
   final Color color;
@@ -42,10 +304,10 @@ class AppSolidButton extends StatelessWidget {
                 ],
                 Text(
                   label,
-                  style: const TextStyle(
+                  style: GoogleFonts.nunito(
                     color: Colors.white,
                     fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w800,
                     letterSpacing: 0.3,
                   ),
                 ),
@@ -58,7 +320,6 @@ class AppSolidButton extends StatelessWidget {
   }
 }
 
-/// Full-width outline button used across auth flows.
 class AppOutlineButton extends StatelessWidget {
   final String label;
   final Color color;
@@ -99,10 +360,10 @@ class AppOutlineButton extends StatelessWidget {
                 ],
                 Text(
                   label,
-                  style: TextStyle(
+                  style: GoogleFonts.nunito(
                     color: color,
                     fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w800,
                     letterSpacing: 0.3,
                   ),
                 ),
@@ -115,7 +376,9 @@ class AppOutlineButton extends StatelessWidget {
   }
 }
 
-/// Rounded pill-shaped text field with teal prefix icon and white card shadow.
+// ─── AppTextField ──────────────────────────────────────────────────────────────
+// Duolingo-style: visible gray border, blue on focus, radius 14.
+
 class AppTextField extends StatelessWidget {
   final TextEditingController controller;
   final String hint;
@@ -136,36 +399,43 @@ class AppTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(32),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
-          ),
-        ],
+    return TextField(
+      controller: controller,
+      keyboardType: keyboardType,
+      obscureText: obscure,
+      style: GoogleFonts.nunito(
+        fontWeight: FontWeight.w600,
+        color: AppColors.textPrimary,
+        fontSize: 15,
       ),
-      child: TextField(
-        controller: controller,
-        keyboardType: keyboardType,
-        obscureText: obscure,
-        decoration: InputDecoration(
-          hintText: hint,
-          hintStyle: const TextStyle(color: AppColors.textLight),
-          prefixIcon: Icon(icon, color: AppColors.teal, size: 20),
-          suffixIcon: suffixIcon,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(32),
-            borderSide: BorderSide.none,
-          ),
-          filled: true,
-          fillColor: Colors.transparent,
-          contentPadding:
-              const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: GoogleFonts.nunito(
+          color: AppColors.textLight,
+          fontWeight: FontWeight.w500,
+          fontSize: 15,
         ),
+        prefixIcon: Icon(icon, color: AppColors.textSecondary, size: 20),
+        suffixIcon: suffixIcon,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide:
+              const BorderSide(color: AppColors.border, width: 2),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide:
+              const BorderSide(color: AppColors.border, width: 2),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide:
+              const BorderSide(color: AppColors.blue, width: 2.5),
+        ),
+        filled: true,
+        fillColor: Colors.white,
+        contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16, vertical: 16),
       ),
     );
   }

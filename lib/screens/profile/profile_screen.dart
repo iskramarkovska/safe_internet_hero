@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../core/app_page_route.dart';
 import '../../core/theme.dart';
@@ -8,18 +9,25 @@ import '../../models/enums.dart';
 import '../../models/quiz_result_model.dart';
 import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
+import '../../widgets/app_avatar.dart';
+import '../../widgets/app_widgets.dart';
 import '../auth/splash_screen.dart';
 
-// ─── Tier helpers ────────────────────────────────────────────────────────────
+// ─── Tier helpers ─────────────────────────────────────────────────────────────
 
-typedef _TierInfo = ({String label, String emoji, int nextThreshold});
+typedef _TierInfo = ({
+  String label,
+  IconData icon,
+  Color iconColor,
+  int nextThreshold
+});
 
 _TierInfo _tierInfo(int stars) {
-  if (stars >= 60) return (label: 'Cyber Legend', emoji: '🏆', nextThreshold: 0);
-  if (stars >= 30) return (label: 'Internet Guardian', emoji: '⚡', nextThreshold: 60);
-  if (stars >= 15) return (label: 'Hero in Training', emoji: '🛡️', nextThreshold: 30);
-  if (stars >= 5) return (label: 'Apprentice', emoji: '📱', nextThreshold: 15);
-  return (label: 'Rookie', emoji: '🌱', nextThreshold: 5);
+  if (stars >= 60) return (label: 'Cyber Legend', icon: Icons.emoji_events_rounded, iconColor: AppColors.gold, nextThreshold: 0);
+  if (stars >= 30) return (label: 'Internet Guardian', icon: Icons.bolt_rounded, iconColor: AppColors.orange, nextThreshold: 60);
+  if (stars >= 15) return (label: 'Hero in Training', icon: Icons.shield_rounded, iconColor: AppColors.blue, nextThreshold: 30);
+  if (stars >= 5) return (label: 'Apprentice', icon: Icons.school_rounded, iconColor: AppColors.green, nextThreshold: 15);
+  return (label: 'Rookie', icon: Icons.eco_rounded, iconColor: AppColors.greenDark, nextThreshold: 5);
 }
 
 int _tierFloor(int stars) {
@@ -35,20 +43,31 @@ Future<List<QuizResultModel>> _fetchRecentResults(String userId) async {
     final snap = await FirebaseFirestore.instance
         .collection('quiz_results')
         .where('userId', isEqualTo: userId)
-        .orderBy('completedAt', descending: true)
-        .limit(5)
         .get();
-    return snap.docs.map((d) {
+    final results = snap.docs.map((d) {
       final data = Map<String, dynamic>.from(d.data());
       data['id'] = d.id;
       return QuizResultModel.fromMap(data);
     }).toList();
+    results.sort((a, b) => b.completedAt.compareTo(a.completedAt));
+    return results.take(5).toList();
   } catch (_) {
     return [];
   }
 }
 
-// ─── Screen ──────────────────────────────────────────────────────────────────
+// ─── Badge definitions ────────────────────────────────────────────────────────
+
+const _badges = [
+  (icon: Icons.lock_rounded, color: AppColors.categoryPrivacy, label: 'Privacy Pro', threshold: 1),
+  (icon: Icons.vpn_key_rounded, color: AppColors.categoryPasswords, label: 'Key Master', threshold: 5),
+  (icon: Icons.shield_rounded, color: AppColors.categoryCyberbullying, label: 'Defender', threshold: 10),
+  (icon: Icons.smartphone_rounded, color: AppColors.categorySocialMedia, label: 'Social Safe', threshold: 20),
+  (icon: Icons.phishing_rounded, color: AppColors.categoryPhishing, label: 'Phish Fighter', threshold: 30),
+  (icon: Icons.emoji_events_rounded, color: AppColors.gold, label: 'Legend', threshold: 60),
+];
+
+// ─── Screen ───────────────────────────────────────────────────────────────────
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -61,7 +80,8 @@ class ProfileScreen extends StatelessWidget {
     if (user == null) {
       return const Scaffold(
         backgroundColor: AppColors.background,
-        body: Center(child: CircularProgressIndicator(color: AppColors.teal)),
+        body: Center(
+            child: CircularProgressIndicator(color: AppColors.blue)),
       );
     }
 
@@ -71,9 +91,10 @@ class ProfileScreen extends StatelessWidget {
         slivers: [
           SliverToBoxAdapter(child: _ProfileHeader(user: user)),
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(20, 24, 20, 40),
+            padding: const EdgeInsets.fromLTRB(20, 20, 20, 48),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
+                // Stats row
                 _StatsRow(user: user)
                     .animate()
                     .fadeIn(delay: const Duration(milliseconds: 150))
@@ -81,7 +102,10 @@ class ProfileScreen extends StatelessWidget {
                         begin: 0.1,
                         end: 0,
                         duration: const Duration(milliseconds: 350)),
-                const SizedBox(height: 20),
+
+                const SizedBox(height: 16),
+
+                // Tier card
                 _TierCard(stars: user.totalStars)
                     .animate()
                     .fadeIn(delay: const Duration(milliseconds: 250))
@@ -89,14 +113,30 @@ class ProfileScreen extends StatelessWidget {
                         begin: 0.1,
                         end: 0,
                         duration: const Duration(milliseconds: 350)),
+
                 const SizedBox(height: 20),
-                _RecentQuizzesSection(userId: user.id)
+
+                // Badges
+                _BadgesSection(stars: user.totalStars)
                     .animate()
                     .fadeIn(delay: const Duration(milliseconds: 350)),
-                const SizedBox(height: 28),
-                _SignOutButton(auth: auth)
+
+                const SizedBox(height: 20),
+
+                // Recent quizzes
+                _RecentQuizzesSection(userId: user.id)
                     .animate()
                     .fadeIn(delay: const Duration(milliseconds: 450)),
+
+                const SizedBox(height: 28),
+
+                // Sign out
+                AppButton(
+                  label: 'Sign Out',
+                  variant: AppButtonVariant.danger,
+                  icon: Icons.logout_rounded,
+                  onTap: () => _confirmSignOut(context, auth),
+                ).animate().fadeIn(delay: const Duration(milliseconds: 550)),
               ]),
             ),
           ),
@@ -104,9 +144,87 @@ class ProfileScreen extends StatelessWidget {
       ),
     );
   }
+
+  Future<void> _confirmSignOut(BuildContext context, AuthProvider auth) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (_) => Dialog(
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: Colors.white,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 360),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 56, height: 56,
+                  decoration: const BoxDecoration(
+                    color: AppColors.redLight,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.logout_rounded,
+                      color: AppColors.red, size: 28),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  'Sign Out?',
+                  style: TextStyle(
+                    color: AppColors.textPrimary,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Are you sure you want to sign out?',
+                  textAlign: TextAlign.center,
+                  style:
+                      TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      child: AppButton(
+                        label: 'Cancel',
+                        variant: AppButtonVariant.secondary,
+                        onTap: () => Navigator.pop(context, false),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: AppButton(
+                        label: 'Sign Out',
+                        variant: AppButtonVariant.danger,
+                        onTap: () => Navigator.pop(context, true),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+
+    if (confirm == true && context.mounted) {
+      await auth.logout();
+      if (context.mounted) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          AppPageRoute(builder: (_) => const AuthGate()),
+          (r) => false,
+        );
+      }
+    }
+  }
 }
 
-// ─── Header ──────────────────────────────────────────────────────────────────
+// ─── Profile header ───────────────────────────────────────────────────────────
 
 class _ProfileHeader extends StatelessWidget {
   final UserModel user;
@@ -114,16 +232,24 @@ class _ProfileHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final initial = user.username.isNotEmpty ? user.username[0].toUpperCase() : '?';
+    final tier = _tierInfo(user.totalStars);
 
     return Container(
-      color: AppColors.teal,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [AppColors.blue, Color(0xFF5AB4F7)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
       child: SafeArea(
         bottom: false,
         child: Column(
           children: [
+            // Back button row
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
               child: Row(
                 children: [
                   IconButton(
@@ -136,71 +262,72 @@ class _ProfileHeader extends StatelessWidget {
                       'My Profile',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900),
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 48),
                 ],
               ),
             ),
-            const SizedBox(height: 8),
-            Container(
-              width: 88,
-              height: 88,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white,
-                boxShadow: [
-                  BoxShadow(
-                      color: Colors.black.withOpacity(0.15),
-                      blurRadius: 16,
-                      offset: const Offset(0, 4))
-                ],
-              ),
-              child: Center(
-                child: Text(
-                  initial,
-                  style: const TextStyle(
-                      color: AppColors.teal,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 36),
-                ),
-              ),
+
+            // Avatar
+            AppAvatar(
+              name: user.username,
+              size: 96,
+              borderColor: Colors.white,
+              borderWidth: 4,
             )
                 .animate()
                 .scale(
-                  begin: const Offset(0.6, 0.6),
+                  begin: const Offset(0.5, 0.5),
                   end: const Offset(1, 1),
                   curve: Curves.elasticOut,
                   duration: const Duration(milliseconds: 700),
                 ),
+
             const SizedBox(height: 12),
+
             Text(
               user.username,
               style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 22),
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+                fontSize: 22,
+              ),
             ).animate().fadeIn(delay: const Duration(milliseconds: 150)),
-            const SizedBox(height: 8),
+
+            const SizedBox(height: 6),
+
+            // Tier badge
             Container(
               padding:
-                  const EdgeInsets.symmetric(horizontal: 14, vertical: 5),
+                  const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
               decoration: BoxDecoration(
                 color: Colors.white.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white.withOpacity(0.4)),
+                border:
+                    Border.all(color: Colors.white.withOpacity(0.4)),
               ),
-              child: Text(
-                user.ageGroup.label,
-                style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(tier.icon, color: Colors.white, size: 16),
+                  const SizedBox(width: 6),
+                  Text(
+                    tier.label,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 13,
+                    ),
+                  ),
+                ],
               ),
-            ).animate().fadeIn(delay: const Duration(milliseconds: 200)),
+            ).animate().fadeIn(delay: const Duration(milliseconds: 220)),
+
             const SizedBox(height: 24),
           ],
         ),
@@ -209,7 +336,7 @@ class _ProfileHeader extends StatelessWidget {
   }
 }
 
-// ─── Stats row ───────────────────────────────────────────────────────────────
+// ─── Stats row ────────────────────────────────────────────────────────────────
 
 class _StatsRow extends StatelessWidget {
   final UserModel user;
@@ -217,69 +344,64 @@ class _StatsRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return AppCard(
       padding: const EdgeInsets.symmetric(vertical: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 12,
-              offset: const Offset(0, 4))
-        ],
-      ),
       child: Row(
         children: [
-          _StatCell(emoji: '⭐', value: '${user.totalStars}', label: 'Stars'),
+          _StatCell(icon: Icons.star_rounded, iconColor: AppColors.gold, value: '${user.totalStars}', label: 'Stars'),
           _vDivider(),
           _StatCell(
-              emoji: '🎯',
+              icon: Icons.diamond_rounded,
+              iconColor: AppColors.blue,
+              value: '${user.totalStars * 10}',
+              label: 'Gems'),
+          _vDivider(),
+          _StatCell(
+              icon: Icons.check_circle_rounded,
+              iconColor: AppColors.green,
               value: '${user.answeredQuestions.length}',
               label: 'Answered'),
-          _vDivider(),
-          _StatCell(
-              emoji: '👥',
-              value: '${user.friends.length}',
-              label: 'Friends'),
         ],
       ),
     );
   }
 
   Widget _vDivider() =>
-      Container(width: 1, height: 40, color: const Color(0xFFE5E7EB));
+      Container(width: 1, height: 44, color: AppColors.border);
 }
 
 class _StatCell extends StatelessWidget {
-  final String emoji;
+  final IconData icon;
+  final Color iconColor;
   final String value;
   final String label;
   const _StatCell(
-      {required this.emoji, required this.value, required this.label});
+      {required this.icon, required this.iconColor, required this.value, required this.label});
 
   @override
   Widget build(BuildContext context) {
     return Expanded(
       child: Column(
         children: [
-          Text(emoji, style: const TextStyle(fontSize: 22)),
+          Icon(icon, color: iconColor, size: 26),
           const SizedBox(height: 4),
           Text(value,
               style: const TextStyle(
                   color: AppColors.textPrimary,
                   fontSize: 18,
-                  fontWeight: FontWeight.bold)),
+                  fontWeight: FontWeight.w900)),
           Text(label,
               style: const TextStyle(
-                  color: AppColors.textSecondary, fontSize: 11)),
+                  color: AppColors.textSecondary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600)),
         ],
       ),
     );
   }
 }
 
-// ─── Tier card ───────────────────────────────────────────────────────────────
+// ─── Tier card ────────────────────────────────────────────────────────────────
 
 class _TierCard extends StatelessWidget {
   final int stars;
@@ -296,32 +418,34 @@ class _TierCard extends StatelessWidget {
     final starsToNext = isMax ? 0 : tier.nextThreshold - stars;
     final nextLabel = isMax ? '' : _tierInfo(tier.nextThreshold).label;
 
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-              color: AppColors.teal.withOpacity(0.08),
-              blurRadius: 12,
-              offset: const Offset(0, 4))
-        ],
-        border: Border.all(color: AppColors.teal.withOpacity(0.15)),
-      ),
+    return AppCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Text(tier.emoji, style: const TextStyle(fontSize: 28)),
-              const SizedBox(width: 10),
+              Container(
+                width: 50,
+                height: 50,
+                decoration: BoxDecoration(
+                  color: AppColors.blueLight,
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Center(
+                  child: Icon(tier.icon, color: tier.iconColor, size: 26),
+                ),
+              ),
+              const SizedBox(width: 12),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Your Rank',
-                      style: TextStyle(
-                          color: AppColors.textSecondary, fontSize: 11)),
+                  const Text(
+                    'Your Rank',
+                    style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600),
+                  ),
                   Text(
                     tier.label,
                     style: const TextStyle(
@@ -335,27 +459,29 @@ class _TierCard extends StatelessWidget {
           ),
           const SizedBox(height: 14),
           ClipRRect(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(8),
             child: TweenAnimationBuilder<double>(
               tween: Tween(begin: 0, end: progress),
               duration: const Duration(milliseconds: 900),
               curve: Curves.easeOut,
               builder: (_, v, __) => LinearProgressIndicator(
                 value: v,
-                minHeight: 8,
-                backgroundColor: const Color(0xFFEEEEEE),
+                minHeight: 10,
+                backgroundColor: AppColors.border,
                 valueColor:
-                    const AlwaysStoppedAnimation<Color>(AppColors.gold),
+                    const AlwaysStoppedAnimation<Color>(AppColors.blue),
               ),
             ),
           ),
           const SizedBox(height: 8),
           Text(
             isMax
-                ? '🎉 Maximum rank reached! You\'re a legend!'
-                : '$starsToNext more ⭐ to reach $nextLabel',
+                ? 'Maximum rank reached — you\'re a legend!'
+                : '$starsToNext more stars to reach $nextLabel',
             style: const TextStyle(
-                color: AppColors.textSecondary, fontSize: 12),
+                color: AppColors.textSecondary,
+                fontSize: 12,
+                fontWeight: FontWeight.w600),
           ),
         ],
       ),
@@ -363,7 +489,106 @@ class _TierCard extends StatelessWidget {
   }
 }
 
-// ─── Recent quizzes ──────────────────────────────────────────────────────────
+// ─── Badges section ───────────────────────────────────────────────────────────
+
+class _BadgesSection extends StatelessWidget {
+  final int stars;
+  const _BadgesSection({required this.stars});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Badges',
+          style: GoogleFonts.nunito(
+            color: AppColors.textPrimary,
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 12),
+        GridView.count(
+          crossAxisCount: 3,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisSpacing: 10,
+          mainAxisSpacing: 10,
+          childAspectRatio: 0.9,
+          children: _badges.asMap().entries.map((e) {
+            final badge = e.value;
+            final unlocked = stars >= badge.threshold;
+            return _BadgeCell(
+              icon: badge.icon,
+              color: badge.color,
+              label: badge.label,
+              unlocked: unlocked,
+            )
+                .animate(
+                    delay: Duration(milliseconds: e.key * 80))
+                .scale(
+                  begin: const Offset(0.7, 0.7),
+                  end: const Offset(1, 1),
+                  curve: Curves.elasticOut,
+                  duration: const Duration(milliseconds: 500),
+                );
+          }).toList(),
+        ),
+      ],
+    );
+  }
+}
+
+class _BadgeCell extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String label;
+  final bool unlocked;
+
+  const _BadgeCell({
+    required this.icon,
+    required this.color,
+    required this.label,
+    required this.unlocked,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: unlocked ? AppColors.blueLight : AppColors.border,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color:
+              unlocked ? AppColors.blue.withOpacity(0.3) : AppColors.borderDark,
+          width: 1.5,
+        ),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          unlocked
+              ? Icon(icon, color: color, size: 32)
+              : const Icon(Icons.lock_rounded,
+                  color: AppColors.textLight, size: 28),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: unlocked ? AppColors.blue : AppColors.textLight,
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Recent quizzes ───────────────────────────────────────────────────────────
 
 class _RecentQuizzesSection extends StatelessWidget {
   final String userId;
@@ -374,48 +599,56 @@ class _RecentQuizzesSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Recent Quizzes',
-          style: TextStyle(
-              color: AppColors.textPrimary,
-              fontWeight: FontWeight.w900,
-              fontSize: 16),
+          style: GoogleFonts.nunito(
+            color: AppColors.textPrimary,
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+          ),
         ),
         const SizedBox(height: 12),
         FutureBuilder<List<QuizResultModel>>(
           future: _fetchRecentResults(userId),
           builder: (context, snap) {
             if (snap.connectionState == ConnectionState.waiting) {
-              return const Padding(
-                padding: EdgeInsets.symmetric(vertical: 16),
-                child: Center(
-                    child: CircularProgressIndicator(
-                        color: AppColors.teal, strokeWidth: 2)),
+              return const Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(vertical: 20),
+                  child: CircularProgressIndicator(
+                      color: AppColors.blue, strokeWidth: 2),
+                ),
               );
             }
             final results = snap.data ?? [];
             if (results.isEmpty) {
-              return Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFE5E7EB)),
-                ),
-                child: const Column(
+              return AppCard(
+                child: Column(
                   children: [
-                    Text('🎮', style: TextStyle(fontSize: 36)),
-                    SizedBox(height: 8),
-                    Text('No quizzes yet',
-                        style: TextStyle(
-                            color: AppColors.textSecondary,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14)),
-                    SizedBox(height: 4),
-                    Text('Play your first quiz to see results here!',
-                        style: TextStyle(
-                            color: AppColors.textLight, fontSize: 12)),
+                    Container(
+                      width: 56, height: 56,
+                      decoration: BoxDecoration(
+                        color: AppColors.blueLight,
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: const Icon(Icons.sports_esports_rounded,
+                          color: AppColors.blue, size: 30),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'No quizzes yet',
+                      style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 14),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Play your first quiz to see results here!',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                          color: AppColors.textLight, fontSize: 12),
+                    ),
                   ],
                 ),
               );
@@ -445,37 +678,40 @@ class _QuizResultRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
+    return AppCard(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE5E7EB)),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withOpacity(0.03),
-              blurRadius: 6,
-              offset: const Offset(0, 2))
-        ],
-      ),
       child: Row(
         children: [
-          const Text('🎯', style: TextStyle(fontSize: 20)),
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: AppColors.blueLight,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: const Center(
+              child: const Icon(Icons.quiz_rounded,
+                  color: AppColors.blue, size: 20),
+            ),
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(result.topicName,
-                    style: const TextStyle(
-                        color: AppColors.textPrimary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13)),
+                Text(
+                  result.topicName,
+                  style: const TextStyle(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 13),
+                ),
                 Text(
                   '${result.categoryName} · ${_timeAgo(result.completedAt)}',
                   style: const TextStyle(
-                      color: AppColors.textSecondary, fontSize: 11),
+                      color: AppColors.textSecondary,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600),
                 ),
               ],
             ),
@@ -483,9 +719,12 @@ class _QuizResultRow extends StatelessWidget {
           Row(
             children: List.generate(
               3,
-              (i) => Text(
-                i < result.starsEarned ? '⭐' : '☆',
-                style: const TextStyle(fontSize: 14),
+              (i) => Icon(
+                Icons.star_rounded,
+                size: 16,
+                color: i < result.starsEarned
+                    ? AppColors.gold
+                    : AppColors.borderDark,
               ),
             ),
           ),
@@ -500,67 +739,5 @@ class _QuizResultRow extends StatelessWidget {
     if (diff.inHours < 24) return '${diff.inHours}h ago';
     if (diff.inDays < 7) return '${diff.inDays}d ago';
     return '${date.day}/${date.month}';
-  }
-}
-
-// ─── Sign out button ─────────────────────────────────────────────────────────
-
-class _SignOutButton extends StatelessWidget {
-  final AuthProvider auth;
-  const _SignOutButton({required this.auth});
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton.icon(
-        onPressed: () => _confirmSignOut(context),
-        icon: const Icon(Icons.logout_rounded, color: AppColors.wrong),
-        label: const Text(
-          'Sign Out',
-          style: TextStyle(
-              color: AppColors.wrong,
-              fontWeight: FontWeight.bold,
-              fontSize: 15),
-        ),
-        style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          side: BorderSide(color: AppColors.wrong.withOpacity(0.4)),
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(14)),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _confirmSignOut(BuildContext context) async {
-    final confirm = await showDialog<bool>(
-      context: context,
-      builder: (_) => AlertDialog(
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Sign Out?'),
-        content: const Text('Are you sure you want to sign out?'),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel')),
-          TextButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('Sign Out',
-                  style: TextStyle(color: AppColors.wrong))),
-        ],
-      ),
-    );
-    if (confirm == true && context.mounted) {
-      await auth.logout();
-      if (context.mounted) {
-        Navigator.pushAndRemoveUntil(
-          context,
-          AppPageRoute(builder: (_) => const AuthGate()),
-          (r) => false,
-        );
-      }
-    }
   }
 }

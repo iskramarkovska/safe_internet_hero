@@ -52,44 +52,62 @@ class _LearnScreenState extends State<LearnScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Teal header with category chips
-            Container(
-              color: AppColors.teal,
+      body: Column(
+        children: [
+          SafeArea(
+            bottom: false,
+            child: Container(
+              width: double.infinity,
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [AppColors.blue, Color(0xFF5AB4F7)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text('Learn', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.w900)),
+                  const Text('Learn',
+                      style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900)),
                   const SizedBox(height: 2),
-                  const Text('Explore articles and videos', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                  const Text('Explore articles and videos',
+                      style: TextStyle(color: Colors.white70, fontSize: 13)),
                   const SizedBox(height: 12),
                   SizedBox(
                     height: 36,
                     child: _loading
                         ? const SizedBox.shrink()
                         : ListView(
-                      scrollDirection: Axis.horizontal,
-                      children: [
-                        _Chip(label: 'All', selected: _selectedCatId == 'all', onTap: () => setState(() => _selectedCatId = 'all')),
-                        ..._categories.map((cat) => _Chip(
-                          label: cat.title,
-                          selected: _selectedCatId == cat.id,
-                          onTap: () => setState(() => _selectedCatId = cat.id),
-                        )),
-                      ],
-                    ),
+                            scrollDirection: Axis.horizontal,
+                            children: [
+                              _Chip(
+                                  label: 'All',
+                                  selected: _selectedCatId == 'all',
+                                  onTap: () => setState(
+                                      () => _selectedCatId = 'all')),
+                              ..._categories.map((cat) => _Chip(
+                                    label: cat.title,
+                                    selected: _selectedCatId == cat.id,
+                                    onTap: () => setState(
+                                        () => _selectedCatId = cat.id),
+                                  )),
+                            ],
+                          ),
                   ),
                   const SizedBox(height: 12),
                 ],
               ),
             ),
+          ),
 
-            // Content list
-            Expanded(
-              child: StreamBuilder<List<LearningContentModel>>(
+          // Content list
+          Expanded(
+            child: StreamBuilder<List<LearningContentModel>>(
                 stream: _selectedCatId == 'all'
                     ? _learningService.getAllContent()
                     : _learningService.getContentByCategory(_selectedCatId),
@@ -109,8 +127,8 @@ class _LearnScreenState extends State<LearnScreen> {
                         children: [
                           Container(
                             width: 80, height: 80,
-                            decoration: BoxDecoration(color: AppColors.teal.withOpacity(0.1), shape: BoxShape.circle),
-                            child: const Icon(Icons.menu_book_rounded, color: AppColors.teal, size: 40),
+                            decoration: const BoxDecoration(color: AppColors.blueLight, shape: BoxShape.circle),
+                            child: const Icon(Icons.menu_book_rounded, color: AppColors.blue, size: 40),
                           ),
                           const SizedBox(height: 16),
                           const Text('No content yet', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
@@ -134,7 +152,6 @@ class _LearnScreenState extends State<LearnScreen> {
             ),
           ],
         ),
-      ),
     );
   }
 }
@@ -159,7 +176,7 @@ class _Chip extends StatelessWidget {
           border: Border.all(color: selected ? Colors.white : Colors.white38, width: 1.5),
         ),
         child: Text(label, style: TextStyle(
-          color: selected ? AppColors.darkTeal : Colors.white,
+          color: selected ? AppColors.blue : Colors.white,
           fontWeight: FontWeight.bold, fontSize: 13,
         )),
       ),
@@ -232,7 +249,7 @@ class _ContentCard extends StatelessWidget {
       color: AppColors.background,
       child: Center(child: Icon(
         isVideo ? Icons.play_circle_rounded : isImage ? Icons.image_rounded : Icons.article_rounded,
-        color: AppColors.teal, size: 48,
+        color: AppColors.blue, size: 48,
       )),
     );
   }

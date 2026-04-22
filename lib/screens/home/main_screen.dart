@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme.dart';
 import 'home_screen.dart';
 import '../learn/learn_screen.dart';
@@ -15,18 +16,18 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
 
-  final List<Widget> _screens = [
-    const HomeScreen(),
-    const LearnScreen(),
-    const LeaderboardScreen(),
-    const ActivityScreen(),
+  final List<Widget> _screens = const [
+    HomeScreen(),
+    LearnScreen(),
+    LeaderboardScreen(),
+    ActivityScreen(),
   ];
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(index: _currentIndex, children: _screens),
-      bottomNavigationBar: _TealBottomNav(
+      bottomNavigationBar: _DuolingoBottomNav(
         currentIndex: _currentIndex,
         onTap: (i) => setState(() => _currentIndex = i),
       ),
@@ -34,16 +35,19 @@ class _MainScreenState extends State<MainScreen> {
   }
 }
 
-class _TealBottomNav extends StatelessWidget {
+class _DuolingoBottomNav extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
 
-  const _TealBottomNav({required this.currentIndex, required this.onTap});
+  const _DuolingoBottomNav({
+    required this.currentIndex,
+    required this.onTap,
+  });
 
   static const _items = [
     (icon: Icons.home_rounded, label: 'Home'),
     (icon: Icons.menu_book_rounded, label: 'Learn'),
-    (icon: Icons.leaderboard_rounded, label: 'Leaderboard'),
+    (icon: Icons.emoji_events_rounded, label: 'Ranks'),
     (icon: Icons.bolt_rounded, label: 'Activity'),
   ];
 
@@ -51,40 +55,56 @@ class _TealBottomNav extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color: AppColors.teal,
-        boxShadow: [BoxShadow(color: Colors.black12, blurRadius: 8, offset: Offset(0, -2))],
+        color: Colors.white,
+        border: Border(top: BorderSide(color: AppColors.border, width: 1.5)),
       ),
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          padding: const EdgeInsets.symmetric(vertical: 6),
           child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: List.generate(_items.length, (i) {
               final item = _items[i];
-              final isSelected = currentIndex == i;
-              return GestureDetector(
-                onTap: () => onTap(i),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: isSelected ? Colors.white.withOpacity(0.2) : Colors.transparent,
-                    borderRadius: BorderRadius.circular(16),
-                    border: isSelected ? Border.all(color: Colors.white.withOpacity(0.4), width: 1.5) : null,
-                  ),
+              final selected = i == currentIndex;
+
+              return Expanded(
+                child: GestureDetector(
+                  onTap: () => onTap(i),
+                  behavior: HitTestBehavior.opaque,
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(item.icon,
-                          color: isSelected ? Colors.white : Colors.white.withOpacity(0.6),
-                          size: 24),
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 18, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: selected
+                              ? AppColors.blueLight
+                              : Colors.transparent,
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                        child: Icon(
+                          item.icon,
+                          color: selected
+                              ? AppColors.blue
+                              : AppColors.textLight,
+                          size: 24,
+                        ),
+                      ),
                       const SizedBox(height: 2),
-                      Text(item.label, style: TextStyle(
-                        color: isSelected ? Colors.white : Colors.white.withOpacity(0.6),
-                        fontSize: 10,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                      )),
+                      Text(
+                        item.label,
+                        style: GoogleFonts.nunito(
+                          color: selected
+                              ? AppColors.blue
+                              : AppColors.textLight,
+                          fontSize: 10,
+                          fontWeight: selected
+                              ? FontWeight.w800
+                              : FontWeight.w600,
+                        ),
+                      ),
                     ],
                   ),
                 ),

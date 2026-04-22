@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:lottie/lottie.dart';
 import 'package:provider/provider.dart';
 import '../../core/app_page_route.dart';
@@ -10,22 +11,40 @@ import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/questions_service.dart';
 import '../../services/topics_service.dart';
+import '../../widgets/app_avatar.dart';
+import '../../widgets/app_widgets.dart';
 import '../../widgets/skeleton_loader.dart';
 import 'quiz_screen.dart';
 
+// ─── Screen ───────────────────────────────────────────────────────────────────
+
 class TopicsScreen extends StatefulWidget {
-  const TopicsScreen({super.key});
+  /// When set, shows only topics for this category. Otherwise shows all.
+  final String? filterCategoryId;
+  final String? filterCategoryTitle;
+
+  const TopicsScreen({
+    super.key,
+    this.filterCategoryId,
+    this.filterCategoryTitle,
+  });
 
   @override
   State<TopicsScreen> createState() => _TopicsScreenState();
 }
 
 class _TopicsScreenState extends State<TopicsScreen> {
-
-  final TopicsService _topicsService = TopicsService();
-  final TextEditingController _searchController = TextEditingController();
+  final _topicsService = TopicsService();
+  final _questionService = QuestionService();
+  final _searchController = TextEditingController();
   String _searchText = '';
-  String? _expandedCategoryId;
+  String? _activeCategoryId;
+
+  @override
+  void initState() {
+    super.initState();
+    _activeCategoryId = widget.filterCategoryId;
+  }
 
   @override
   void dispose() {
@@ -33,81 +52,132 @@ class _TopicsScreenState extends State<TopicsScreen> {
     super.dispose();
   }
 
-  Future<bool> _isTopicCompleted(UserModel? user, String categoryId, String topicId) async {
-    if (user == null) return false;
-    final service = QuestionService();
-    final total = await service.getTotalQuestionsCount(categoryId: categoryId, topicId: topicId);
-    if (total == 0) return false;
-    final all = await service.getQuestions(categoryId: categoryId, topicId: topicId, limit: 1000);
-    return all.where((q) => user.answeredQuestions.contains(q.id)).length >= total;
-  }
-
-  Future<double> _topicProgress(UserModel? user, String categoryId, String topicId) async {
+  Future<double> _topicProgress(
+      UserModel? user, String categoryId, String topicId) async {
     if (user == null) return 0;
-    final service = QuestionService();
-    final total = await service.getTotalQuestionsCount(categoryId: categoryId, topicId: topicId);
+    final total = await _questionService.getTotalQuestionsCount(
+        categoryId: categoryId, topicId: topicId);
     if (total == 0) return 0;
-    final all = await service.getQuestions(categoryId: categoryId, topicId: topicId, limit: 1000);
-    final answered = all.where((q) => user.answeredQuestions.contains(q.id)).length;
+    final all = await _questionService.getQuestions(
+        categoryId: categoryId, topicId: topicId, limit: 1000);
+    final answered =
+        all.where((q) => user.answeredQuestions.contains(q.id)).length;
     return answered / total;
   }
 
-  Future<int> _completedCount(UserModel? user, String categoryId, List<TopicModel> topics) async {
-    int count = 0;
-    for (final t in topics) {
-      if (await _isTopicCompleted(user, categoryId, t.id)) count++;
-    }
-    return count;
-  }
-
-  void _openQuiz(BuildContext context, {required CategoryModel category, required TopicModel topic}) async {
+  Future<void> _openQuiz(
+      BuildContext context, CategoryModel category, TopicModel topic) async {
     final auth = context.read<AuthProvider>();
     final user = auth.user;
     final isGuest = auth.isGuest;
 
     if (!isGuest && user != null) {
-      final service = QuestionService();
-      final total = await service.getTotalQuestionsCount(categoryId: category.id, topicId: topic.id);
-      final all = await service.getQuestions(categoryId: category.id, topicId: topic.id, limit: 1000);
-      final answered = all.where((q) => user.answeredQuestions.contains(q.id)).length;
-
-      if (total > 0 && answered >= total) {
+      final progress = await _topicProgress(user, category.id, topic.id);
+      if (progress >= 1.0) {
         if (!context.mounted) return;
-        showDialog(
-          context: context,
-          builder: (_) => AlertDialog(
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Lottie.asset('assets/lottie/trophy.json',
-                    width: 100, height: 100, repeat: false),
-                const SizedBox(height: 4),
-                const Text('Topic Completed!', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-                const SizedBox(height: 8),
-                Text('All questions in ${topic.name} answered!', textAlign: TextAlign.center, style: const TextStyle(color: AppColors.textSecondary)),
-                const SizedBox(height: 20),
-                SizedBox(width: double.infinity, child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: ElevatedButton.styleFrom(backgroundColor: AppColors.teal, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14))),
-                  child: const Text('Back to Topics'),
-                )),
-              ],
-            ),
-          ),
-        );
+        _showCompletedDialog(context, topic.name);
         return;
       }
     }
 
     if (!context.mounted) return;
-    Navigator.push(context, AppPageRoute(builder: (_) => QuizScreen(
-      categoryId: category.id,
-      categoryName: category.title,
-      topicId: topic.id,
-      topicName: topic.name,
-      color: AppColors.teal,
-    )));
+    Navigator.push(
+      context,
+      AppPageRoute(
+        builder: (_) => QuizScreen(
+          categoryId: category.id,
+          categoryName: category.title,
+          topicId: topic.id,
+          topicName: topic.name,
+          color: AppCategoryIcon.colorFor(category.title),
+        ),
+      ),
+    );
+  }
+
+  void _showCompletedDialog(BuildContext context, String topicName) {
+    showDialog(
+      context: context,
+      builder: (_) => Dialog(
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: Colors.white,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 360),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Lottie.asset('assets/lottie/trophy.json',
+                    width: 100, height: 100, repeat: false),
+                const SizedBox(height: 4),
+                Text(
+                  'Topic Complete!',
+                  style: GoogleFonts.nunito(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'All questions in "$topicName" are answered!',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.nunito(
+                    color: AppColors.textSecondary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                AppButton(
+                  label: 'Awesome!',
+                  variant: AppButtonVariant.success,
+                  onTap: () => Navigator.pop(context),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Build flat item list: CategoryModel (header) + _TopicRow entries
+  List<Object> _buildItems(
+    List<CategoryModel> cats,
+    List<TopicModel> allTopics,
+    String query,
+  ) {
+    final items = <Object>[];
+    final showHeaders = _activeCategoryId == null;
+    int globalIndex = 0;
+
+    for (final cat in cats) {
+      final topics = allTopics
+          .where((t) => t.categoryId == cat.id)
+          .toList()
+        ..sort((a, b) => a.order.compareTo(b.order));
+
+      final filtered = query.isEmpty
+          ? topics
+          : topics
+              .where((t) =>
+                  t.name.toLowerCase().contains(query) ||
+                  t.desc.toLowerCase().contains(query))
+              .toList();
+
+      if (filtered.isEmpty) continue;
+
+      if (showHeaders) items.add(cat);
+      for (final t in filtered) {
+        items.add(_TopicEntry(
+            topic: t, category: cat, index: globalIndex));
+        globalIndex++;
+      }
+    }
+    return items;
   }
 
   @override
@@ -116,340 +186,439 @@ class _TopicsScreenState extends State<TopicsScreen> {
     final user = auth.user;
     final isGuest = auth.isGuest;
 
+    final headerTitle = widget.filterCategoryTitle ?? 'All Topics';
+
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Header
-            Container(
-              color: AppColors.teal,
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+      body: Column(
+        children: [
+          // ── Gradient header ───────────────────────────────────────────────
+          SafeArea(
+            bottom: false,
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(4, 8, 16, 16),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [AppColors.blue, Color(0xFF5AB4F7)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
               child: Row(
                 children: [
                   IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_rounded, color: Colors.white, size: 22),
+                    icon: const Icon(Icons.arrow_back_ios_rounded,
+                        color: Colors.white, size: 20),
                     onPressed: () => Navigator.pop(context),
                   ),
-                  const Expanded(
-                    child: Text('Topics List', textAlign: TextAlign.center,
-                        style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900)),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          headerTitle,
+                          style: GoogleFonts.nunito(
+                            color: Colors.white,
+                            fontSize: 20,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        if (widget.filterCategoryId == null)
+                          Text(
+                            'All learning topics',
+                            style: GoogleFonts.nunito(
+                              color: Colors.white.withOpacity(0.8),
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(width: 48),
+                  if (widget.filterCategoryId != null)
+                    AppCategoryIcon(
+                      title: headerTitle,
+                      size: 36,
+                      overrideColor: Colors.white.withOpacity(0.9),
+                    ),
+                ],
+              ),
+            ),
+          ),
+
+          // ── Search + chips + list ─────────────────────────────────────────
+          Expanded(
+            child: StreamBuilder<List<CategoryModel>>(
+              stream: _topicsService.watchCategories(),
+              builder: (context, catSnap) {
+                if (!catSnap.hasData) {
+                  return ListView(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                    children:
+                        List.generate(4, (_) => const TopicSkeletonCard()),
+                  );
+                }
+
+                return StreamBuilder<List<TopicModel>>(
+                  stream: _topicsService.watchAllTopics(),
+                  builder: (context, topicSnap) {
+                    if (!topicSnap.hasData) {
+                      return ListView(
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                        children: List.generate(
+                            4, (_) => const TopicSkeletonCard()),
+                      );
+                    }
+
+                    final allCategories = catSnap.data!;
+                    final allTopics = topicSnap.data!;
+
+                    // Apply active category filter
+                    final visibleCats = _activeCategoryId != null
+                        ? allCategories
+                            .where((c) => c.id == _activeCategoryId)
+                            .toList()
+                        : allCategories;
+
+                    final query = _searchText.trim().toLowerCase();
+                    final items = _buildItems(visibleCats, allTopics, query);
+
+                    return Column(
+                      children: [
+                        // Search bar
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                          child: _SearchBar(
+                            controller: _searchController,
+                            onChanged: (v) =>
+                                setState(() => _searchText = v),
+                            onClear: () {
+                              _searchController.clear();
+                              setState(() => _searchText = '');
+                            },
+                          ),
+                        ),
+
+                        // Category filter chips (when showing all)
+                        if (widget.filterCategoryId == null &&
+                            allCategories.length > 1) ...[
+                          const SizedBox(height: 10),
+                          SizedBox(
+                            height: 36,
+                            child: ListView(
+                              scrollDirection: Axis.horizontal,
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16),
+                              children: [
+                                _Chip(
+                                  label: 'All',
+                                  selected: _activeCategoryId == null,
+                                  color: AppColors.blue,
+                                  onTap: () => setState(
+                                      () => _activeCategoryId = null),
+                                ),
+                                ...allCategories.map(
+                                  (cat) => _Chip(
+                                    label: cat.title,
+                                    selected: _activeCategoryId == cat.id,
+                                    color: AppCategoryIcon.colorFor(
+                                        cat.title),
+                                    onTap: () => setState(
+                                        () => _activeCategoryId = cat.id),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+
+                        const SizedBox(height: 8),
+
+                        // Topics list
+                        Expanded(
+                          child: items.isEmpty
+                              ? _EmptyState(query: query)
+                              : ListView.builder(
+                                  padding: const EdgeInsets.fromLTRB(
+                                      16, 4, 16, 32),
+                                  itemCount: items.length,
+                                  itemBuilder: (ctx, i) {
+                                    final item = items[i];
+                                    if (item is CategoryModel) {
+                                      return _SectionHeader(
+                                          category: item);
+                                    }
+                                    if (item is _TopicEntry) {
+                                      return _TopicCard(
+                                        entry: item,
+                                        user: user,
+                                        isGuest: isGuest,
+                                        topicProgress: _topicProgress,
+                                        onTap: () => _openQuiz(
+                                            ctx, item.category, item.topic),
+                                      );
+                                    }
+                                    return const SizedBox.shrink();
+                                  },
+                                ),
+                        ),
+                      ],
+                    );
+                  },
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Data entry ───────────────────────────────────────────────────────────────
+
+class _TopicEntry {
+  final TopicModel topic;
+  final CategoryModel category;
+  final int index;
+  _TopicEntry(
+      {required this.topic, required this.category, required this.index});
+}
+
+// ─── Section header ───────────────────────────────────────────────────────────
+
+class _SectionHeader extends StatelessWidget {
+  final CategoryModel category;
+  const _SectionHeader({required this.category});
+
+  @override
+  Widget build(BuildContext context) {
+    final color = AppCategoryIcon.colorFor(category.title);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 20, 4, 8),
+      child: Row(
+        children: [
+          AppCategoryIcon(title: category.title, size: 24),
+          const SizedBox(width: 8),
+          Text(
+            category.title.toUpperCase(),
+            style: GoogleFonts.nunito(
+              color: color,
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.4,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Topic card ───────────────────────────────────────────────────────────────
+
+class _TopicCard extends StatelessWidget {
+  final _TopicEntry entry;
+  final UserModel? user;
+  final bool isGuest;
+  final Future<double> Function(UserModel?, String, String) topicProgress;
+  final VoidCallback onTap;
+
+  const _TopicCard({
+    required this.entry,
+    required this.user,
+    required this.isGuest,
+    required this.topicProgress,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final topic = entry.topic;
+    final category = entry.category;
+    final catColor = AppCategoryIcon.colorFor(category.title);
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: AppCard(
+        onTap: onTap,
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          children: [
+            // Category icon
+            AppCategoryIcon(title: category.title, size: 46),
+            const SizedBox(width: 12),
+
+            // Content
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          topic.name,
+                          style: const TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                      if (topic.isNew)
+                        _Badge(label: 'NEW', color: AppColors.pink),
+                      if (topic.isUpdated)
+                        _Badge(label: 'UPD', color: AppColors.amber),
+                    ],
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    topic.desc,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: AppColors.textSecondary,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Progress bar
+                  if (!isGuest && user != null)
+                    FutureBuilder<double>(
+                      future:
+                          topicProgress(user, category.id, topic.id),
+                      builder: (ctx, snap) {
+                        final p = snap.data ?? 0.0;
+                        return ClipRRect(
+                          borderRadius: BorderRadius.circular(6),
+                          child: TweenAnimationBuilder<double>(
+                            key: ValueKey(topic.id),
+                            tween: Tween(begin: 0, end: p),
+                            duration: const Duration(milliseconds: 700),
+                            builder: (_, v, __) => LinearProgressIndicator(
+                              value: v,
+                              minHeight: 6,
+                              backgroundColor: AppColors.border,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                  catColor),
+                            ),
+                          ),
+                        );
+                      },
+                    )
+                  else
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: LinearProgressIndicator(
+                        value: 0,
+                        minHeight: 6,
+                        backgroundColor: AppColors.border,
+                        valueColor:
+                            AlwaysStoppedAnimation<Color>(catColor),
+                      ),
+                    ),
                 ],
               ),
             ),
 
-            Expanded(
-              child: StreamBuilder<List<CategoryModel>>(
-                stream: _topicsService.watchCategories(),
-                builder: (context, catSnap) {
-                  if (!catSnap.hasData) {
-                    return ListView(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-                      children: List.generate(4, (_) => const TopicSkeletonCard()),
-                    );
-                  }
+            const SizedBox(width: 10),
 
-                  return StreamBuilder<List<TopicModel>>(
-                    stream: _topicsService.watchAllTopics(),
-                    builder: (context, topicSnap) {
-                      if (!topicSnap.hasData) {
-                        return ListView(
-                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-                          children: List.generate(4, (_) => const TopicSkeletonCard()),
-                        );
-                      }
-
-                      final categories = catSnap.data!;
-                      final allTopics = topicSnap.data!;
-
-                      final query = _searchText.trim().toLowerCase();
-                      final filtered = categories.map((cat) {
-                        final topics = allTopics
-                            .where((t) => t.categoryId == cat.id)
-                            .toList()
-                          ..sort((a, b) => a.order.compareTo(b.order));
-
-                        if (query.isEmpty) return (cat: cat, topics: topics);
-                        if (cat.title.toLowerCase().contains(query)) return (cat: cat, topics: topics);
-
-                        final matched = topics.where((t) =>
-                        t.name.toLowerCase().contains(query) ||
-                            t.desc.toLowerCase().contains(query)).toList();
-                        if (matched.isEmpty) return null;
-                        return (cat: cat, topics: matched);
-                      }).whereType<({CategoryModel cat, List<TopicModel> topics})>()
-                          .where((g) => g.topics.isNotEmpty)
-                          .toList();
-
-                      return ListView(
-                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-                        children: [
-                          // Search bar
-                          Container(
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: const Color(0xFFE0E0E0)),
-                              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 6, offset: const Offset(0, 3))],
-                            ),
-                            child: TextField(
-                              controller: _searchController,
-                              onChanged: (v) => setState(() => _searchText = v),
-                              decoration: InputDecoration(
-                                hintText: 'Search topics...',
-                                hintStyle: const TextStyle(color: AppColors.textLight),
-                                prefixIcon: const Icon(Icons.search_rounded, color: AppColors.teal),
-                                suffixIcon: _searchText.isNotEmpty
-                                    ? IconButton(
-                                    icon: const Icon(Icons.close_rounded),
-                                    onPressed: () { _searchController.clear(); setState(() => _searchText = ''); })
-                                    : null,
-                                border: InputBorder.none,
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-
-                          if (filtered.isEmpty)
-                            const Center(child: Padding(
-                              padding: EdgeInsets.only(top: 40),
-                              child: Text('No topics found', style: TextStyle(color: AppColors.textSecondary, fontSize: 16)),
-                            )),
-
-                          for (int i = 0; i < filtered.length; i++)
-                            _CategoryCard(
-                              category: filtered[i].cat,
-                              topics: filtered[i].topics,
-                              isExpanded: _expandedCategoryId == filtered[i].cat.id,
-                              user: user,
-                              isGuest: isGuest,
-                              onExpandToggle: () => setState(() {
-                                _expandedCategoryId = _expandedCategoryId == filtered[i].cat.id ? null : filtered[i].cat.id;
-                              }),
-                              onOpenQuiz: (t) => _openQuiz(context, category: filtered[i].cat, topic: t),
-                              isTopicCompleted: _isTopicCompleted,
-                              topicProgress: _topicProgress,
-                              completedCount: _completedCount,
-                            )
-                                .animate(delay: Duration(milliseconds: i * 80))
-                                .slideY(
-                                    begin: 0.15,
-                                    end: 0,
-                                    duration: const Duration(milliseconds: 350),
-                                    curve: Curves.easeOut)
-                                .fadeIn(duration: const Duration(milliseconds: 300)),
-                        ],
-                      );
-                    },
-                  );
-                },
+            // Arrow button
+            Container(
+              width: 34,
+              height: 34,
+              decoration: BoxDecoration(
+                color: catColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: catColor,
+                size: 14,
               ),
             ),
           ],
         ),
       ),
-    );
+    )
+        .animate(
+            delay: Duration(milliseconds: (entry.index * 45).clamp(0, 360)))
+        .fadeIn(duration: const Duration(milliseconds: 280))
+        .slideY(
+            begin: 0.06,
+            end: 0,
+            duration: const Duration(milliseconds: 280),
+            curve: Curves.easeOut);
   }
 }
 
-class _CategoryCard extends StatelessWidget {
-  final CategoryModel category;
-  final List<TopicModel> topics;
-  final bool isExpanded;
-  final UserModel? user;
-  final bool isGuest;
-  final VoidCallback onExpandToggle;
-  final void Function(TopicModel) onOpenQuiz;
-  final Future<bool> Function(UserModel?, String, String) isTopicCompleted;
-  final Future<double> Function(UserModel?, String, String) topicProgress;
-  final Future<int> Function(UserModel?, String, List<TopicModel>) completedCount;
+// ─── Search bar ───────────────────────────────────────────────────────────────
 
-  const _CategoryCard({
-    required this.category,
-    required this.topics,
-    required this.isExpanded,
-    required this.user,
-    required this.isGuest,
-    required this.onExpandToggle,
-    required this.onOpenQuiz,
-    required this.isTopicCompleted,
-    required this.topicProgress,
-    required this.completedCount,
+class _SearchBar extends StatelessWidget {
+  final TextEditingController controller;
+  final ValueChanged<String> onChanged;
+  final VoidCallback onClear;
+
+  const _SearchBar({
+    required this.controller,
+    required this.onChanged,
+    required this.onClear,
   });
-
-  static const cardColor = Color(0xFF4ECFBC);
-  static const cardBorder = AppColors.teal;
-  static const cardShadow = AppColors.darkTeal;
 
   @override
   Widget build(BuildContext context) {
-    final hasNew = topics.any((t) => t.isNew);
-    final hasUpdated = topics.any((t) => t.isUpdated);
-
     return Container(
-      margin: const EdgeInsets.only(bottom: 14),
       decoration: BoxDecoration(
-        color: cardColor,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: cardBorder, width: 2),
-        boxShadow: const [
-          BoxShadow(color: cardShadow, offset: Offset(0, 5), blurRadius: 0),
-          BoxShadow(color: Colors.black12, offset: Offset(0, 8), blurRadius: 8),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
         ],
       ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(18),
-        child: Column(
-          children: [
-            Stack(
-              children: [
-                GestureDetector(
-                  onTap: onExpandToggle,
-                  child: Container(
-                    color: Colors.transparent,
-                    padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
-                    child: Row(
-                      children: [
-                        // White icon circle
-                        Container(
-                          width: 52, height: 52,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                            boxShadow: [BoxShadow(color: cardShadow.withOpacity(0.25), blurRadius: 8, offset: const Offset(0, 3))],
-                          ),
-                          child: const Icon(Icons.lock_rounded, color: cardColor, size: 26),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Yellow label
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFE8C84A),
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(color: AppColors.goldDark, width: 1.5),
-                                ),
-                                child: Text(category.title,
-                                    style: const TextStyle(
-                                        color: Color(0xFF5A4A1A),
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14)),
-                              ),
-                              const SizedBox(height: 6),
-                              Text('${topics.length} topics',
-                                  style: const TextStyle(color: Colors.white70, fontSize: 12)),
-
-                              // Progress bar for logged in users
-                              if (!isGuest && user != null) ...[
-                                const SizedBox(height: 8),
-                                FutureBuilder<int>(
-                                  future: completedCount(user, category.id, topics),
-                                  builder: (context, snap) {
-                                    final done = snap.data ?? 0;
-                                    final total = topics.length;
-                                    return Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        ClipRRect(
-                                          borderRadius: BorderRadius.circular(20),
-                                          child: LinearProgressIndicator(
-                                            value: total == 0 ? 0 : done / total,
-                                            minHeight: 6,
-                                            backgroundColor: Colors.white24,
-                                            valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFE8C84A)),
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text('$done / $total completed',
-                                            style: const TextStyle(color: Colors.white70, fontSize: 11)),
-                                      ],
-                                    );
-                                  },
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                        AnimatedRotation(
-                          turns: isExpanded ? 0.5 : 0,
-                          duration: const Duration(milliseconds: 250),
-                          child: const Icon(Icons.keyboard_arrow_down_rounded, color: Colors.white, size: 30),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                // Ribbon badge
-                if (hasNew || hasUpdated)
-                  Positioned(
-                    top: 0, right: 0,
-                    child: ClipPath(
-                      clipper: _RibbonClipper(),
-                      child: Container(
-                        width: 68, height: 68,
-                        color: hasNew ? AppColors.pink : AppColors.amber,
-                        alignment: Alignment.topRight,
-                        padding: const EdgeInsets.only(top: 9, right: 5),
-                        child: Transform.rotate(
-                          angle: 0.78,
-                          child: Text(
-                            hasNew ? 'NEW' : 'UPD',
-                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 10),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-
-            // Expanded topics
-            if (isExpanded)
-              Container(
-                color: const Color(0xFFF0FBF9),
-                padding: const EdgeInsets.fromLTRB(12, 8, 12, 12),
-                child: Column(
-                  children: topics.map((topic) => isGuest
-                      ? _TopicRow(topic: topic, isDone: false, progress: 0, onTap: () => onOpenQuiz(topic))
-                      : FutureBuilder<List<dynamic>>(
-                    future: Future.wait([
-                      isTopicCompleted(user, category.id, topic.id),
-                      topicProgress(user, category.id, topic.id),
-                    ]),
-                    builder: (context, snap) => _TopicRow(
-                      topic: topic,
-                      isDone: snap.data?[0] as bool? ?? false,
-                      progress: snap.data?[1] as double? ?? 0,
-                      onTap: () => onOpenQuiz(topic),
-                    ),
-                  )).toList(),
-                ),
-              ),
-          ],
+      child: TextField(
+        controller: controller,
+        onChanged: onChanged,
+        style: GoogleFonts.nunito(fontWeight: FontWeight.w600),
+        decoration: InputDecoration(
+          hintText: 'Search topics...',
+          hintStyle: GoogleFonts.nunito(color: AppColors.textLight),
+          prefixIcon: const Icon(Icons.search_rounded,
+              color: AppColors.blue, size: 20),
+          suffixIcon: controller.text.isNotEmpty
+              ? IconButton(
+                  icon:
+                      const Icon(Icons.close_rounded, size: 18),
+                  onPressed: onClear,
+                )
+              : null,
+          border: InputBorder.none,
+          contentPadding:
+              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         ),
       ),
     );
   }
 }
 
-class _TopicRow extends StatelessWidget {
-  final TopicModel topic;
-  final bool isDone;
-  final double progress;
+// ─── Filter chips ─────────────────────────────────────────────────────────────
+
+class _Chip extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final Color color;
   final VoidCallback onTap;
 
-  const _TopicRow({
-    required this.topic,
-    required this.isDone,
-    required this.progress,
+  const _Chip({
+    required this.label,
+    required this.selected,
+    required this.color,
     required this.onTap,
   });
 
@@ -458,57 +627,56 @@ class _TopicRow extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 8),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        margin: const EdgeInsets.only(right: 8),
+        padding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          color: isDone ? const Color(0xFFFFF9E7) : Colors.white,
-          borderRadius: BorderRadius.circular(14),
+          color: selected ? color : Colors.white,
+          borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isDone ? AppColors.goldDark : const Color(0xFFE0E0E0),
-            width: isDone ? 1.5 : 1,
+            color: selected ? color : AppColors.border,
+            width: 1.5,
           ),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.04), blurRadius: 4, offset: const Offset(0, 2))],
         ),
+        child: Text(
+          label,
+          style: GoogleFonts.nunito(
+            color: selected ? Colors.white : AppColors.textSecondary,
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Empty state ──────────────────────────────────────────────────────────────
+
+class _EmptyState extends StatelessWidget {
+  final String query;
+  const _EmptyState({required this.query});
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Row(
-              children: [
-                Expanded(
-                  child: Text(topic.name,
-                      style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: isDone ? const Color(0xFF8A6B12) : AppColors.textPrimary)),
-                ),
-                if (topic.isNew)
-                  Container(
-                      margin: const EdgeInsets.only(left: 6),
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                      decoration: BoxDecoration(color: AppColors.pink, borderRadius: BorderRadius.circular(8)),
-                      child: const Text('NEW', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold))),
-                if (topic.isUpdated)
-                  Container(
-                      margin: const EdgeInsets.only(left: 4),
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                      decoration: BoxDecoration(color: AppColors.amber, borderRadius: BorderRadius.circular(8)),
-                      child: const Text('UPD', style: TextStyle(color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold))),
-                const SizedBox(width: 8),
-                isDone
-                    ? const Icon(Icons.check_circle_rounded, color: Color(0xFFC8A830), size: 20)
-                    : Icon(Icons.arrow_forward_ios_rounded, color: Colors.grey.shade400, size: 13),
-              ],
-            ),
-            const SizedBox(height: 3),
-            Text(topic.desc, style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-            const SizedBox(height: 8),
-            ClipRRect(
-              borderRadius: BorderRadius.circular(20),
-              child: LinearProgressIndicator(
-                value: progress,
-                minHeight: 5,
-                backgroundColor: const Color(0xFFEEEEEE),
-                valueColor: const AlwaysStoppedAnimation<Color>(AppColors.teal),
+            Icon(Icons.search_off_rounded,
+                size: 56, color: AppColors.textLight),
+            const SizedBox(height: 16),
+            Text(
+              query.isNotEmpty
+                  ? 'No topics match "$query"'
+                  : 'No topics available',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.nunito(
+                color: AppColors.textSecondary,
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
               ),
             ),
           ],
@@ -518,17 +686,25 @@ class _TopicRow extends StatelessWidget {
   }
 }
 
-class _RibbonClipper extends CustomClipper<Path> {
-  @override
-  Path getClip(Size size) {
-    final path = Path();
-    path.moveTo(size.width, 0);
-    path.lineTo(size.width, size.height);
-    path.lineTo(0, 0);
-    path.close();
-    return path;
-  }
+// ─── Small badge ──────────────────────────────────────────────────────────────
+
+class _Badge extends StatelessWidget {
+  final String label;
+  final Color color;
+  const _Badge({required this.label, required this.color});
 
   @override
-  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(left: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      decoration: BoxDecoration(
+          color: color, borderRadius: BorderRadius.circular(6)),
+      child: Text(
+        label,
+        style: const TextStyle(
+            color: Colors.white, fontSize: 9, fontWeight: FontWeight.bold),
+      ),
+    );
+  }
 }

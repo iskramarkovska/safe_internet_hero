@@ -3,11 +3,20 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import '../../core/app_page_route.dart';
 import '../../core/theme.dart';
+import '../../models/category_model.dart';
+import '../../models/topic_model.dart';
+import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/questions_service.dart';
+import '../../services/topics_service.dart';
+import '../../widgets/app_avatar.dart';
+import '../../widgets/app_widgets.dart';
 import '../admin/admin_dashboard_screen.dart';
+import '../auth/splash_screen.dart';
 import '../profile/profile_screen.dart';
 import '../quiz/topics_screen.dart';
-import '../auth/splash_screen.dart';
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 String _tierLabel(int stars) {
   if (stars >= 60) return 'Cyber Legend';
@@ -17,159 +26,49 @@ String _tierLabel(int stars) {
   return 'Rookie';
 }
 
-class HomeScreen extends StatelessWidget {
+IconData _tierIcon(int stars) {
+  if (stars >= 60) return Icons.emoji_events_rounded;
+  if (stars >= 30) return Icons.bolt_rounded;
+  if (stars >= 15) return Icons.shield_rounded;
+  if (stars >= 5) return Icons.school_rounded;
+  return Icons.eco_rounded;
+}
+
+Color _tierIconColor(int stars) {
+  if (stars >= 60) return AppColors.gold;
+  if (stars >= 30) return AppColors.orange;
+  if (stars >= 15) return AppColors.blue;
+  if (stars >= 5) return AppColors.green;
+  return AppColors.greenDark;
+}
+
+// ─── Screen ───────────────────────────────────────────────────────────────────
+
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
-
   @override
-  Widget build(BuildContext context) {
-    final auth = context.watch<AuthProvider>();
-    final user = auth.user;
-    final isGuest = auth.isGuest;
-    final size = MediaQuery.of(context).size;
-    final isWide = size.width > 600;
-    final username = isGuest ? 'Guest' : (user?.username ?? 'Hero');
-    final initial = username[0].toUpperCase();
+  State<HomeScreen> createState() => _HomeScreenState();
+}
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: CustomPaint(painter: _BackgroundPainter()),
-          ),
-          SafeArea(
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.logout_rounded, color: Colors.white, size: 22),
-                        onPressed: () => _confirmLogout(context),
-                      ),
-                      Row(
-                        children: [
-                          Text(username,
-                              style: const TextStyle(
-                                  color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
-                          const SizedBox(width: 10),
-                          GestureDetector(
-                            onTap: isGuest ? null : () => Navigator.push(context, AppPageRoute(builder: (_) => const ProfileScreen())),
-                            child: Container(
-                              width: 40, height: 40,
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white, width: 2),
-                                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 8, offset: const Offset(0, 2))],
-                              ),
-                              child: Center(
-                                child: Text(initial,
-                                    style: const TextStyle(color: AppColors.teal, fontWeight: FontWeight.bold, fontSize: 16)),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                Expanded(
-                  child: Center(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: isWide ? size.width * 0.3 : 48,
-                      ),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: 130, height: 130,
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              shape: BoxShape.circle,
-                              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.15), blurRadius: 24, offset: const Offset(0, 8))],
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(8),
-                              child: Container(
-                                decoration: const BoxDecoration(color: AppColors.hero, shape: BoxShape.circle),
-                                child: const Icon(Icons.bolt_rounded, color: Colors.white, size: 64),
-                              ),
-                            ),
-                          ).animate().scale(
-                            begin: const Offset(0.7, 0.7),
-                            end: const Offset(1, 1),
-                            curve: Curves.elasticOut,
-                            duration: const Duration(milliseconds: 700),
-                          ),
-                          const SizedBox(height: 20),
-                          const Text(
-                            'Safe Internet Hero',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: AppColors.teal, fontSize: 26, fontWeight: FontWeight.w900, letterSpacing: 0.3),
-                          ).animate(delay: const Duration(milliseconds: 200)).fadeIn().slideY(begin: 0.1, end: 0, duration: const Duration(milliseconds: 350)),
-                          const SizedBox(height: 10),
-                          if (!isGuest && user != null)
-                            GestureDetector(
-                              onTap: () => Navigator.push(context, AppPageRoute(builder: (_) => const ProfileScreen())),
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                                decoration: BoxDecoration(
-                                  color: AppColors.gold.withOpacity(0.12),
-                                  borderRadius: BorderRadius.circular(20),
-                                  border: Border.all(color: AppColors.goldDark.withOpacity(0.3)),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Text('⭐', style: TextStyle(fontSize: 14)),
-                                    const SizedBox(width: 6),
-                                    Text('${user.totalStars} stars',
-                                        style: const TextStyle(color: AppColors.goldDark, fontWeight: FontWeight.bold, fontSize: 13)),
-                                    const SizedBox(width: 8),
-                                    Text('· ${_tierLabel(user.totalStars)}',
-                                        style: const TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-                                  ],
-                                ),
-                              ),
-                            ).animate(delay: const Duration(milliseconds: 350)).fadeIn().scale(begin: const Offset(0.9, 0.9), end: const Offset(1, 1)),
-                          const SizedBox(height: 32),
-                          _QuizUpActionButton(
-                            label: 'PLAY',
-                            color: const Color(0xFF1FA090),
-                            textColor: Colors.white,
-                            icon: Icons.send_rounded,
-                            borderColor: const Color(0xFF168C7F),
-                            shadowColor: const Color(0xFF168C7F),
-                            onTap: () => Navigator.push(context, AppPageRoute(builder: (_) => const TopicsScreen())),
-                          ).animate(delay: const Duration(milliseconds: 450)).fadeIn().slideY(begin: 0.15, end: 0, duration: const Duration(milliseconds: 350)),
-                          if (user?.isAdmin == true) ...[
-                            const SizedBox(height: 18),
-                            _QuizUpActionButton(
-                              label: 'ADMIN PANEL',
-                              color: const Color(0xFFE8C84A),
-                              textColor: const Color(0xFF5A7A6A),
-                              icon: Icons.admin_panel_settings_rounded,
-                              borderColor: const Color(0xFFC8A830),
-                              shadowColor: const Color(0xFFC8A830),
-                              onTap: () => Navigator.push(context, AppPageRoute(builder: (_) => const AdminDashboardScreen())),
-                            ).animate(delay: const Duration(milliseconds: 530)).fadeIn().slideY(begin: 0.15, end: 0, duration: const Duration(milliseconds: 350)),
-                          ],
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
+class _HomeScreenState extends State<HomeScreen> {
+  final _topicsService = TopicsService();
+  final _questionService = QuestionService();
+
+  Future<int> _completedTopics(
+      UserModel user, String categoryId, List<TopicModel> topics) async {
+    int count = 0;
+    for (final t in topics) {
+      final total = await _questionService.getTotalQuestionsCount(
+          categoryId: categoryId, topicId: t.id);
+      if (total == 0) continue;
+      final all = await _questionService.getQuestions(
+          categoryId: categoryId, topicId: t.id, limit: 1000);
+      final answered =
+          all.where((q) => user.answeredQuestions.contains(q.id)).length;
+      if (answered >= total) count++;
+    }
+    return count;
   }
 
   Future<void> _confirmLogout(BuildContext context) async {
@@ -177,43 +76,55 @@ class HomeScreen extends StatelessWidget {
       context: context,
       builder: (_) => Dialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        backgroundColor: const Color(0xFFF0FEFA),
-        elevation: 20,
-        // ConstrainedBox fixes the stretched dialog on wide/web screens
+        backgroundColor: Colors.white,
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 400),
+          constraints: const BoxConstraints(maxWidth: 360),
           child: Padding(
             padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(vertical: 10),
+                  width: 56, height: 56,
                   decoration: BoxDecoration(
-                    color: AppColors.teal.withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(32),
+                    color: AppColors.blueLight,
+                    shape: BoxShape.circle,
                   ),
-                  child: const Text(
-                    'Sign out',
+                  child: const Icon(Icons.logout_rounded,
+                      color: AppColors.blue, size: 28),
+                ),
+                const SizedBox(height: 12),
+                Text('Sign out?',
+                    style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        fontFamily: 'Nunito')),
+                const SizedBox(height: 8),
+                Text('Are you sure you want to leave?',
                     textAlign: TextAlign.center,
-                    style: TextStyle(color: AppColors.teal, fontWeight: FontWeight.bold, fontSize: 18),
-                  ),
-                ),
+                    style:
+                        TextStyle(color: AppColors.textSecondary, fontSize: 14)),
                 const SizedBox(height: 24),
-                const Text(
-                  'Are you sure you want to sign out?',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(color: AppColors.teal, fontSize: 16, height: 1.4),
-                ),
-                const SizedBox(height: 28),
-                Builder(builder: (ctx) => Row(
+                Row(
                   children: [
-                    Expanded(child: _DialogButton(label: 'BACK', onTap: () => Navigator.pop(ctx, false))),
+                    Expanded(
+                      child: AppButton(
+                        label: 'Cancel',
+                        variant: AppButtonVariant.secondary,
+                        onTap: () => Navigator.pop(context, false),
+                      ),
+                    ),
                     const SizedBox(width: 12),
-                    Expanded(child: _DialogButton(label: 'CONFIRM', onTap: () => Navigator.pop(ctx, true))),
+                    Expanded(
+                      child: AppButton(
+                        label: 'Sign Out',
+                        variant: AppButtonVariant.danger,
+                        onTap: () => Navigator.pop(context, true),
+                      ),
+                    ),
                   ],
-                )),
+                ),
               ],
             ),
           ),
@@ -227,121 +138,358 @@ class HomeScreen extends StatelessWidget {
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (_) => const AuthGate()),
-              (route) => false,
+          (route) => false,
         );
       }
     }
   }
-}
-
-class _DialogButton extends StatelessWidget {
-  final String label;
-  final VoidCallback onTap;
-
-  const _DialogButton({required this.label, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color(0xFFFFD97A), Color(0xFFE8C84A)],
+    final auth = context.watch<AuthProvider>();
+    final user = auth.user;
+    final isGuest = auth.isGuest;
+    final username = isGuest ? 'Guest' : (user?.username ?? 'Hero');
+    final stars = user?.totalStars ?? 0;
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: Column(
+        children: [
+          // ── Status bar + top bar ──────────────────────────────────────────
+          SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                AppTopBar(
+                  stars: stars,
+                  streak: 1,
+                  username: isGuest ? null : username,
+                  onAvatarTap: isGuest
+                      ? null
+                      : () => Navigator.push(context,
+                          AppPageRoute(builder: (_) => const ProfileScreen())),
+                ),
+                Container(height: 1, color: AppColors.border),
+              ],
             ),
-            borderRadius: BorderRadius.circular(32),
-            border: Border.all(color: const Color(0xFFC8A830), width: 2.5),
-            boxShadow: [
-              const BoxShadow(color: Color(0xFFC8A830), offset: Offset(0, 4), blurRadius: 0),
-              BoxShadow(color: Colors.black.withOpacity(0.1), offset: const Offset(0, 6), blurRadius: 8),
-            ],
           ),
-          child: Text(label,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                  color: Color(0xFF5A7A6A), fontWeight: FontWeight.bold, fontSize: 15, letterSpacing: 1)),
-        ),
+
+          // ── Scrollable content ────────────────────────────────────────────
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 32),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const SizedBox(height: 20),
+
+                  // ── Inline greeting ───────────────────────────────────────
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Hey, $username!',
+                              style: const TextStyle(
+                                color: AppColors.textPrimary,
+                                fontSize: 22,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Row(
+                              children: [
+                                Icon(_tierIcon(stars),
+                                    color: _tierIconColor(stars), size: 13),
+                                const SizedBox(width: 4),
+                                Text(
+                                  _tierLabel(stars),
+                                  style: const TextStyle(
+                                    color: AppColors.textSecondary,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.logout_rounded,
+                            color: AppColors.textLight, size: 20),
+                        onPressed: () => _confirmLogout(context),
+                      ),
+                    ],
+                  )
+                      .animate()
+                      .fadeIn(duration: const Duration(milliseconds: 400))
+                      .slideY(
+                          begin: 0.06,
+                          end: 0,
+                          duration: const Duration(milliseconds: 350)),
+
+                  const SizedBox(height: 20),
+
+                  // ── Section header ────────────────────────────────────────
+                  Row(
+                    children: [
+                      const Text(
+                        'Keep Learning',
+                        style: TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const Spacer(),
+                      MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        child: GestureDetector(
+                          onTap: () => Navigator.push(context,
+                              AppPageRoute(builder: (_) => const TopicsScreen())),
+                          child: const Text(
+                            'See all',
+                            style: TextStyle(
+                              color: AppColors.blue,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                      .animate(delay: const Duration(milliseconds: 100))
+                      .fadeIn(duration: const Duration(milliseconds: 300)),
+
+                  const SizedBox(height: 12),
+
+                  // ── Category cards ────────────────────────────────────────
+                  StreamBuilder<List<CategoryModel>>(
+                    stream: _topicsService.watchCategories(),
+                    builder: (context, catSnap) {
+                      if (!catSnap.hasData) {
+                        return Column(
+                          children: List.generate(
+                              3, (_) => const _CategoryCardSkeleton()),
+                        );
+                      }
+
+                      return StreamBuilder<List<TopicModel>>(
+                        stream: _topicsService.watchAllTopics(),
+                        builder: (context, topicSnap) {
+                          if (!topicSnap.hasData) {
+                            return Column(
+                              children: List.generate(
+                                  3, (_) => const _CategoryCardSkeleton()),
+                            );
+                          }
+
+                          final categories = catSnap.data!;
+                          final allTopics = topicSnap.data!;
+
+                          return Column(
+                            children: categories.asMap().entries.map((e) {
+                              final cat = e.value;
+                              final topics = allTopics
+                                  .where((t) => t.categoryId == cat.id)
+                                  .toList()
+                                ..sort((a, b) => a.order.compareTo(b.order));
+
+                              return _CategoryCard(
+                                category: cat,
+                                topics: topics,
+                                user: user,
+                                isGuest: isGuest,
+                                completedTopics: _completedTopics,
+                                onTap: () => Navigator.push(
+                                    context,
+                                    AppPageRoute(
+                                        builder: (_) => TopicsScreen(
+                                              filterCategoryId: cat.id,
+                                              filterCategoryTitle: cat.title,
+                                            ))),
+                              )
+                                  .animate(
+                                      delay: Duration(
+                                          milliseconds:
+                                              200 + e.key * 100))
+                                  .fadeIn(
+                                      duration:
+                                          const Duration(milliseconds: 350))
+                                  .slideY(
+                                      begin: 0.1,
+                                      end: 0,
+                                      duration:
+                                          const Duration(milliseconds: 350),
+                                      curve: Curves.easeOut);
+                            }).toList(),
+                          );
+                        },
+                      );
+                    },
+                  ),
+
+                  // ── Admin panel ───────────────────────────────────────────
+                  if (user?.isAdmin == true) ...[
+                    const SizedBox(height: 16),
+                    AppButton(
+                      label: 'Admin Panel',
+                      variant: AppButtonVariant.secondary,
+                      icon: Icons.admin_panel_settings_rounded,
+                      onTap: () => Navigator.push(context,
+                          AppPageRoute(builder: (_) => const AdminDashboardScreen())),
+                    ).animate(delay: const Duration(milliseconds: 500)).fadeIn(),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 }
 
-class _QuizUpActionButton extends StatelessWidget {
-  final String label;
-  final Color color;
-  final Color textColor;
-  final IconData icon;
-  final Color borderColor;
-  final Color shadowColor;
+// ─── Category card ────────────────────────────────────────────────────────────
+
+class _CategoryCard extends StatelessWidget {
+  final CategoryModel category;
+  final List<TopicModel> topics;
+  final UserModel? user;
+  final bool isGuest;
+  final Future<int> Function(UserModel, String, List<TopicModel>)
+      completedTopics;
   final VoidCallback onTap;
 
-  const _QuizUpActionButton({
-    required this.label,
-    required this.color,
-    required this.textColor,
-    required this.icon,
-    required this.borderColor,
-    required this.shadowColor,
+  const _CategoryCard({
+    required this.category,
+    required this.topics,
+    required this.user,
+    required this.isGuest,
+    required this.completedTopics,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final shape = RoundedRectangleBorder(borderRadius: BorderRadius.circular(32));
+    final iconColor = AppCategoryIcon.colorFor(category.title);
+    final total = topics.length;
 
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(32),
-          boxShadow: [
-            BoxShadow(color: shadowColor.withOpacity(0.9), offset: const Offset(0, 5), blurRadius: 0),
-            BoxShadow(color: Colors.black.withOpacity(0.12), offset: const Offset(0, 8), blurRadius: 12),
-          ],
-        ),
-        child: Material(
-          color: color,
-          shape: shape,
-          child: InkWell(
-            onTap: onTap,
-            customBorder: shape,
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.only(left: 32, top: 14, bottom: 14, right: 12),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(32),
-                border: Border.all(color: borderColor, width: 2.5),
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [color.withOpacity(0.96), color],
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(18),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(18),
+          splashColor: AppColors.blueLight,
+          highlightColor: AppColors.blueLight.withOpacity(0.5),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                // Icon bubble
+                Container(
+                  width: 54,
+                  height: 54,
+                  decoration: BoxDecoration(
+                    color: iconColor.withOpacity(0.12),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(AppCategoryIcon.iconFor(category.title),
+                      color: iconColor, size: 26),
                 ),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(label,
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                            color: textColor, fontSize: 20, fontWeight: FontWeight.w900, letterSpacing: 1.6)),
+                const SizedBox(width: 14),
+
+                // Content
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        category.title,
+                        style: const TextStyle(
+                          color: AppColors.textPrimary,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      if (!isGuest && user != null)
+                        FutureBuilder<int>(
+                          future: completedTopics(user!, category.id, topics),
+                          builder: (ctx, snap) {
+                            final done = snap.data ?? 0;
+                            final progress = total == 0 ? 0.0 : done / total;
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                ClipRRect(
+                                  borderRadius: BorderRadius.circular(6),
+                                  child: TweenAnimationBuilder<double>(
+                                    tween: Tween(begin: 0, end: progress),
+                                    duration: const Duration(milliseconds: 900),
+                                    curve: Curves.easeOut,
+                                    builder: (_, v, __) =>
+                                        LinearProgressIndicator(
+                                      value: v,
+                                      minHeight: 8,
+                                      backgroundColor: AppColors.border,
+                                      valueColor:
+                                          const AlwaysStoppedAnimation<Color>(
+                                              AppColors.blue),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  '$done / $total topics',
+                                  style: const TextStyle(
+                                    color: AppColors.textLight,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ],
+                            );
+                          },
+                        )
+                      else
+                        Text(
+                          '$total topics',
+                          style: const TextStyle(
+                            color: AppColors.textLight,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                    ],
                   ),
-                  Container(
-                    width: 48, height: 48,
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.16),
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white.withOpacity(0.45), width: 2),
-                      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.08), blurRadius: 6, offset: const Offset(0, 2))],
-                    ),
-                    child: Icon(icon, color: textColor, size: 22),
-                  ),
-                ],
-              ),
+                ),
+
+                const SizedBox(width: 8),
+                const Icon(Icons.chevron_right_rounded,
+                    color: AppColors.borderDark, size: 22),
+              ],
             ),
           ),
         ),
@@ -350,48 +498,22 @@ class _QuizUpActionButton extends StatelessWidget {
   }
 }
 
-class _BackgroundPainter extends CustomPainter {
+// ─── Skeleton loader ──────────────────────────────────────────────────────────
+
+class _CategoryCardSkeleton extends StatelessWidget {
+  const _CategoryCardSkeleton();
+
   @override
-  void paint(Canvas canvas, Size size) {
-    final headerPaint = Paint()..color = AppColors.teal;
-    final headerPath = Path();
-    headerPath.moveTo(0, 0);
-    headerPath.lineTo(size.width, 0);
-    headerPath.lineTo(size.width, size.height * 0.42);
-    headerPath.quadraticBezierTo(size.width * 0.5, size.height * 0.52, 0, size.height * 0.42);
-    headerPath.close();
-    canvas.drawPath(headerPath, headerPaint);
-
-    final circlePaint = Paint()..color = Colors.white.withOpacity(0.07)..style = PaintingStyle.fill;
-    canvas.drawCircle(Offset(size.width * 0.85, size.height * 0.05), size.width * 0.28, circlePaint);
-    canvas.drawCircle(Offset(size.width * 0.08, size.height * 0.18), size.width * 0.18, circlePaint);
-    canvas.drawCircle(Offset(size.width * 0.15, size.height * 0.38), size.width * 0.10, circlePaint);
-
-    final ringPaint = Paint()..color = Colors.white.withOpacity(0.06)..style = PaintingStyle.stroke..strokeWidth = 18;
-    canvas.drawCircle(Offset(size.width * 0.9, size.height * 0.28), size.width * 0.22, ringPaint);
-    canvas.drawCircle(Offset(size.width * 0.05, size.height * 0.08), size.width * 0.15, ringPaint);
-
-    final dotPaint = Paint()..color = AppColors.teal.withOpacity(0.15)..style = PaintingStyle.fill;
-    final dotSpacingX = size.width / 10;
-    final dotSpacingY = size.height / 16;
-    final startY = size.height * 0.48;
-    for (int row = 0; row < 9; row++) {
-      for (int col = 0; col < 11; col++) {
-        final x = col * dotSpacingX + (row.isOdd ? dotSpacingX / 2 : 0);
-        final y = startY + row * dotSpacingY;
-        canvas.drawCircle(Offset(x, y), 3, dotPaint);
-      }
-    }
-
-    final accentPaint = Paint()..color = AppColors.tealLight.withOpacity(0.2)..style = PaintingStyle.fill;
-    canvas.drawCircle(Offset(size.width * 0.05, size.height * 0.85), size.width * 0.12, accentPaint);
-    canvas.drawCircle(Offset(size.width * 0.92, size.height * 0.75), size.width * 0.09, accentPaint);
-    canvas.drawCircle(Offset(size.width * 0.78, size.height * 0.92), size.width * 0.06, accentPaint);
-
-    final ringPaint2 = Paint()..color = AppColors.teal.withOpacity(0.12)..style = PaintingStyle.stroke..strokeWidth = 12;
-    canvas.drawCircle(Offset(size.width * 0.1, size.height * 0.9), size.width * 0.18, ringPaint2);
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      height: 180,
+      decoration: BoxDecoration(
+        color: AppColors.border,
+        borderRadius: BorderRadius.circular(20),
+      ),
+    )
+        .animate(onPlay: (c) => c.repeat(reverse: true))
+        .shimmer(duration: const Duration(milliseconds: 1000));
   }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
