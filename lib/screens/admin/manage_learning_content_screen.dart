@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../../models/category_model.dart';
 import '../../models/learning_content_model.dart';
 import '../../models/topic_model.dart';
@@ -132,16 +132,29 @@ class _AddContentFormState extends State<_AddContentForm> {
   }
 
   Future<void> _load() async {
-    final cats = await _topicsService.getCategories();
-    setState(() { _categories = cats; _categoryId = cats.isNotEmpty ? cats.first.id : null; });
-    if (_categoryId != null) await _loadTopics(_categoryId!);
-    else setState(() => _loading = false);
+    try {
+      final cats = await _topicsService.getCategories();
+      if (!mounted) return;
+      setState(() { _categories = cats; _categoryId = cats.isNotEmpty ? cats.first.id : null; });
+      if (_categoryId != null) {
+        await _loadTopics(_categoryId!);
+      } else {
+        if (mounted) setState(() => _loading = false);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   Future<void> _loadTopics(String catId) async {
-    setState(() => _loading = true);
-    final topics = await _topicsService.getTopicsByCategory(catId);
-    setState(() { _topics = topics; _topicId = topics.isNotEmpty ? topics.first.id : null; _loading = false; });
+    if (mounted) setState(() => _loading = true);
+    try {
+      final topics = await _topicsService.getTopicsByCategory(catId);
+      if (!mounted) return;
+      setState(() { _topics = topics; _topicId = topics.isNotEmpty ? topics.first.id : null; _loading = false; });
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   /// Called from parent via GlobalKey when user taps edit in the list
@@ -294,8 +307,10 @@ class _ContentList extends StatelessWidget {
     );
     if (ok == true) {
       await LearningService().deleteContent(item.id);
-      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Deleted'), backgroundColor: AdminColors.darkTeal));
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Deleted'), backgroundColor: AdminColors.darkTeal));
+      }
     }
   }
 
@@ -306,10 +321,12 @@ class _ContentList extends StatelessWidget {
       builder: (context, snap) {
         if (!snap.hasData) return const Center(child: CircularProgressIndicator(color: AdminColors.teal));
         final items = snap.data!;
-        if (items.isEmpty) return const AdminEmptyState(
-            icon: Icons.library_books_rounded,
-            title: 'No content yet',
-            subtitle: 'Add some from the "Add Content" tab');
+        if (items.isEmpty) {
+          return const AdminEmptyState(
+              icon: Icons.library_books_rounded,
+              title: 'No content yet',
+              subtitle: 'Add some from the "Add Content" tab');
+        }
 
         return ListView.builder(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
@@ -326,10 +343,10 @@ class _ContentList extends StatelessWidget {
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16),
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 3))]),
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, 3))]),
               child: Row(children: [
                 Container(width: 46, height: 46,
-                    decoration: BoxDecoration(color: typeColor.withOpacity(0.1), borderRadius: BorderRadius.circular(12)),
+                    decoration: BoxDecoration(color: typeColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
                     child: Icon(typeIcon, color: typeColor, size: 22)),
                 const SizedBox(width: 12),
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [

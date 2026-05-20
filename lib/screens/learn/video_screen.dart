@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../core/theme.dart';
 import '../../models/learning_content_model.dart';
@@ -67,7 +67,7 @@ class VideoScreen extends StatelessWidget {
                               errorBuilder: (_, __, ___) => Container(
                                 height: 210,
                                 decoration: BoxDecoration(
-                                  color: AppColors.teal.withOpacity(0.1),
+                                  color: AppColors.teal.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(18),
                                 ),
                                 child: const Center(child: Icon(Icons.play_circle_outline_rounded, color: AppColors.teal, size: 64)),
@@ -93,7 +93,7 @@ class VideoScreen extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                          color: AppColors.hero.withOpacity(0.12),
+                          color: AppColors.hero.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(10)),
                       child: const Row(mainAxisSize: MainAxisSize.min, children: [
                         Icon(Icons.play_circle_rounded, color: Color(0xFFE8524A), size: 13),

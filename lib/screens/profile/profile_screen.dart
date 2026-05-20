@@ -1,11 +1,10 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+﻿import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../core/app_page_route.dart';
 import '../../core/theme.dart';
-import '../../models/enums.dart';
 import '../../models/quiz_result_model.dart';
 import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
@@ -43,14 +42,14 @@ Future<List<QuizResultModel>> _fetchRecentResults(String userId) async {
     final snap = await FirebaseFirestore.instance
         .collection('quiz_results')
         .where('userId', isEqualTo: userId)
+        .orderBy('completedAt', descending: true)
+        .limit(5)
         .get();
-    final results = snap.docs.map((d) {
+    return snap.docs.map((d) {
       final data = Map<String, dynamic>.from(d.data());
       data['id'] = d.id;
       return QuizResultModel.fromMap(data);
     }).toList();
-    results.sort((a, b) => b.completedAt.compareTo(a.completedAt));
-    return results.take(5).toList();
   } catch (_) {
     return [];
   }
@@ -306,10 +305,10 @@ class _ProfileHeader extends StatelessWidget {
               padding:
                   const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(20),
                 border:
-                    Border.all(color: Colors.white.withOpacity(0.4)),
+                    Border.all(color: Colors.white.withValues(alpha: 0.4)),
               ),
               child: Row(
                 mainAxisSize: MainAxisSize.min,
@@ -561,7 +560,7 @@ class _BadgeCell extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color:
-              unlocked ? AppColors.blue.withOpacity(0.3) : AppColors.borderDark,
+              unlocked ? AppColors.blue.withValues(alpha: 0.3) : AppColors.borderDark,
           width: 1.5,
         ),
       ),
@@ -590,9 +589,30 @@ class _BadgeCell extends StatelessWidget {
 
 // ─── Recent quizzes ───────────────────────────────────────────────────────────
 
-class _RecentQuizzesSection extends StatelessWidget {
+class _RecentQuizzesSection extends StatefulWidget {
   final String userId;
   const _RecentQuizzesSection({required this.userId});
+
+  @override
+  State<_RecentQuizzesSection> createState() => _RecentQuizzesSectionState();
+}
+
+class _RecentQuizzesSectionState extends State<_RecentQuizzesSection> {
+  Future<List<QuizResultModel>>? _future;
+
+  @override
+  void initState() {
+    super.initState();
+    _future = _fetchRecentResults(widget.userId);
+  }
+
+  @override
+  void didUpdateWidget(_RecentQuizzesSection old) {
+    super.didUpdateWidget(old);
+    if (old.userId != widget.userId) {
+      _future = _fetchRecentResults(widget.userId);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -609,7 +629,7 @@ class _RecentQuizzesSection extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         FutureBuilder<List<QuizResultModel>>(
-          future: _fetchRecentResults(userId),
+          future: _future,
           builder: (context, snap) {
             if (snap.connectionState == ConnectionState.waiting) {
               return const Center(
@@ -690,7 +710,7 @@ class _QuizResultRow extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Center(
-              child: const Icon(Icons.quiz_rounded,
+              child: Icon(Icons.quiz_rounded,
                   color: AppColors.blue, size: 20),
             ),
           ),

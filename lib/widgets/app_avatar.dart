@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../core/theme.dart';
 
 // ─── AppAvatar ─────────────────────────────────────────────────────────────────
@@ -53,7 +53,7 @@ class AppAvatar extends StatelessWidget {
         ),
         boxShadow: [
           BoxShadow(
-            color: colors[0].withOpacity(0.35),
+            color: colors[0].withValues(alpha: 0.35),
             blurRadius: size * 0.25,
             offset: const Offset(0, 3),
           ),
@@ -144,7 +144,7 @@ class AppCategoryIcon extends StatelessWidget {
       width: size,
       height: size,
       decoration: BoxDecoration(
-        color: color.withOpacity(0.13),
+        color: color.withValues(alpha: 0.13),
         borderRadius: BorderRadius.circular(size * 0.28),
       ),
       child: Center(

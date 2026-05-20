@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -6,6 +6,7 @@ import '../../core/app_page_route.dart';
 import '../../core/theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../widgets/app_widgets.dart';
+import '../home/main_screen.dart';
 import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -28,6 +29,16 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _login() async {
+    if (_emailController.text.trim().isEmpty ||
+        _passwordController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: const Text('Please fill in all fields'),
+        backgroundColor: AppColors.red,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ));
+      return;
+    }
     final auth = context.read<AuthProvider>();
     final success = await auth.login(
       email: _emailController.text.trim(),
@@ -91,7 +102,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         Text(
                           'Login to continue your journey',
                           style: GoogleFonts.nunito(
-                            color: Colors.white.withOpacity(0.85),
+                            color: Colors.white.withValues(alpha: 0.85),
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
                           ),
@@ -195,8 +206,13 @@ class _LoginScreenState extends State<LoginScreen> {
                       label: 'Continue as Guest',
                       variant: AppButtonVariant.secondary,
                       icon: Icons.person_outline_rounded,
-                      onTap: () =>
-                          context.read<AuthProvider>().continueAsGuest(),
+                      onTap: () {
+                        context.read<AuthProvider>().continueAsGuest();
+                        Navigator.of(context).pushAndRemoveUntil(
+                          AppPageRoute(builder: (_) => const MainScreen()),
+                          (route) => false,
+                        );
+                      },
                     )
                         .animate(delay: 380.ms)
                         .fadeIn(duration: 350.ms),

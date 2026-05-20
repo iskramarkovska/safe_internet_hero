@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../core/theme.dart';
 
 // AdminColors delegates to AppColors so all admin screens keep working
@@ -28,7 +28,7 @@ class AdminCard extends StatelessWidget {
     decoration: BoxDecoration(
       color: Colors.white,
       borderRadius: BorderRadius.circular(18),
-      boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 4))],
+      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, 4))],
     ),
     child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
       Text(title, style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 15, color: Color(0xFF111827))),
@@ -131,7 +131,7 @@ class AdminDropdown<T> extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => DropdownButtonFormField<T>(
-    value: value, items: items, onChanged: onChanged,
+    initialValue: value, items: items, onChanged: onChanged,
     decoration: AdminField._dec(hint),
   );
 }
@@ -157,7 +157,7 @@ class AdminToggle extends StatelessWidget {
       duration: const Duration(milliseconds: 150),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
-        color: value ? color.withOpacity(0.1) : Colors.white,
+        color: value ? color.withValues(alpha: 0.1) : Colors.white,
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: value ? color : const Color(0xFFE5E7EB), width: value ? 2 : 1),
       ),
@@ -193,7 +193,7 @@ class AdminSelectTile extends StatelessWidget {
       child: AnimatedContainer(duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(vertical: 11),
         decoration: BoxDecoration(
-          color: selected ? c.withOpacity(0.12) : const Color(0xFFF8FAFC),
+          color: selected ? c.withValues(alpha: 0.12) : const Color(0xFFF8FAFC),
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: selected ? c : const Color(0xFFE5E7EB), width: selected ? 2 : 1),
         ),
@@ -224,7 +224,7 @@ class AdminDifficultyTile extends StatelessWidget {
     child: AnimatedContainer(duration: const Duration(milliseconds: 150),
       padding: const EdgeInsets.symmetric(vertical: 10),
       decoration: BoxDecoration(
-        color: selected ? color.withOpacity(0.12) : const Color(0xFFF8FAFC),
+        color: selected ? color.withValues(alpha: 0.12) : const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: selected ? color : const Color(0xFFE5E7EB), width: selected ? 2 : 1),
       ),
@@ -254,7 +254,7 @@ class AdminTypeButton extends StatelessWidget {
     child: AnimatedContainer(duration: const Duration(milliseconds: 150),
       padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
-        color: selected ? AdminColors.teal.withOpacity(0.12) : const Color(0xFFF8FAFC),
+        color: selected ? AdminColors.teal.withValues(alpha: 0.12) : const Color(0xFFF8FAFC),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: selected ? AdminColors.teal : const Color(0xFFE5E7EB), width: selected ? 2 : 1),
       ),
@@ -298,7 +298,7 @@ class AdminOptionField extends StatelessWidget {
         child: Row(children: [
           Container(width: 42, height: 50,
             decoration: BoxDecoration(
-              color: isCorrect ? Colors.green.withOpacity(0.12) : const Color(0xFFF8FAFC),
+              color: isCorrect ? Colors.green.withValues(alpha: 0.12) : const Color(0xFFF8FAFC),
               borderRadius: const BorderRadius.only(topLeft: Radius.circular(12), bottomLeft: Radius.circular(12)),
             ),
             child: Center(child: Text(isCorrect ? '✓' : letter,
@@ -381,7 +381,7 @@ class AdminBottomSheet extends StatelessWidget {
       decoration: BoxDecoration(
         color: AdminColors.cream,
         borderRadius: BorderRadius.circular(24),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 16, offset: const Offset(0, 8))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.1), blurRadius: 16, offset: const Offset(0, 8))],
       ),
       child: SingleChildScrollView(
         padding: const EdgeInsets.fromLTRB(20, 14, 20, 4),
@@ -413,7 +413,7 @@ class AdminBadge extends StatelessWidget {
   Widget build(BuildContext context) => Container(
     margin: const EdgeInsets.only(left: 4),
     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-    decoration: BoxDecoration(color: color.withOpacity(0.12), borderRadius: BorderRadius.circular(8)),
+    decoration: BoxDecoration(color: color.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(8)),
     child: Text(text, style: TextStyle(color: color, fontWeight: FontWeight.bold, fontSize: 9)),
   );
 }
@@ -465,16 +465,16 @@ class AdminDashboardCard extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(22),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 5))],
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 5))],
           border: Border.all(color: const Color(0xFFE5E7EB)),
         ),
         child: Row(children: [
           Container(
             width: 58, height: 58,
             decoration: BoxDecoration(
-              color: AdminColors.yellow.withOpacity(0.18),
+              color: AdminColors.yellow.withValues(alpha: 0.18),
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AdminColors.yellowDark.withOpacity(0.35)),
+              border: Border.all(color: AdminColors.yellowDark.withValues(alpha: 0.35)),
             ),
             child: Icon(icon, color: AdminColors.darkTeal, size: 28),
           ),

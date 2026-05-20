@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+﻿import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../../models/category_model.dart';
 import '../../models/topic_model.dart';
@@ -35,8 +35,11 @@ class _CategoryTopicManagerScreenState extends State<CategoryTopicManagerScreen>
     final selected = categories.isEmpty ? null
         : (categories.any((c) => c.id == _selectedCategoryId) ? _selectedCategoryId : categories.first.id);
     setState(() { _categories = categories; _selectedCategoryId = selected; _loadingCategories = false; });
-    if (selected != null) await _loadTopics(selected);
-    else setState(() => _topics = []);
+    if (selected != null) {
+      await _loadTopics(selected);
+    } else {
+      setState(() => _topics = []);
+    }
   }
 
   Future<void> _loadTopics(String categoryId) async {
@@ -74,8 +77,9 @@ class _CategoryTopicManagerScreenState extends State<CategoryTopicManagerScreen>
                   id: cat?.id ?? FirebaseFirestore.instance.collection('categories').doc().id,
                   title: title, order: order,
                 ));
-                if (!mounted) return;
+                if (!ctx.mounted) return;
                 Navigator.pop(ctx);
+                if (!mounted) return;
                 await _loadCategories();
               },
             )),
@@ -127,8 +131,9 @@ class _CategoryTopicManagerScreenState extends State<CategoryTopicManagerScreen>
                   isNew: isNew, isUpdated: isUpdated, order: order,
                   createdAt: topic?.createdAt ?? DateTime.now(), updatedAt: DateTime.now(),
                 ));
-                if (!mounted) return;
+                if (!ctx.mounted) return;
                 Navigator.pop(ctx);
+                if (!mounted) return;
                 await _loadTopics(categoryId);
               },
             )),
@@ -143,26 +148,36 @@ class _CategoryTopicManagerScreenState extends State<CategoryTopicManagerScreen>
   Future<void> _deleteTopic(TopicModel topic) async {
     if (!await _confirm('Delete "${topic.name}"?', 'Related questions and content will also be deleted.')) return;
     final db = FirebaseFirestore.instance;
+    final batch = db.batch();
     for (final col in ['questions', 'learning_content']) {
       final snap = await db.collection(col).where('topicId', isEqualTo: topic.id).get();
-      for (final d in snap.docs) await d.reference.delete();
+      for (final d in snap.docs) {
+        batch.delete(d.reference);
+      }
     }
-    await _topicsService.deleteTopic(topic.id);
+    batch.delete(db.collection('topics').doc(topic.id));
+    await batch.commit();
+    if (!mounted) return;
     await _loadTopics(topic.categoryId);
   }
 
   Future<void> _deleteCategory(CategoryModel cat) async {
     if (!await _confirm('Delete "${cat.title}"?', 'All topics, questions, and content will be deleted.')) return;
     final db = FirebaseFirestore.instance;
+    final batch = db.batch();
     final topics = await _topicsService.getTopicsByCategory(cat.id);
     for (final t in topics) {
       for (final col in ['questions', 'learning_content']) {
         final snap = await db.collection(col).where('topicId', isEqualTo: t.id).get();
-        for (final d in snap.docs) await d.reference.delete();
+        for (final d in snap.docs) {
+          batch.delete(d.reference);
+        }
       }
-      await _topicsService.deleteTopic(t.id);
+      batch.delete(db.collection('topics').doc(t.id));
     }
-    await _topicsService.deleteCategory(cat.id);
+    batch.delete(db.collection('categories').doc(cat.id));
+    await batch.commit();
+    if (!mounted) return;
     await _loadCategories();
   }
 
@@ -247,7 +262,7 @@ class _CategoryTopicManagerScreenState extends State<CategoryTopicManagerScreen>
                             margin: const EdgeInsets.only(bottom: 6),
                             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                             decoration: BoxDecoration(
-                              color: sel ? AdminColors.teal.withOpacity(0.1) : const Color(0xFFF8FAFC),
+                              color: sel ? AdminColors.teal.withValues(alpha: 0.1) : const Color(0xFFF8FAFC),
                               borderRadius: BorderRadius.circular(10),
                               border: Border.all(color: sel ? AdminColors.teal : const Color(0xFFE5E7EB), width: sel ? 2 : 1),
                             ),
@@ -350,7 +365,7 @@ class _Panel extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))],
       ),
       child: child,
     );

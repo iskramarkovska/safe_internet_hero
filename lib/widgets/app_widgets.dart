@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../core/theme.dart';
 import 'app_avatar.dart';
@@ -161,7 +161,7 @@ class AppCard extends StatelessWidget {
             borderRadius: br,
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.06),
+                color: Colors.black.withValues(alpha: 0.06),
                 blurRadius: 10,
                 offset: const Offset(0, 3),
               ),
@@ -238,10 +238,10 @@ class _Chip extends StatelessWidget {
       padding:
           const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
         border:
-            Border.all(color: color.withOpacity(0.35), width: 1.5),
+            Border.all(color: color.withValues(alpha: 0.35), width: 1.5),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -257,6 +257,76 @@ class _Chip extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ─── GuestLockedState ──────────────────────────────────────────────────────────
+// Full-area locked placeholder shown to guests on social screens.
+
+class GuestLockedState extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  /// Navigate to the landing/auth screen. Caller decides the exact route.
+  final VoidCallback onGetStarted;
+
+  const GuestLockedState({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onGetStarted,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 48),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 96,
+              height: 96,
+              decoration: const BoxDecoration(
+                color: AppColors.blueLight,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: AppColors.blue, size: 48),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: AppColors.textPrimary,
+                fontSize: 20,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              subtitle,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 28),
+            AppButton(
+              label: 'Get Started — It\'s Free',
+              variant: AppButtonVariant.success,
+              icon: Icons.person_add_rounded,
+              onTap: onGetStarted,
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../../models/category_model.dart';
 import '../../models/enums.dart';
 import '../../models/question_model.dart';
@@ -143,16 +143,29 @@ class _AddQuestionFormState extends State<_AddQuestionForm> {
   }
 
   Future<void> _load() async {
-    final cats = await _topicsService.getCategories();
-    setState(() { _categories = cats; _categoryId = cats.isNotEmpty ? cats.first.id : null; });
-    if (_categoryId != null) await _loadTopics(_categoryId!);
-    else setState(() => _loading = false);
+    try {
+      final cats = await _topicsService.getCategories();
+      if (!mounted) return;
+      setState(() { _categories = cats; _categoryId = cats.isNotEmpty ? cats.first.id : null; });
+      if (_categoryId != null) {
+        await _loadTopics(_categoryId!);
+      } else {
+        if (mounted) setState(() => _loading = false);
+      }
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   Future<void> _loadTopics(String catId) async {
-    setState(() => _loading = true);
-    final topics = await _topicsService.getTopicsByCategory(catId);
-    setState(() { _topics = topics; _topicId = topics.isNotEmpty ? topics.first.id : null; _loading = false; });
+    if (mounted) setState(() => _loading = true);
+    try {
+      final topics = await _topicsService.getTopicsByCategory(catId);
+      if (!mounted) return;
+      setState(() { _topics = topics; _topicId = topics.isNotEmpty ? topics.first.id : null; _loading = false; });
+    } catch (_) {
+      if (mounted) setState(() => _loading = false);
+    }
   }
 
   void _clearForm() {
@@ -322,8 +335,10 @@ class _QuestionsList extends StatelessWidget {
     );
     if (ok == true) {
       await QuestionService().deleteQuestion(q.id);
-      if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Deleted'), backgroundColor: AdminColors.darkTeal));
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Deleted'), backgroundColor: AdminColors.darkTeal));
+      }
     }
   }
 
@@ -334,8 +349,10 @@ class _QuestionsList extends StatelessWidget {
       builder: (context, snap) {
         if (!snap.hasData) return const Center(child: CircularProgressIndicator(color: AdminColors.teal));
         final items = snap.data!;
-        if (items.isEmpty) return const AdminEmptyState(
-            icon: Icons.quiz_rounded, title: 'No questions yet', subtitle: 'Add some from the "Add Question" tab');
+        if (items.isEmpty) {
+          return const AdminEmptyState(
+              icon: Icons.quiz_rounded, title: 'No questions yet', subtitle: 'Add some from the "Add Question" tab');
+        }
 
         return ListView.builder(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
@@ -351,7 +368,7 @@ class _QuestionsList extends StatelessWidget {
               margin: const EdgeInsets.only(bottom: 12),
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16),
-                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8, offset: const Offset(0, 3))]),
+                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, 3))]),
               child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
                 Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Row(children: [

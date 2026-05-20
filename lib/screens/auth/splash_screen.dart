@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -85,10 +85,10 @@ class _LoadingBody extends StatelessWidget {
               width: 110,
               height: 110,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
+                color: Colors.white.withValues(alpha: 0.2),
                 shape: BoxShape.circle,
                 border: Border.all(
-                    color: Colors.white.withOpacity(0.4), width: 2),
+                    color: Colors.white.withValues(alpha: 0.4), width: 2),
               ),
               child: const Icon(Icons.shield_rounded,
                   color: Colors.white, size: 60),
@@ -182,7 +182,7 @@ class LandingScreen extends StatelessWidget {
                       shape: BoxShape.circle,
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.18),
+                          color: Colors.black.withValues(alpha: 0.18),
                           blurRadius: 32,
                           offset: const Offset(0, 10),
                         ),
@@ -238,7 +238,7 @@ class LandingScreen extends StatelessWidget {
                     'Learn to stay safe online,\none lesson at a time.',
                     textAlign: TextAlign.center,
                     style: GoogleFonts.nunito(
-                      color: Colors.white.withOpacity(0.85),
+                      color: Colors.white.withValues(alpha: 0.85),
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                       height: 1.5,
@@ -290,8 +290,13 @@ class LandingScreen extends StatelessWidget {
                   MouseRegion(
                     cursor: SystemMouseCursors.click,
                     child: GestureDetector(
-                      onTap: () =>
-                          context.read<AuthProvider>().continueAsGuest(),
+                      onTap: () {
+                        context.read<AuthProvider>().continueAsGuest();
+                        Navigator.of(context).pushAndRemoveUntil(
+                          AppPageRoute(builder: (_) => const MainScreen()),
+                          (route) => false,
+                        );
+                      },
                       child: Text(
                         'Continue as guest',
                         style: GoogleFonts.nunito(

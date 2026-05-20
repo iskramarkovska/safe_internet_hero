@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import '../../core/app_page_route.dart';
@@ -57,8 +57,9 @@ class _QuizScreenState extends State<QuizScreen> {
       topicId: widget.topicId,
       excludeIds: user?.answeredQuestions ?? [],
     );
+    if (!mounted) return;
     setState(() {
-      _questions = questions..shuffle();
+      _questions = questions;
       _isLoading = false;
     });
   }
@@ -89,6 +90,15 @@ class _QuizScreenState extends State<QuizScreen> {
     }
   }
 
+  int _calculateStars(int score, int total) {
+    if (total == 0) return 0;
+    final pct = score / total;
+    if (pct == 1.0) return 3;
+    if (pct >= 0.8) return 2;
+    if (pct >= 0.5) return 1;
+    return 0;
+  }
+
   void _finish() {
     final user = context.read<AuthProvider>().user;
     final correctIds = _questions
@@ -97,6 +107,8 @@ class _QuizScreenState extends State<QuizScreen> {
         .where((e) => _answeredCorrectly[e.key] == true)
         .map((e) => e.value.id)
         .toList();
+
+    final stars = _calculateStars(_score, _questions.length);
 
     final result = QuizResultModel(
       id: '',
@@ -108,15 +120,36 @@ class _QuizScreenState extends State<QuizScreen> {
       topicName: widget.topicName,
       score: _score,
       totalQuestions: _questions.length,
-      starsEarned: _score,
+      starsEarned: stars,
       pointsEarned: _totalPoints,
       completedAt: DateTime.now(),
       correctlyAnsweredIds: correctIds,
     );
 
+    final catId = widget.categoryId;
+    final catName = widget.categoryName;
+    final topId = widget.topicId;
+    final topName = widget.topicName;
+    final color = widget.color;
+
     Navigator.pushReplacement(
       context,
-      AppPageRoute(builder: (_) => QuizResultScreen(result: result)),
+      AppPageRoute(
+        builder: (ctx) => QuizResultScreen(
+          result: result,
+          onPracticeAgain: () => Navigator.of(ctx).pushReplacement(
+            AppPageRoute(
+              builder: (_) => QuizScreen(
+                categoryId: catId,
+                categoryName: catName,
+                topicId: topId,
+                topicName: topName,
+                color: color,
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -243,7 +276,7 @@ class _QuizScreenState extends State<QuizScreen> {
                       color: AppColors.greenLight,
                       borderRadius: BorderRadius.circular(20),
                       border: Border.all(
-                          color: AppColors.green.withOpacity(0.4)),
+                          color: AppColors.green.withValues(alpha: 0.4)),
                     ),
                     child: Row(
                       children: [
@@ -351,7 +384,7 @@ class _QuizScreenState extends State<QuizScreen> {
                             ),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.04),
+                                color: Colors.black.withValues(alpha: 0.04),
                                 blurRadius: 6,
                                 offset: const Offset(0, 2),
                               ),
@@ -380,7 +413,7 @@ class _QuizScreenState extends State<QuizScreen> {
                                             : optIsWrong
                                                 ? AppColors.red
                                                 : AppColors.borderDark)
-                                        : AppColors.blue.withOpacity(0.3),
+                                        : AppColors.blue.withValues(alpha: 0.3),
                                   ),
                                 ),
                                 child: Center(
@@ -581,7 +614,7 @@ class _ExplanationSheet extends StatelessWidget {
         borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
         boxShadow: [
           BoxShadow(
-            color: darkColor.withOpacity(0.4),
+            color: darkColor.withValues(alpha: 0.4),
             blurRadius: 20,
             offset: const Offset(0, -6),
           ),
@@ -609,7 +642,7 @@ class _ExplanationSheet extends StatelessWidget {
           Text(
             explanation,
             style: TextStyle(
-              color: Colors.white.withOpacity(0.92),
+              color: Colors.white.withValues(alpha: 0.92),
               fontSize: 14,
               height: 1.45,
               fontWeight: FontWeight.w600,
@@ -629,7 +662,7 @@ class _ExplanationSheet extends StatelessWidget {
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: [
                   BoxShadow(
-                    color: darkColor.withOpacity(0.5),
+                    color: darkColor.withValues(alpha: 0.5),
                     offset: const Offset(0, 4),
                     blurRadius: 0,
                   ),

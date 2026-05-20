@@ -1,4 +1,4 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
+﻿import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -9,13 +9,16 @@ import '../../providers/auth_provider.dart';
 import '../../widgets/app_avatar.dart';
 import '../../widgets/app_widgets.dart';
 import '../../widgets/skeleton_loader.dart';
+import '../auth/splash_screen.dart';
 
 class LeaderboardScreen extends StatelessWidget {
   const LeaderboardScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final currentUser = context.watch<AuthProvider>().user;
+    final auth = context.watch<AuthProvider>();
+    final currentUser = auth.user;
+    final isGuest = auth.isGuest;
     final stars = currentUser?.totalStars ?? 0;
 
     return Scaffold(
@@ -27,7 +30,7 @@ class LeaderboardScreen extends StatelessWidget {
             bottom: false,
             child: Column(
               children: [
-                AppTopBar(stars: stars, streak: 1),
+                AppTopBar(stars: stars, streak: 0),
                 Container(height: 1, color: AppColors.border),
                 Container(
                   width: double.infinity,
@@ -54,7 +57,7 @@ class LeaderboardScreen extends StatelessWidget {
                       Text(
                         'See how you rank against other heroes',
                         style: GoogleFonts.nunito(
-                          color: Colors.white.withOpacity(0.85),
+                          color: Colors.white.withValues(alpha: 0.85),
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
                         ),
@@ -66,6 +69,20 @@ class LeaderboardScreen extends StatelessWidget {
             ),
           ),
 
+          if (isGuest)
+            Expanded(
+              child: GuestLockedState(
+                icon: Icons.leaderboard_rounded,
+                title: 'Compete with the world',
+                subtitle: 'Create a free account to appear on the leaderboard and track your rank against other internet safety heroes.',
+                onGetStarted: () => Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(builder: (_) => const LandingScreen()),
+                  (route) => false,
+                ),
+              ),
+            ),
+
+          if (!isGuest)
           Expanded(
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
@@ -311,7 +328,7 @@ class _PodiumSlot extends StatelessWidget {
             ),
             boxShadow: [
               BoxShadow(
-                color: shadowColor.withOpacity(0.6),
+                color: shadowColor.withValues(alpha: 0.6),
                 offset: const Offset(0, 4),
                 blurRadius: 0,
               ),
@@ -382,14 +399,14 @@ class _LeaderboardRow extends StatelessWidget {
         boxShadow: isMe
             ? [
                 BoxShadow(
-                  color: AppColors.blue.withOpacity(0.15),
+                  color: AppColors.blue.withValues(alpha: 0.15),
                   blurRadius: 8,
                   offset: const Offset(0, 3),
                 )
               ]
             : [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.03),
+                  color: Colors.black.withValues(alpha: 0.03),
                   blurRadius: 4,
                   offset: const Offset(0, 2),
                 )

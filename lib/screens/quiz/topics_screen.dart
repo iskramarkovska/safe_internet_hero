@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lottie/lottie.dart';
@@ -144,6 +144,31 @@ class _TopicsScreenState extends State<TopicsScreen> {
     );
   }
 
+  Widget _buildStreamError(BuildContext context) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.wifi_off_rounded,
+                  color: AppColors.textLight, size: 40),
+              const SizedBox(height: 12),
+              const Text(
+                'Could not load topics',
+                style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () => setState(() {}),
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+
   // Build flat item list: CategoryModel (header) + _TopicRow entries
   List<Object> _buildItems(
     List<CategoryModel> cats,
@@ -227,7 +252,7 @@ class _TopicsScreenState extends State<TopicsScreen> {
                           Text(
                             'All learning topics',
                             style: GoogleFonts.nunito(
-                              color: Colors.white.withOpacity(0.8),
+                              color: Colors.white.withValues(alpha: 0.8),
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                             ),
@@ -239,7 +264,7 @@ class _TopicsScreenState extends State<TopicsScreen> {
                     AppCategoryIcon(
                       title: headerTitle,
                       size: 36,
-                      overrideColor: Colors.white.withOpacity(0.9),
+                      overrideColor: Colors.white.withValues(alpha: 0.9),
                     ),
                 ],
               ),
@@ -251,6 +276,7 @@ class _TopicsScreenState extends State<TopicsScreen> {
             child: StreamBuilder<List<CategoryModel>>(
               stream: _topicsService.watchCategories(),
               builder: (context, catSnap) {
+                if (catSnap.hasError) return _buildStreamError(context);
                 if (!catSnap.hasData) {
                   return ListView(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
@@ -262,6 +288,7 @@ class _TopicsScreenState extends State<TopicsScreen> {
                 return StreamBuilder<List<TopicModel>>(
                   stream: _topicsService.watchAllTopics(),
                   builder: (context, topicSnap) {
+                    if (topicSnap.hasError) return _buildStreamError(context);
                     if (!topicSnap.hasData) {
                       return ListView(
                         padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
@@ -417,7 +444,7 @@ class _SectionHeader extends StatelessWidget {
 
 // ─── Topic card ───────────────────────────────────────────────────────────────
 
-class _TopicCard extends StatelessWidget {
+class _TopicCard extends StatefulWidget {
   final _TopicEntry entry;
   final UserModel? user;
   final bool isGuest;
@@ -433,15 +460,46 @@ class _TopicCard extends StatelessWidget {
   });
 
   @override
+  State<_TopicCard> createState() => _TopicCardState();
+}
+
+class _TopicCardState extends State<_TopicCard> {
+  Future<double>? _progressFuture;
+
+  @override
+  void initState() {
+    super.initState();
+    _initFuture();
+  }
+
+  @override
+  void didUpdateWidget(_TopicCard old) {
+    super.didUpdateWidget(old);
+    if (old.user?.id != widget.user?.id ||
+        old.entry.topic.id != widget.entry.topic.id) {
+      _initFuture();
+    }
+  }
+
+  void _initFuture() {
+    if (!widget.isGuest && widget.user != null) {
+      _progressFuture = widget.topicProgress(
+          widget.user, widget.entry.category.id, widget.entry.topic.id);
+    } else {
+      _progressFuture = null;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final topic = entry.topic;
-    final category = entry.category;
+    final topic = widget.entry.topic;
+    final category = widget.entry.category;
     final catColor = AppCategoryIcon.colorFor(category.title);
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: AppCard(
-        onTap: onTap,
+        onTap: widget.onTap,
         padding: const EdgeInsets.all(14),
         child: Row(
           children: [
@@ -486,10 +544,10 @@ class _TopicCard extends StatelessWidget {
                   const SizedBox(height: 8),
 
                   // Progress bar
-                  if (!isGuest && user != null)
+                  if (!widget.isGuest && widget.user != null &&
+                      _progressFuture != null)
                     FutureBuilder<double>(
-                      future:
-                          topicProgress(user, category.id, topic.id),
+                      future: _progressFuture,
                       builder: (ctx, snap) {
                         final p = snap.data ?? 0.0;
                         return ClipRRect(
@@ -531,7 +589,7 @@ class _TopicCard extends StatelessWidget {
               width: 34,
               height: 34,
               decoration: BoxDecoration(
-                color: catColor.withOpacity(0.1),
+                color: catColor.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Icon(
@@ -545,7 +603,8 @@ class _TopicCard extends StatelessWidget {
       ),
     )
         .animate(
-            delay: Duration(milliseconds: (entry.index * 45).clamp(0, 360)))
+            delay: Duration(
+                milliseconds: (widget.entry.index * 45).clamp(0, 360)))
         .fadeIn(duration: const Duration(milliseconds: 280))
         .slideY(
             begin: 0.06,
@@ -576,7 +635,7 @@ class _SearchBar extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),

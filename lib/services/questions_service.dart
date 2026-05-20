@@ -35,7 +35,9 @@ class QuestionService {
   Future<void> seedQuestions(List<QuestionModel> questions) async {
     final batch = _db.batch();
     for (final q in questions) {
-      final doc = _db.collection('questions').doc();
+      final doc = q.id.isNotEmpty
+          ? _db.collection('questions').doc(q.id)
+          : _db.collection('questions').doc();
       batch.set(doc, q.toMap()..['id'] = doc.id);
     }
     await batch.commit();
@@ -77,8 +79,8 @@ class QuestionService {
       query = query.where('topicId', isEqualTo: topicId);
     }
 
-    final snap = await query.get();
-    return snap.docs.length;
+    final snap = await query.count().get();
+    return snap.count ?? 0;
   }
 
   Stream<List<QuestionModel>> watchAllQuestions() {

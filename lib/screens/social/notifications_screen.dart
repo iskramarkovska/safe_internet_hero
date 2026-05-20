@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme.dart';
@@ -35,7 +35,7 @@ class NotificationsScreen extends StatelessWidget {
                     width: 80,
                     height: 80,
                     decoration: BoxDecoration(
-                      color: AppColors.teal.withOpacity(0.1),
+                      color: AppColors.teal.withValues(alpha: 0.1),
                       shape: BoxShape.circle,
                     ),
                     child: const Icon(Icons.notifications_rounded,
@@ -82,7 +82,7 @@ class NotificationsScreen extends StatelessWidget {
                         border: Border.all(color: AppColors.border),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.04),
+                            color: Colors.black.withValues(alpha: 0.04),
                             blurRadius: 6,
                             offset: const Offset(0, 2),
                           ),
@@ -92,7 +92,7 @@ class NotificationsScreen extends StatelessWidget {
                         children: [
                           CircleAvatar(
                             backgroundColor:
-                                AppColors.teal.withOpacity(0.15),
+                                AppColors.teal.withValues(alpha: 0.15),
                             child: Text(
                               username[0].toUpperCase(),
                               style: const TextStyle(

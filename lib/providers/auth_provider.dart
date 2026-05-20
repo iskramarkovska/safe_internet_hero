@@ -100,10 +100,14 @@ class AuthProvider extends ChangeNotifier {
     if (e is Exception) {
       final msg = e.toString();
       if (msg.contains('email-already-in-use')) return 'Email already registered.';
-      if (msg.contains('wrong-password')) return 'Incorrect password.';
+      if (msg.contains('wrong-password') || msg.contains('invalid-credential')) {
+        return 'Incorrect email or password.';
+      }
       if (msg.contains('user-not-found')) return 'No account found with that email.';
       if (msg.contains('weak-password')) return 'Password is too weak.';
       if (msg.contains('invalid-email')) return 'Invalid email address.';
+      if (msg.contains('too-many-requests')) return 'Too many attempts. Try again later.';
+      if (msg.contains('network-request-failed')) return 'No internet connection.';
     }
     return 'Something went wrong. Please try again.';
   }

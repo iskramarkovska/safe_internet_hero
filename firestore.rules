@@ -1,0 +1,63 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isAuth() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return request.auth != null &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.isAdmin == true;
+    }
+
+    // Users: any authenticated user can read (friend search, leaderboard)
+    //        only the user themselves or an admin can write
+    match /users/{userId} {
+      allow read: if isAuth();
+      allow write: if isOwner(userId) || isAdmin();
+    }
+
+    // Public content (questions, categories, topics, learning_content):
+    // readable by anyone (guests play without an account),
+    // writable only by admins
+    match /questions/{questionId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /topics/{topicId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    match /learning_content/{contentId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
+    // Quiz results: users create/read their own; admins read all
+    match /quiz_results/{resultId} {
+      allow read: if isOwner(resource.data.userId) || isAdmin();
+      allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+
+    // Activities: authenticated users can read any (friend feed),
+    //             users can only create activities for themselves
+    match /activities/{activityId} {
+      allow read: if isAuth();
+      allow create: if isAuth() && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if isAdmin();
+    }
+  }
+}

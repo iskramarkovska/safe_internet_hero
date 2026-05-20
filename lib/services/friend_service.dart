@@ -5,6 +5,16 @@ import '../models/activity_model.dart';
 class FriendService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
+  // Fetch multiple users by their IDs
+  Future<List<UserModel>> getUsersByIds(List<String> ids) async {
+    if (ids.isEmpty) return [];
+    final result = await _db
+        .collection('users')
+        .where('uid', whereIn: ids)
+        .get();
+    return result.docs.map((doc) => UserModel.fromMap(doc.data())).toList();
+  }
+
   // Search users by username
   Future<List<UserModel>> searchUsers(String username) async {
     final result = await _db

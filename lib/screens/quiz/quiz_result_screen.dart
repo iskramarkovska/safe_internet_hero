@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lottie/lottie.dart';
@@ -8,12 +8,15 @@ import '../../models/quiz_result_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/questions_service.dart';
 import '../../widgets/app_widgets.dart';
+import '../../core/app_page_route.dart';
 import '../home/main_screen.dart';
+import '../auth/splash_screen.dart';
 
 class QuizResultScreen extends StatefulWidget {
   final QuizResultModel result;
+  final VoidCallback? onPracticeAgain;
 
-  const QuizResultScreen({super.key, required this.result});
+  const QuizResultScreen({super.key, required this.result, this.onPracticeAgain});
 
   @override
   State<QuizResultScreen> createState() => _QuizResultScreenState();
@@ -54,26 +57,44 @@ class _QuizResultScreenState extends State<QuizResultScreen>
     final auth = context.read<AuthProvider>();
     final user = auth.user;
     if (user == null) return;
-    await QuestionService().saveResult(widget.result);
-    if (widget.result.correctlyAnsweredIds.isNotEmpty) {
-      await QuestionService().saveAnsweredQuestions(
-        userId: user.id,
-        questionIds: widget.result.correctlyAnsweredIds,
-      );
+    try {
+      final svc = QuestionService();
+      await svc.saveResult(widget.result);
+      if (widget.result.correctlyAnsweredIds.isNotEmpty) {
+        await svc.saveAnsweredQuestions(
+          userId: user.id,
+          questionIds: widget.result.correctlyAnsweredIds,
+        );
+      }
+      await svc.addStars(userId: user.id, starsToAdd: widget.result.starsEarned);
+      if (!mounted) return;
+      await auth.refreshUser();
+    } catch (_) {
+      // Result screen stays visible even if saving fails.
     }
-    await QuestionService()
-        .addStars(userId: user.id, starsToAdd: widget.result.starsEarned);
-    await auth.refreshUser();
   }
 
   void _goHome() {
     Navigator.of(context).pushAndRemoveUntil(
-      MaterialPageRoute(builder: (_) => const MainScreen()),
+      AppPageRoute(builder: (_) => const MainScreen()),
       (route) => false,
     );
   }
 
-  void _practiceAgain() => Navigator.of(context).pop();
+  void _practiceAgain() {
+    if (widget.onPracticeAgain != null) {
+      widget.onPracticeAgain!();
+    } else {
+      Navigator.of(context).pop();
+    }
+  }
+
+  void _navigateToSignUp() {
+    Navigator.of(context).pushAndRemoveUntil(
+      AppPageRoute(builder: (_) => const LandingScreen()),
+      (route) => false,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -83,6 +104,7 @@ class _QuizResultScreenState extends State<QuizResultScreen>
     final isThree = result.starsEarned == 3;
     final xp = result.starsEarned;
     final coins = result.starsEarned * 10;
+    final isGuest = context.watch<AuthProvider>().isGuest;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -309,26 +331,39 @@ class _QuizResultScreenState extends State<QuizResultScreen>
 
                   const SizedBox(height: 32),
 
-                  // ── Actions ────────────────────────────────────────────────
-                  AppButton(
-                    label: 'Continue',
-                    variant: AppButtonVariant.primary,
-                    icon: Icons.home_rounded,
-                    onTap: _goHome,
-                  )
-                      .animate(delay: 1000.ms)
-                      .fadeIn(duration: 300.ms)
-                      .slideY(begin: 0.1, end: 0),
+                  // ── Guest save-progress CTA ─────────────────────────────────
+                  if (isGuest)
+                    _GuestSaveCTA(
+                      starsEarned: result.starsEarned,
+                      onCreateAccount: _navigateToSignUp,
+                      onSkip: _goHome,
+                    )
+                        .animate(delay: 1000.ms)
+                        .fadeIn(duration: 300.ms)
+                        .slideY(begin: 0.15, end: 0),
 
-                  const SizedBox(height: 12),
+                  // ── Logged-in actions ───────────────────────────────────────
+                  if (!isGuest) ...[
+                    AppButton(
+                      label: 'Continue',
+                      variant: AppButtonVariant.primary,
+                      icon: Icons.home_rounded,
+                      onTap: _goHome,
+                    )
+                        .animate(delay: 1000.ms)
+                        .fadeIn(duration: 300.ms)
+                        .slideY(begin: 0.1, end: 0),
 
-                  AppButton(
-                    label: 'Practice Again',
-                    variant: AppButtonVariant.secondary,
-                    onTap: _practiceAgain,
-                  )
-                      .animate(delay: 1100.ms)
-                      .fadeIn(duration: 300.ms),
+                    const SizedBox(height: 12),
+
+                    AppButton(
+                      label: 'Practice Again',
+                      variant: AppButtonVariant.secondary,
+                      onTap: _practiceAgain,
+                    )
+                        .animate(delay: 1100.ms)
+                        .fadeIn(duration: 300.ms),
+                  ],
                 ],
               ),
             ),
@@ -375,9 +410,9 @@ class _EarnedChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.12),
+        color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withOpacity(0.3), width: 1.5),
+        border: Border.all(color: color.withValues(alpha: 0.3), width: 1.5),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -435,6 +470,88 @@ class _StatCell extends StatelessWidget {
                 color: AppColors.textSecondary,
                 fontSize: 11,
                 fontWeight: FontWeight.w600)),
+      ],
+    );
+  }
+}
+
+// ─── Guest save-progress CTA ──────────────────────────────────────────────────
+
+class _GuestSaveCTA extends StatelessWidget {
+  final int starsEarned;
+  final VoidCallback onCreateAccount;
+  final VoidCallback onSkip;
+
+  const _GuestSaveCTA({
+    required this.starsEarned,
+    required this.onCreateAccount,
+    required this.onSkip,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF5CB85C), Color(0xFF3E9C3E)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.green.withValues(alpha: 0.35),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              const Icon(Icons.lock_open_rounded,
+                  color: Colors.white, size: 36),
+              const SizedBox(height: 10),
+              Text(
+                'Save your progress!',
+                style: GoogleFonts.nunito(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                starsEarned > 0
+                    ? 'You earned $starsEarned star${starsEarned > 1 ? 's' : ''} — create a free account to keep them!'
+                    : 'Create a free account to track your learning and climb the leaderboard.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.nunito(
+                  color: Colors.white.withValues(alpha: 0.9),
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  height: 1.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+        AppButton(
+          label: 'Create Free Account',
+          variant: AppButtonVariant.success,
+          icon: Icons.person_add_rounded,
+          onTap: onCreateAccount,
+        ),
+        const SizedBox(height: 10),
+        AppButton(
+          label: 'Skip for now',
+          variant: AppButtonVariant.secondary,
+          onTap: onSkip,
+        ),
       ],
     );
   }

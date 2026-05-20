@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import '../../core/theme.dart';
 import '../../models/learning_content_model.dart';
 
@@ -48,7 +48,7 @@ class ArticleScreen extends StatelessWidget {
                           Row(children: [
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                              decoration: BoxDecoration(color: AppColors.teal.withOpacity(0.12), borderRadius: BorderRadius.circular(10)),
+                              decoration: BoxDecoration(color: AppColors.teal.withValues(alpha: 0.12), borderRadius: BorderRadius.circular(10)),
                               child: const Row(mainAxisSize: MainAxisSize.min, children: [
                                 Icon(Icons.article_rounded, color: AppColors.teal, size: 13),
                                 SizedBox(width: 4),
