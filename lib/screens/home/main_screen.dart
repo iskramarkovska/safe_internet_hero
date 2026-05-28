@@ -19,8 +19,8 @@ class _MainScreenState extends State<MainScreen> {
   final List<Widget> _screens = const [
     HomeScreen(),
     LearnScreen(),
-    LeaderboardScreen(),
     ActivityScreen(),
+    LeaderboardScreen(),
   ];
 
   @override
@@ -47,8 +47,8 @@ class _DuolingoBottomNav extends StatelessWidget {
   static const _items = [
     (icon: Icons.home_rounded, label: 'Home'),
     (icon: Icons.menu_book_rounded, label: 'Learn'),
-    (icon: Icons.emoji_events_rounded, label: 'Ranks'),
     (icon: Icons.bolt_rounded, label: 'Activity'),
+    (icon: Icons.emoji_events_rounded, label: 'Ranks'),
   ];
 
   @override

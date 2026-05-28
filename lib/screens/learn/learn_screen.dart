@@ -1,11 +1,14 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:provider/provider.dart';
 import '../../core/app_page_route.dart';
 import '../../core/theme.dart';
 import '../../models/category_model.dart';
 import '../../models/learning_content_model.dart';
+import '../../providers/auth_provider.dart';
 import '../../services/learning_service.dart';
 import '../../services/topics_service.dart';
+import '../../widgets/app_widgets.dart';
 import '../../widgets/skeleton_loader.dart';
 import 'article_screen.dart';
 import 'video_screen.dart';
@@ -49,110 +52,151 @@ class _LearnScreenState extends State<LearnScreen> {
     ));
   }
 
+  Widget _buildHeader(int stars, int streak, int coins) {
+    return SafeArea(
+      bottom: false,
+      child: Column(
+        children: [
+          AppTopBar(stars: stars, streak: streak, coins: coins),
+          Container(height: 1, color: AppColors.border),
+          // Blue title section — title + subtitle only
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 18),
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                colors: [AppColors.blue, Color(0xFF5AB4F7)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+            ),
+            child: const Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Learn',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.w900),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  'Explore articles and videos',
+                  style: TextStyle(color: Colors.white70, fontSize: 13),
+                ),
+              ],
+            ),
+          ),
+          // White chip filter bar — pinned below the gradient
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: _loading
+                ? const SizedBox(height: 36)
+                : SizedBox(
+                    height: 36,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      children: [
+                        _Chip(
+                          label: 'All',
+                          selected: _selectedCatId == 'all',
+                          onTap: () => setState(() => _selectedCatId = 'all'),
+                        ),
+                        ..._categories.map((cat) => _Chip(
+                              label: cat.title,
+                              selected: _selectedCatId == cat.id,
+                              onTap: () =>
+                                  setState(() => _selectedCatId = cat.id),
+                            )),
+                      ],
+                    ),
+                  ),
+          ),
+          Container(height: 1, color: AppColors.border),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    final user = auth.user;
+    final stars = user?.totalStars ?? 0;
+    final streak = user?.currentStreak ?? 0;
+    final coins = user?.coins ?? 0;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Column(
         children: [
-          SafeArea(
-            bottom: false,
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [AppColors.blue, Color(0xFF5AB4F7)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Learn',
-                      style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.w900)),
-                  const SizedBox(height: 2),
-                  const Text('Explore articles and videos',
-                      style: TextStyle(color: Colors.white70, fontSize: 13)),
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    height: 36,
-                    child: _loading
-                        ? const SizedBox.shrink()
-                        : ListView(
-                            scrollDirection: Axis.horizontal,
-                            children: [
-                              _Chip(
-                                  label: 'All',
-                                  selected: _selectedCatId == 'all',
-                                  onTap: () => setState(
-                                      () => _selectedCatId = 'all')),
-                              ..._categories.map((cat) => _Chip(
-                                    label: cat.title,
-                                    selected: _selectedCatId == cat.id,
-                                    onTap: () => setState(
-                                        () => _selectedCatId = cat.id),
-                                  )),
-                            ],
-                          ),
-                  ),
-                  const SizedBox(height: 12),
-                ],
-              ),
-            ),
-          ),
-
-          // Content list
+          _buildHeader(stars, streak, coins),
           Expanded(
             child: StreamBuilder<List<LearningContentModel>>(
-                stream: _selectedCatId == 'all'
-                    ? _learningService.getAllContent()
-                    : _learningService.getContentByCategory(_selectedCatId),
-                builder: (context, snap) {
-                  if (!snap.hasData) {
-                    return ListView(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-                      children: List.generate(4, (_) => const ContentSkeletonCard()),
-                    );
-                  }
-
-                  final items = snap.data!;
-                  if (items.isEmpty) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            width: 80, height: 80,
-                            decoration: const BoxDecoration(color: AppColors.blueLight, shape: BoxShape.circle),
-                            child: const Icon(Icons.menu_book_rounded, color: AppColors.blue, size: 40),
-                          ),
-                          const SizedBox(height: 16),
-                          const Text('No content yet', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: AppColors.textPrimary)),
-                          const SizedBox(height: 6),
-                          const Text('Check back soon!', style: TextStyle(color: AppColors.textSecondary)),
-                        ],
-                      ),
-                    );
-                  }
-
-                  return ListView.builder(
+              stream: _selectedCatId == 'all'
+                  ? _learningService.getAllContent()
+                  : _learningService.getContentByCategory(_selectedCatId),
+              builder: (context, snap) {
+                if (!snap.hasData) {
+                  return ListView(
                     padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-                    itemCount: items.length,
-                    itemBuilder: (_, i) => _ContentCard(item: items[i], onTap: () => _openContent(items[i]))
-                        .animate(delay: Duration(milliseconds: i * 60))
-                        .slideY(begin: 0.1, end: 0, duration: const Duration(milliseconds: 350), curve: Curves.easeOut)
-                        .fadeIn(duration: const Duration(milliseconds: 300)),
+                    children: List.generate(
+                        4, (_) => const ContentSkeletonCard()),
                   );
-                },
-              ),
+                }
+                final items = snap.data!;
+                if (items.isEmpty) {
+                  return Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 80,
+                          height: 80,
+                          decoration: const BoxDecoration(
+                              color: AppColors.blueLight,
+                              shape: BoxShape.circle),
+                          child: const Icon(Icons.menu_book_rounded,
+                              color: AppColors.blue, size: 40),
+                        ),
+                        const SizedBox(height: 16),
+                        const Text('No content yet',
+                            style: TextStyle(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textPrimary)),
+                        const SizedBox(height: 6),
+                        const Text('Check back soon!',
+                            style: TextStyle(
+                                color: AppColors.textSecondary)),
+                      ],
+                    ),
+                  );
+                }
+                return ListView.builder(
+                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                  itemCount: items.length,
+                  itemBuilder: (_, i) =>
+                      _ContentCard(
+                              item: items[i],
+                              onTap: () => _openContent(items[i]))
+                          .animate(delay: Duration(milliseconds: i * 60))
+                          .slideY(
+                              begin: 0.1,
+                              end: 0,
+                              duration: const Duration(milliseconds: 350),
+                              curve: Curves.easeOut)
+                          .fadeIn(
+                              duration: const Duration(milliseconds: 300)),
+                );
+              },
             ),
-          ],
-        ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -172,14 +216,21 @@ class _Chip extends StatelessWidget {
         margin: const EdgeInsets.only(right: 8),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
         decoration: BoxDecoration(
-          color: selected ? Colors.white : Colors.white.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: selected ? Colors.white : Colors.white38, width: 1.5),
-        ),
-        child: Text(label, style: TextStyle(
           color: selected ? AppColors.blue : Colors.white,
-          fontWeight: FontWeight.bold, fontSize: 13,
-        )),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: selected ? AppColors.blue : AppColors.borderDark,
+            width: 1.5,
+          ),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: selected ? Colors.white : AppColors.textSecondary,
+            fontWeight: FontWeight.w700,
+            fontSize: 13,
+          ),
+        ),
       ),
     );
   }

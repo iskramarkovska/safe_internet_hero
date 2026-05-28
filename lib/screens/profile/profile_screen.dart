@@ -347,13 +347,23 @@ class _StatsRow extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 16),
       child: Row(
         children: [
-          _StatCell(icon: Icons.star_rounded, iconColor: AppColors.gold, value: '${user.totalStars}', label: 'Stars'),
+          _StatCell(
+              icon: Icons.star_rounded,
+              iconColor: AppColors.gold,
+              value: '${user.totalStars}',
+              label: 'Stars'),
           _vDivider(),
           _StatCell(
-              icon: Icons.diamond_rounded,
-              iconColor: AppColors.blue,
-              value: '${user.totalStars * 10}',
-              label: 'Gems'),
+              icon: Icons.local_fire_department_rounded,
+              iconColor: AppColors.orange,
+              value: '${user.currentStreak}',
+              label: 'Streak'),
+          _vDivider(),
+          _StatCell(
+              icon: Icons.monetization_on_rounded,
+              iconColor: AppColors.orangeDark,
+              value: '${user.coins}',
+              label: 'Coins'),
           _vDivider(),
           _StatCell(
               icon: Icons.check_circle_rounded,

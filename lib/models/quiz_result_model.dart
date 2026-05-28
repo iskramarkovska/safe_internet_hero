@@ -12,10 +12,12 @@ class QuizResultModel {
   final int score;
   final int totalQuestions;
   final int starsEarned;
+  final int coinsEarned;
   final int pointsEarned;
   final DifficultyLevel difficulty;
   final DateTime completedAt;
   final List<String> correctlyAnsweredIds;
+  final List<String> incorrectlyAnsweredIds;
 
   QuizResultModel({
     required this.id,
@@ -28,16 +30,20 @@ class QuizResultModel {
     required this.score,
     required this.totalQuestions,
     required this.starsEarned,
+    this.coinsEarned = 0,
     required this.pointsEarned,
     this.difficulty = DifficultyLevel.beginner,
     required this.completedAt,
     this.correctlyAnsweredIds = const [],
+    this.incorrectlyAnsweredIds = const [],
   });
 
   int get percentage {
     if (totalQuestions == 0) return 0;
     return ((score / totalQuestions) * 100).round();
   }
+
+  bool get isPractice => categoryId == 'practice';
 
   factory QuizResultModel.fromMap(Map<String, dynamic> map) {
     return QuizResultModel(
@@ -51,13 +57,17 @@ class QuizResultModel {
       score: map['score'] ?? 0,
       totalQuestions: map['totalQuestions'] ?? 0,
       starsEarned: map['starsEarned'] ?? 0,
+      coinsEarned: map['coinsEarned'] ?? 0,
       pointsEarned: map['pointsEarned'] ?? 0,
       difficulty: DifficultyLevel.values.firstWhere(
-            (e) => e.name == map['difficulty'],
+        (e) => e.name == map['difficulty'],
         orElse: () => DifficultyLevel.beginner,
       ),
       completedAt: _toDateTime(map['completedAt']),
-      correctlyAnsweredIds: List<String>.from(map['correctlyAnsweredIds'] ?? []),
+      correctlyAnsweredIds:
+          List<String>.from(map['correctlyAnsweredIds'] ?? []),
+      incorrectlyAnsweredIds:
+          List<String>.from(map['incorrectlyAnsweredIds'] ?? []),
     );
   }
 
@@ -73,10 +83,12 @@ class QuizResultModel {
       'score': score,
       'totalQuestions': totalQuestions,
       'starsEarned': starsEarned,
+      'coinsEarned': coinsEarned,
       'pointsEarned': pointsEarned,
       'difficulty': difficulty.name,
       'completedAt': Timestamp.fromDate(completedAt),
       'correctlyAnsweredIds': correctlyAnsweredIds,
+      'incorrectlyAnsweredIds': incorrectlyAnsweredIds,
     };
   }
 

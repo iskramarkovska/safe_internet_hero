@@ -20,20 +20,36 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  bool _minTimePassed = false;
+  late final AuthProvider _auth;
+
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(seconds: 2), _navigate);
+    _auth = context.read<AuthProvider>();
+    // Show splash for at least 1.5s for visual polish.
+    Future.delayed(const Duration(milliseconds: 1500), () {
+      if (!mounted) return;
+      _minTimePassed = true;
+      _tryNavigate();
+    });
+    _auth.addListener(_tryNavigate);
   }
 
-  void _navigate() {
-    if (!mounted) return;
-    final auth = context.read<AuthProvider>();
+  @override
+  void dispose() {
+    _auth.removeListener(_tryNavigate);
+    super.dispose();
+  }
+
+  void _tryNavigate() {
+    if (!mounted || !_minTimePassed || _auth.isLoading) return;
+    _auth.removeListener(_tryNavigate);
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
         builder: (_) =>
-            auth.isLoggedIn ? const MainScreen() : const AuthGate(),
+            _auth.isLoggedIn ? const MainScreen() : const LandingScreen(),
       ),
     );
   }

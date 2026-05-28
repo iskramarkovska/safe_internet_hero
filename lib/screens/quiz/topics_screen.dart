@@ -75,7 +75,7 @@ class _TopicsScreenState extends State<TopicsScreen> {
       final progress = await _topicProgress(user, category.id, topic.id);
       if (progress >= 1.0) {
         if (!context.mounted) return;
-        _showCompletedDialog(context, topic.name);
+        _showCompletedDialog(context, category, topic);
         return;
       }
     }
@@ -95,7 +95,8 @@ class _TopicsScreenState extends State<TopicsScreen> {
     );
   }
 
-  void _showCompletedDialog(BuildContext context, String topicName) {
+  void _showCompletedDialog(
+      BuildContext context, CategoryModel category, TopicModel topic) {
     showDialog(
       context: context,
       builder: (_) => Dialog(
@@ -122,7 +123,7 @@ class _TopicsScreenState extends State<TopicsScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'All questions in "$topicName" are answered!',
+                  'You\'ve answered all questions in "${topic.name}"!',
                   textAlign: TextAlign.center,
                   style: GoogleFonts.nunito(
                     color: AppColors.textSecondary,
@@ -132,8 +133,30 @@ class _TopicsScreenState extends State<TopicsScreen> {
                 ),
                 const SizedBox(height: 20),
                 AppButton(
-                  label: 'Awesome!',
-                  variant: AppButtonVariant.success,
+                  label: 'Play Again',
+                  variant: AppButtonVariant.primary,
+                  icon: Icons.replay_rounded,
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      AppPageRoute(
+                        builder: (_) => QuizScreen(
+                          categoryId: category.id,
+                          categoryName: category.title,
+                          topicId: topic.id,
+                          topicName: topic.name,
+                          color: AppCategoryIcon.colorFor(category.title),
+                          forReplay: true,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+                const SizedBox(height: 10),
+                AppButton(
+                  label: 'Back to Topics',
+                  variant: AppButtonVariant.secondary,
                   onTap: () => Navigator.pop(context),
                 ),
               ],
@@ -476,7 +499,9 @@ class _TopicCardState extends State<_TopicCard> {
   void didUpdateWidget(_TopicCard old) {
     super.didUpdateWidget(old);
     if (old.user?.id != widget.user?.id ||
-        old.entry.topic.id != widget.entry.topic.id) {
+        old.entry.topic.id != widget.entry.topic.id ||
+        old.user?.answeredQuestions.length !=
+            widget.user?.answeredQuestions.length) {
       _initFuture();
     }
   }

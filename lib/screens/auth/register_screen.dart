@@ -78,10 +78,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_rounded,
-                        color: Colors.white, size: 22),
-                    onPressed: () => Navigator.pop(context),
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back_ios_rounded,
+                            color: Colors.white, size: 22),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                      const Spacer(),
+                    ],
                   ),
                   const SizedBox(height: 8),
                   Padding(

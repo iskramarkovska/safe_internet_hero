@@ -1,4 +1,4 @@
-﻿import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -11,8 +11,38 @@ import '../../widgets/app_widgets.dart';
 import '../../widgets/skeleton_loader.dart';
 import '../auth/splash_screen.dart';
 
-class LeaderboardScreen extends StatelessWidget {
+class LeaderboardScreen extends StatefulWidget {
   const LeaderboardScreen({super.key});
+
+  @override
+  State<LeaderboardScreen> createState() => _LeaderboardScreenState();
+}
+
+class _LeaderboardScreenState extends State<LeaderboardScreen> {
+  Future<int>? _rankFuture;
+  int? _lastStars;
+
+  Future<int> _computeUserRank(int userStars) async {
+    try {
+      final snap = await FirebaseFirestore.instance
+          .collection('users')
+          .where('totalStars', isGreaterThan: userStars)
+          .count()
+          .get();
+      return (snap.count ?? 0) + 1;
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  void _maybeRefreshRank(int stars) {
+    if (stars != _lastStars) {
+      _lastStars = stars;
+      setState(() {
+        _rankFuture = _computeUserRank(stars);
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,6 +50,12 @@ class LeaderboardScreen extends StatelessWidget {
     final currentUser = auth.user;
     final isGuest = auth.isGuest;
     final stars = currentUser?.totalStars ?? 0;
+    final streak = currentUser?.currentStreak ?? 0;
+    final coins = currentUser?.coins ?? 0;
+
+    if (!isGuest && currentUser != null) {
+      _maybeRefreshRank(stars);
+    }
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -30,7 +66,7 @@ class LeaderboardScreen extends StatelessWidget {
             bottom: false,
             child: Column(
               children: [
-                AppTopBar(stars: stars, streak: 0),
+                AppTopBar(stars: stars, streak: streak, coins: coins),
                 Container(height: 1, color: AppColors.border),
                 Container(
                   width: double.infinity,
@@ -74,7 +110,8 @@ class LeaderboardScreen extends StatelessWidget {
               child: GuestLockedState(
                 icon: Icons.leaderboard_rounded,
                 title: 'Compete with the world',
-                subtitle: 'Create a free account to appear on the leaderboard and track your rank against other internet safety heroes.',
+                subtitle:
+                    'Create a free account to appear on the leaderboard and track your rank against other internet safety heroes.',
                 onGetStarted: () => Navigator.of(context).pushAndRemoveUntil(
                   MaterialPageRoute(builder: (_) => const LandingScreen()),
                   (route) => false,
@@ -83,96 +120,235 @@ class LeaderboardScreen extends StatelessWidget {
             ),
 
           if (!isGuest)
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-              child: Column(
-                children: [
-                  // ── Podium ───────────────────────────────────────────────
-                  StreamBuilder<QuerySnapshot>(
-                    stream: FirebaseFirestore.instance
-                        .collection('users')
-                        .orderBy('totalStars', descending: true)
-                        .limit(3)
-                        .snapshots(),
-                    builder: (context, snap) {
-                      if (!snap.hasData) {
-                        return const LeaderboardPodiumSkeleton();
-                      }
-                      final docs = snap.data!.docs;
-                      return _Podium(docs: docs, currentUser: currentUser)
-                          .animate()
-                          .fadeIn(duration: const Duration(milliseconds: 500))
-                          .scale(
-                            begin: const Offset(0.95, 0.95),
-                            end: const Offset(1, 1),
-                            duration: const Duration(milliseconds: 400),
-                            curve: Curves.easeOut,
-                          );
-                    },
-                  ),
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                child: Column(
+                  children: [
+                    // ── Podium ─────────────────────────────────────────────
+                    StreamBuilder<QuerySnapshot>(
+                      stream: FirebaseFirestore.instance
+                          .collection('users')
+                          .orderBy('totalStars', descending: true)
+                          .limit(3)
+                          .snapshots(),
+                      builder: (context, snap) {
+                        if (!snap.hasData) {
+                          return const LeaderboardPodiumSkeleton();
+                        }
+                        final docs = snap.data!.docs;
+                        return _Podium(docs: docs, currentUser: currentUser)
+                            .animate()
+                            .fadeIn(duration: const Duration(milliseconds: 500))
+                            .scale(
+                              begin: const Offset(0.95, 0.95),
+                              end: const Offset(1, 1),
+                              duration: const Duration(milliseconds: 400),
+                              curve: Curves.easeOut,
+                            );
+                      },
+                    ),
 
-                  const SizedBox(height: 20),
+                    const SizedBox(height: 16),
 
-                  // ── Full list ────────────────────────────────────────────
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'All Players',
-                      style: GoogleFonts.nunito(
-                        color: AppColors.textPrimary,
-                        fontSize: 18,
-                        fontWeight: FontWeight.w900,
+                    // ── Your Rank card ─────────────────────────────────────
+                    if (currentUser != null)
+                      FutureBuilder<int>(
+                        future: _rankFuture,
+                        builder: (context, snap) {
+                          return _YourRankCard(
+                            user: currentUser,
+                            rank: snap.data,
+                            loading: snap.connectionState ==
+                                ConnectionState.waiting,
+                          )
+                              .animate()
+                              .fadeIn(
+                                  delay: const Duration(milliseconds: 200),
+                                  duration: const Duration(milliseconds: 400))
+                              .slideY(
+                                  begin: 0.08,
+                                  end: 0,
+                                  duration: const Duration(milliseconds: 350));
+                        },
+                      ),
+
+                    const SizedBox(height: 20),
+
+                    // ── Top 50 list ────────────────────────────────────────
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        'Top 50',
+                        style: GoogleFonts.nunito(
+                          color: AppColors.textPrimary,
+                          fontSize: 18,
+                          fontWeight: FontWeight.w900,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 10),
+                    const SizedBox(height: 10),
 
-                  StreamBuilder<QuerySnapshot>(
-                    stream: FirebaseFirestore.instance
-                        .collection('users')
-                        .orderBy('totalStars', descending: true)
-                        .snapshots(),
-                    builder: (context, snap) {
-                      if (!snap.hasData) {
+                    StreamBuilder<QuerySnapshot>(
+                      stream: FirebaseFirestore.instance
+                          .collection('users')
+                          .orderBy('totalStars', descending: true)
+                          .limit(50)
+                          .snapshots(),
+                      builder: (context, snap) {
+                        if (!snap.hasData) {
+                          return Column(
+                            children: List.generate(
+                                8, (_) => const LeaderboardRowSkeleton()),
+                          );
+                        }
+                        final users = snap.data!.docs;
                         return Column(
-                          children: List.generate(
-                              8, (_) => const LeaderboardRowSkeleton()),
-                        );
-                      }
-                      final users = snap.data!.docs;
-                      return Column(
-                        children: users.asMap().entries.map((e) {
-                          final index = e.key;
-                          final data =
-                              e.value.data() as Map<String, dynamic>;
-                          final isMe = data['uid'] == currentUser?.id;
+                          children: users.asMap().entries.map((e) {
+                            final index = e.key;
+                            final data =
+                                e.value.data() as Map<String, dynamic>;
+                            final isMe = data['uid'] == currentUser?.id;
 
-                          return _LeaderboardRow(
-                            rank: index + 1,
-                            username: data['username'] ?? 'Unknown',
-                            stars: data['totalStars'] ?? 0,
-                            isMe: isMe,
-                          )
-                              .animate(
-                                  delay: Duration(
-                                      milliseconds:
-                                          (index * 40).clamp(0, 400)))
-                              .fadeIn(
-                                  duration:
-                                      const Duration(milliseconds: 300))
-                              .slideX(
-                                  begin: 0.05,
-                                  end: 0,
-                                  duration:
-                                      const Duration(milliseconds: 300));
-                        }).toList(),
-                      );
-                    },
-                  ),
-                ],
+                            return _LeaderboardRow(
+                              rank: index + 1,
+                              username: data['username'] ?? 'Unknown',
+                              stars: data['totalStars'] ?? 0,
+                              isMe: isMe,
+                            )
+                                .animate(
+                                    delay: Duration(
+                                        milliseconds:
+                                            (index * 40).clamp(0, 400)))
+                                .fadeIn(
+                                    duration:
+                                        const Duration(milliseconds: 300))
+                                .slideX(
+                                    begin: 0.05,
+                                    end: 0,
+                                    duration:
+                                        const Duration(milliseconds: 300));
+                          }).toList(),
+                        );
+                      },
+                    ),
+                  ],
+                ),
               ),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Your Rank card ───────────────────────────────────────────────────────────
+
+class _YourRankCard extends StatelessWidget {
+  final UserModel user;
+  final int? rank;
+  final bool loading;
+
+  const _YourRankCard({
+    required this.user,
+    required this.rank,
+    required this.loading,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [AppColors.blue, Color(0xFF5AB4F7)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.blue.withValues(alpha: 0.3),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          AppAvatar(
+            name: user.username,
+            size: 44,
+            borderColor: Colors.white,
+            borderWidth: 2.5,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  user.username,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 15,
+                  ),
+                ),
+                Row(
+                  children: [
+                    const Icon(Icons.star_rounded,
+                        color: Colors.white, size: 13),
+                    const SizedBox(width: 3),
+                    Text(
+                      '${user.totalStars} stars',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.85),
+                        fontWeight: FontWeight.w600,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.4), width: 1.5),
+            ),
+            child: loading
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                        color: Colors.white, strokeWidth: 2),
+                  )
+                : Column(
+                    children: [
+                      Text(
+                        rank != null && rank! > 0 ? '#$rank' : '—',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 18,
+                        ),
+                      ),
+                      Text(
+                        'Your Rank',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.8),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
           ),
         ],
       ),
@@ -282,11 +458,9 @@ class _PodiumSlot extends StatelessWidget {
     return Column(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        // Medal icon
         Icon(_crownIcons[rank - 1], color: color, size: _crownSizes[rank - 1]),
         const SizedBox(height: 4),
 
-        // Avatar
         AppAvatar(
           name: username,
           size: 46,
@@ -296,7 +470,6 @@ class _PodiumSlot extends StatelessWidget {
 
         const SizedBox(height: 6),
 
-        // Username
         SizedBox(
           width: 80,
           child: Text(
@@ -313,7 +486,6 @@ class _PodiumSlot extends StatelessWidget {
 
         const SizedBox(height: 4),
 
-        // Pillar
         Container(
           width: 72,
           height: pillarHeight,
@@ -414,7 +586,6 @@ class _LeaderboardRow extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // Rank
           SizedBox(
             width: 36,
             child: rank <= 3
@@ -443,11 +614,9 @@ class _LeaderboardRow extends StatelessWidget {
           ),
           const SizedBox(width: 10),
 
-          // Avatar
           AppAvatar(name: username, size: 38),
           const SizedBox(width: 12),
 
-          // Name
           Expanded(
             child: Text(
               username,
@@ -459,7 +628,6 @@ class _LeaderboardRow extends StatelessWidget {
             ),
           ),
 
-          // Stars
           Row(
             children: [
               const Icon(Icons.star_rounded,

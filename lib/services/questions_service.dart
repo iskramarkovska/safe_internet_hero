@@ -5,11 +5,15 @@ import '../models/quiz_result_model.dart';
 class QuestionService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
 
+  /// Loads questions for a topic.
+  /// [forReplay] — when true, `excludeIds` is ignored so users can redo a topic.
+  /// [specificIds] — when provided, loads those exact question IDs (practice mode).
   Future<List<QuestionModel>> getQuestions({
     required String categoryId,
     required String topicId,
     List<String> excludeIds = const [],
     int limit = 10,
+    bool forReplay = false,
   }) async {
     Query query = _db
         .collection('questions')
@@ -21,15 +25,36 @@ class QuestionService {
 
     final snap = await query.get();
     final allQuestions = snap.docs
-        .map((doc) => QuestionModel.fromMap(doc.data() as Map<String, dynamic>))
+        .map((doc) => QuestionModel.fromMap(
+            {'id': doc.id, ...doc.data() as Map<String, dynamic>}))
         .toList();
 
-    final filtered = allQuestions
-        .where((q) => !excludeIds.contains(q.id))
+    final filtered = forReplay
+        ? allQuestions
+        : allQuestions.where((q) => !excludeIds.contains(q.id)).toList();
+
+    return (filtered..shuffle()).take(limit).toList();
+  }
+
+  /// Loads specific questions by their document IDs (used for practice mode).
+  Future<List<QuestionModel>> getQuestionsByIds(List<String> ids) async {
+    if (ids.isEmpty) return [];
+    // Firestore whereIn supports up to 30 items; chunk just in case.
+    final chunks = <List<String>>[];
+    for (var i = 0; i < ids.length; i += 10) {
+      chunks.add(ids.sublist(i, (i + 10).clamp(0, ids.length)));
+    }
+    final futures = chunks.map((chunk) => _db
+        .collection('questions')
+        .where(FieldPath.documentId, whereIn: chunk)
+        .get());
+    final snaps = await Future.wait(futures);
+    return snaps
+        .expand((s) => s.docs)
+        .map((doc) => QuestionModel.fromMap(
+            {'id': doc.id, ...doc.data() as Map<String, dynamic>}))
         .toList()
       ..shuffle();
-
-    return filtered.take(limit).toList();
   }
 
   Future<void> seedQuestions(List<QuestionModel> questions) async {
@@ -48,23 +73,44 @@ class QuestionService {
     await doc.set(result.toMap()..['id'] = doc.id);
   }
 
-  Future<void> addStars({
+  /// Awards stars and coins to a user atomically.
+  Future<void> addRewards({
     required String userId,
     required int starsToAdd,
+    required int coinsToAdd,
   }) async {
-    if (starsToAdd <= 0) return;
-    await _db.collection('users').doc(userId).update({
-      'totalStars': FieldValue.increment(starsToAdd),
-    });
+    final updates = <String, dynamic>{};
+    if (starsToAdd > 0) updates['totalStars'] = FieldValue.increment(starsToAdd);
+    if (coinsToAdd > 0) updates['coins'] = FieldValue.increment(coinsToAdd);
+    if (updates.isNotEmpty) {
+      await _db.collection('users').doc(userId).update(updates);
+    }
   }
 
+  /// Updates the user's answered/incorrect question lists.
+  /// Correctly answered questions are added to [answeredQuestions] and
+  /// removed from [incorrectlyAnsweredIds]. Incorrectly answered questions
+  /// are added to [incorrectlyAnsweredIds].
   Future<void> saveAnsweredQuestions({
     required String userId,
-    required List<String> questionIds,
+    required List<String> correctIds,
+    required List<String> incorrectIds,
   }) async {
-    await _db.collection('users').doc(userId).update({
-      'answeredQuestions': FieldValue.arrayUnion(questionIds),
-    });
+    final updates = <String, dynamic>{};
+
+    if (correctIds.isNotEmpty) {
+      updates['answeredQuestions'] = FieldValue.arrayUnion(correctIds);
+      // Remove from weak list when answered correctly
+      updates['incorrectlyAnsweredIds'] = FieldValue.arrayRemove(correctIds);
+    }
+
+    if (incorrectIds.isNotEmpty) {
+      updates['incorrectlyAnsweredIds'] = FieldValue.arrayUnion(incorrectIds);
+    }
+
+    if (updates.isNotEmpty) {
+      await _db.collection('users').doc(userId).update(updates);
+    }
   }
 
   Future<int> getTotalQuestionsCount({
@@ -84,11 +130,9 @@ class QuestionService {
   }
 
   Stream<List<QuestionModel>> watchAllQuestions() {
-    return _db
-        .collection('questions')
-        .snapshots()
-        .map((snap) => snap.docs
-        .map((doc) => QuestionModel.fromMap({'id': doc.id, ...doc.data()}))
+    return _db.collection('questions').snapshots().map((snap) => snap.docs
+        .map((doc) =>
+            QuestionModel.fromMap({'id': doc.id, ...doc.data()}))
         .toList());
   }
 

@@ -86,4 +86,21 @@ class TopicsService {
     await _db.collection('topics').doc(id).delete();
   }
 
+  /// Returns a stream of the categoryId the user most recently completed a quiz in.
+  /// Used to pick the "Continue Learning" featured card on the home screen.
+  Stream<String?> watchMostRecentCategoryId(String userId) {
+    return _db
+        .collection('quiz_results')
+        .where('userId', isEqualTo: userId)
+        .orderBy('completedAt', descending: true)
+        .limit(5)
+        .snapshots()
+        .map((snap) {
+      for (final doc in snap.docs) {
+        final catId = doc.data()['categoryId'] as String?;
+        if (catId != null && catId != 'practice') return catId;
+      }
+      return null;
+    });
+  }
 }

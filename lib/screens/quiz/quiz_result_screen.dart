@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:lottie/lottie.dart';
@@ -7,6 +7,7 @@ import '../../core/theme.dart';
 import '../../models/quiz_result_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/questions_service.dart';
+import '../../services/streak_service.dart';
 import '../../widgets/app_widgets.dart';
 import '../../core/app_page_route.dart';
 import '../home/main_screen.dart';
@@ -16,7 +17,8 @@ class QuizResultScreen extends StatefulWidget {
   final QuizResultModel result;
   final VoidCallback? onPracticeAgain;
 
-  const QuizResultScreen({super.key, required this.result, this.onPracticeAgain});
+  const QuizResultScreen(
+      {super.key, required this.result, this.onPracticeAgain});
 
   @override
   State<QuizResultScreen> createState() => _QuizResultScreenState();
@@ -27,6 +29,7 @@ class _QuizResultScreenState extends State<QuizResultScreen>
   late final AnimationController _confettiCtrl;
   late final AnimationController _trophyCtrl;
   bool _showConfetti = false;
+  int _newStreak = 0;
 
   @override
   void initState() {
@@ -34,7 +37,7 @@ class _QuizResultScreenState extends State<QuizResultScreen>
     _confettiCtrl = AnimationController(vsync: this);
     _trophyCtrl = AnimationController(vsync: this);
 
-    if (widget.result.starsEarned >= 2) {
+    if (widget.result.starsEarned >= 2 && !widget.result.isPractice) {
       _showConfetti = true;
       _confettiCtrl.addStatusListener((status) {
         if (status == AnimationStatus.completed && mounted) {
@@ -57,16 +60,40 @@ class _QuizResultScreenState extends State<QuizResultScreen>
     final auth = context.read<AuthProvider>();
     final user = auth.user;
     if (user == null) return;
+
     try {
       final svc = QuestionService();
+      final streakSvc = StreakService();
+
       await svc.saveResult(widget.result);
-      if (widget.result.correctlyAnsweredIds.isNotEmpty) {
+
+      // Update answered/incorrect question tracking for ALL modes
+      if (widget.result.correctlyAnsweredIds.isNotEmpty ||
+          widget.result.incorrectlyAnsweredIds.isNotEmpty) {
         await svc.saveAnsweredQuestions(
           userId: user.id,
-          questionIds: widget.result.correctlyAnsweredIds,
+          correctIds: widget.result.correctlyAnsweredIds,
+          incorrectIds: widget.result.incorrectlyAnsweredIds,
         );
       }
-      await svc.addStars(userId: user.id, starsToAdd: widget.result.starsEarned);
+
+      // Practice mode: small coin reward only, no stars.
+      // Normal mode: award stars + coins, update streak on success.
+      if (widget.result.isPractice) {
+        await svc.addRewards(
+            userId: user.id, starsToAdd: 0, coinsToAdd: 3);
+      } else {
+        await svc.addRewards(
+          userId: user.id,
+          starsToAdd: widget.result.starsEarned,
+          coinsToAdd: widget.result.coinsEarned,
+        );
+        if (widget.result.starsEarned > 0) {
+          _newStreak = await streakSvc.recordActivity(user.id);
+          if (mounted) setState(() {});
+        }
+      }
+
       if (!mounted) return;
       await auth.refreshUser();
     } catch (_) {
@@ -100,24 +127,72 @@ class _QuizResultScreenState extends State<QuizResultScreen>
   Widget build(BuildContext context) {
     final result = widget.result;
     final pct = result.percentage;
+    final isPractice = result.isPractice;
     final isGreat = result.starsEarned >= 2;
     final isThree = result.starsEarned == 3;
-    final xp = result.starsEarned;
-    final coins = result.starsEarned * 10;
     final isGuest = context.watch<AuthProvider>().isGuest;
+
+    String titleText;
+    if (isPractice) {
+      titleText = result.starsEarned == 3
+          ? 'Perfect Practice!'
+          : result.starsEarned >= 1
+              ? 'Good Practice!'
+              : 'Keep Practicing!';
+    } else {
+      titleText = result.starsEarned == 0
+          ? 'Keep Trying!'
+          : result.starsEarned == 1
+              ? 'Good Job!'
+              : result.starsEarned == 2
+                  ? 'Great Work!'
+                  : 'Perfect Score!';
+    }
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Stack(
         children: [
-          // ── Main content ────────────────────────────────────────────────────
+          // ── Main content ───────────────────────────────────────────────────
           SafeArea(
             child: SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(20, 24, 20, 40),
               child: Column(
                 children: [
+                  // Practice mode badge
+                  if (isPractice)
+                    Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: AppColors.orange.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                            color: AppColors.orange.withValues(alpha: 0.4)),
+                      ),
+                      child: const Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.bolt_rounded,
+                              color: AppColors.orange, size: 16),
+                          SizedBox(width: 5),
+                          Text(
+                            'Practice Session',
+                            style: TextStyle(
+                              color: AppColors.orange,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                        .animate()
+                        .fadeIn(duration: const Duration(milliseconds: 300)),
+
                   // Hero icon / trophy
-                  if (isThree)
+                  if (isThree && !isPractice)
                     SizedBox(
                       width: 140,
                       height: 140,
@@ -136,19 +211,25 @@ class _QuizResultScreenState extends State<QuizResultScreen>
                       height: 110,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: isGreat
-                            ? AppColors.greenLight
-                            : AppColors.blueLight,
+                        color: isPractice
+                            ? AppColors.orange.withValues(alpha: 0.12)
+                            : isGreat
+                                ? AppColors.greenLight
+                                : AppColors.blueLight,
                       ),
                       child: Center(
                         child: Icon(
-                          isGreat
-                              ? Icons.emoji_events_rounded
-                              : Icons.sentiment_neutral_rounded,
+                          isPractice
+                              ? Icons.fitness_center_rounded
+                              : isGreat
+                                  ? Icons.emoji_events_rounded
+                                  : Icons.sentiment_neutral_rounded,
                           size: 60,
-                          color: isGreat
-                              ? AppColors.green
-                              : AppColors.blue,
+                          color: isPractice
+                              ? AppColors.orange
+                              : isGreat
+                                  ? AppColors.green
+                                  : AppColors.blue,
                         ),
                       ),
                     )
@@ -164,13 +245,7 @@ class _QuizResultScreenState extends State<QuizResultScreen>
 
                   // Title
                   Text(
-                    result.starsEarned == 0
-                        ? 'Keep Trying!'
-                        : result.starsEarned == 1
-                            ? 'Good Job!'
-                            : result.starsEarned == 2
-                                ? 'Great Work!'
-                                : 'Perfect Score!',
+                    titleText,
                     style: GoogleFonts.nunito(
                       color: AppColors.textPrimary,
                       fontSize: 30,
@@ -184,25 +259,24 @@ class _QuizResultScreenState extends State<QuizResultScreen>
                   const SizedBox(height: 4),
 
                   Text(
-                    result.categoryName,
+                    isPractice ? 'Weak Spots Review' : result.categoryName,
                     style: GoogleFonts.nunito(
                       color: AppColors.textSecondary,
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                     ),
-                  )
-                      .animate(delay: 280.ms)
-                      .fadeIn(duration: 250.ms),
+                  ).animate(delay: 280.ms).fadeIn(duration: 250.ms),
 
                   const SizedBox(height: 32),
 
-                  // ── Star reveal ─────────────────────────────────────────────
+                  // ── Star reveal ────────────────────────────────────────────
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: List.generate(3, (i) {
                       final earned = i < result.starsEarned;
                       return Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        padding:
+                            const EdgeInsets.symmetric(horizontal: 6),
                         child: Icon(
                           Icons.star_rounded,
                           size: earned ? 52 : 44,
@@ -210,12 +284,15 @@ class _QuizResultScreenState extends State<QuizResultScreen>
                               ? AppColors.gold
                               : AppColors.borderDark,
                         )
-                            .animate(delay: Duration(milliseconds: 400 + i * 200))
+                            .animate(
+                                delay: Duration(
+                                    milliseconds: 400 + i * 200))
                             .scale(
                               begin: const Offset(0, 0),
                               end: const Offset(1, 1),
                               curve: Curves.elasticOut,
-                              duration: const Duration(milliseconds: 600),
+                              duration:
+                                  const Duration(milliseconds: 600),
                             ),
                       );
                     }),
@@ -223,24 +300,25 @@ class _QuizResultScreenState extends State<QuizResultScreen>
 
                   const SizedBox(height: 28),
 
-                  // ── XP + Coins ─────────────────────────────────────────────
+                  // ── Earned rewards ─────────────────────────────────────────
                   Row(
                     children: [
-                      Expanded(
-                        child: _EarnedChip(
-                          icon: Icons.star_rounded,
-                          label: '+$xp XP',
-                          color: AppColors.gold,
-                          delay: 900,
+                      if (!isPractice)
+                        Expanded(
+                          child: _EarnedChip(
+                            icon: Icons.star_rounded,
+                            label: '+${result.starsEarned} XP',
+                            color: AppColors.gold,
+                            delay: 900,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 12),
+                      if (!isPractice) const SizedBox(width: 12),
                       Expanded(
                         child: _EarnedChip(
                           icon: Icons.monetization_on_rounded,
-                          label: '+$coins Coins',
+                          label: '+${isPractice ? 3 : result.coinsEarned} Coins',
                           color: AppColors.orange,
-                          delay: 1050,
+                          delay: isPractice ? 700 : 1050,
                         ),
                       ),
                     ],
@@ -296,27 +374,86 @@ class _QuizResultScreenState extends State<QuizResultScreen>
 
                   const SizedBox(height: 14),
 
-                  // ── Motivational message ────────────────────────────────────
+                  // ── Streak notification ────────────────────────────────────
+                  if (_newStreak > 1 && !isPractice)
+                    AppCard(
+                      color: AppColors.orange.withValues(alpha: 0.1),
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        children: [
+                          const Text('🔥',
+                              style: TextStyle(fontSize: 26)),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  '$_newStreak Day Streak!',
+                                  style: GoogleFonts.nunito(
+                                    color: AppColors.orangeDark,
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 15,
+                                  ),
+                                ),
+                                Text(
+                                  'You\'re on a roll — keep it up!',
+                                  style: GoogleFonts.nunito(
+                                    color: AppColors.orange,
+                                    fontWeight: FontWeight.w600,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                        .animate(delay: 1200.ms)
+                        .fadeIn(duration: const Duration(milliseconds: 350))
+                        .slideY(begin: 0.1, end: 0),
+
+                  if (_newStreak > 1 && !isPractice)
+                    const SizedBox(height: 14),
+
+                  // ── Motivational message ───────────────────────────────────
                   AppCard(
-                    color: isGreat ? AppColors.greenLight : AppColors.blueLight,
+                    color: isPractice
+                        ? AppColors.orange.withValues(alpha: 0.08)
+                        : isGreat
+                            ? AppColors.greenLight
+                            : AppColors.blueLight,
                     padding: const EdgeInsets.all(16),
                     child: Row(
                       children: [
                         Icon(
-                          isGreat ? Icons.rocket_launch_rounded : Icons.fitness_center_rounded,
-                          color: isGreat ? AppColors.greenDark : AppColors.blue,
+                          isPractice
+                              ? Icons.psychology_rounded
+                              : isGreat
+                                  ? Icons.rocket_launch_rounded
+                                  : Icons.fitness_center_rounded,
+                          color: isPractice
+                              ? AppColors.orange
+                              : isGreat
+                                  ? AppColors.greenDark
+                                  : AppColors.blue,
                           size: 24,
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Text(
-                            isGreat
-                                ? 'Amazing work! You\'re becoming a true internet safety hero!'
-                                : 'Keep practicing — every question makes you safer online!',
+                            isPractice
+                                ? 'Great practice! Reviewing weak spots makes you stronger.'
+                                : isGreat
+                                    ? 'Amazing! You\'re becoming a true internet safety hero!'
+                                    : 'Keep practicing — every question makes you safer online!',
                             style: GoogleFonts.nunito(
-                              color: isGreat
-                                  ? AppColors.greenDark
-                                  : AppColors.blue,
+                              color: isPractice
+                                  ? AppColors.orangeDark
+                                  : isGreat
+                                      ? AppColors.greenDark
+                                      : AppColors.blue,
                               fontWeight: FontWeight.w700,
                               fontSize: 13,
                               height: 1.45,
@@ -325,13 +462,12 @@ class _QuizResultScreenState extends State<QuizResultScreen>
                         ),
                       ],
                     ),
-                  )
-                      .animate(delay: 900.ms)
-                      .fadeIn(duration: const Duration(milliseconds: 350)),
+                  ).animate(delay: 900.ms).fadeIn(
+                      duration: const Duration(milliseconds: 350)),
 
                   const SizedBox(height: 32),
 
-                  // ── Guest save-progress CTA ─────────────────────────────────
+                  // ── Guest CTA ──────────────────────────────────────────────
                   if (isGuest)
                     _GuestSaveCTA(
                       starsEarned: result.starsEarned,
@@ -342,10 +478,10 @@ class _QuizResultScreenState extends State<QuizResultScreen>
                         .fadeIn(duration: 300.ms)
                         .slideY(begin: 0.15, end: 0),
 
-                  // ── Logged-in actions ───────────────────────────────────────
+                  // ── Logged-in actions ──────────────────────────────────────
                   if (!isGuest) ...[
                     AppButton(
-                      label: 'Continue',
+                      label: isPractice ? 'Done' : 'Continue',
                       variant: AppButtonVariant.primary,
                       icon: Icons.home_rounded,
                       onTap: _goHome,
@@ -354,22 +490,21 @@ class _QuizResultScreenState extends State<QuizResultScreen>
                         .fadeIn(duration: 300.ms)
                         .slideY(begin: 0.1, end: 0),
 
-                    const SizedBox(height: 12),
-
-                    AppButton(
-                      label: 'Practice Again',
-                      variant: AppButtonVariant.secondary,
-                      onTap: _practiceAgain,
-                    )
-                        .animate(delay: 1100.ms)
-                        .fadeIn(duration: 300.ms),
+                    if (widget.onPracticeAgain != null) ...[
+                      const SizedBox(height: 12),
+                      AppButton(
+                        label: 'Play Again',
+                        variant: AppButtonVariant.secondary,
+                        onTap: _practiceAgain,
+                      ).animate(delay: 1100.ms).fadeIn(duration: 300.ms),
+                    ],
                   ],
                 ],
               ),
             ),
           ),
 
-          // ── Confetti overlay (non-blocking) ─────────────────────────────────
+          // ── Confetti overlay ───────────────────────────────────────────────
           if (_showConfetti)
             Positioned.fill(
               child: IgnorePointer(

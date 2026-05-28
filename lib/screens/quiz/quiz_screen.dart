@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:provider/provider.dart';
 import '../../core/app_page_route.dart';
@@ -18,6 +18,12 @@ class QuizScreen extends StatefulWidget {
   final String topicName;
   final Color color;
 
+  /// When true, loads all questions ignoring already-answered ones.
+  final bool forReplay;
+
+  /// When provided, loads these specific question IDs (practice / review mode).
+  final List<String>? specificIds;
+
   const QuizScreen({
     super.key,
     required this.categoryId,
@@ -25,7 +31,11 @@ class QuizScreen extends StatefulWidget {
     required this.topicId,
     required this.topicName,
     required this.color,
+    this.forReplay = false,
+    this.specificIds,
   });
+
+  bool get isPractice => specificIds != null;
 
   @override
   State<QuizScreen> createState() => _QuizScreenState();
@@ -51,12 +61,21 @@ class _QuizScreenState extends State<QuizScreen> {
   }
 
   Future<void> _loadQuestions() async {
-    final user = context.read<AuthProvider>().user;
-    final questions = await _questionService.getQuestions(
-      categoryId: widget.categoryId,
-      topicId: widget.topicId,
-      excludeIds: user?.answeredQuestions ?? [],
-    );
+    List<QuestionModel> questions;
+
+    if (widget.isPractice) {
+      questions =
+          await _questionService.getQuestionsByIds(widget.specificIds!);
+    } else {
+      final user = context.read<AuthProvider>().user;
+      questions = await _questionService.getQuestions(
+        categoryId: widget.categoryId,
+        topicId: widget.topicId,
+        excludeIds:
+            widget.forReplay ? [] : (user?.answeredQuestions ?? []),
+      );
+    }
+
     if (!mounted) return;
     setState(() {
       _questions = questions;
@@ -101,6 +120,7 @@ class _QuizScreenState extends State<QuizScreen> {
 
   void _finish() {
     final user = context.read<AuthProvider>().user;
+
     final correctIds = _questions
         .asMap()
         .entries
@@ -108,7 +128,17 @@ class _QuizScreenState extends State<QuizScreen> {
         .map((e) => e.value.id)
         .toList();
 
+    final incorrectIds = _questions
+        .where((q) => !correctIds.contains(q.id))
+        .map((q) => q.id)
+        .toList();
+
     final stars = _calculateStars(_score, _questions.length);
+
+    // Practice mode: small flat coin reward, no stars saved.
+    // Normal mode: coins scale with stars earned.
+    final coinsEarned =
+        widget.isPractice ? 3 : stars * 5;
 
     final result = QuizResultModel(
       id: '',
@@ -121,9 +151,11 @@ class _QuizScreenState extends State<QuizScreen> {
       score: _score,
       totalQuestions: _questions.length,
       starsEarned: stars,
+      coinsEarned: coinsEarned,
       pointsEarned: _totalPoints,
       completedAt: DateTime.now(),
       correctlyAnsweredIds: correctIds,
+      incorrectlyAnsweredIds: incorrectIds,
     );
 
     final catId = widget.categoryId;
@@ -131,23 +163,27 @@ class _QuizScreenState extends State<QuizScreen> {
     final topId = widget.topicId;
     final topName = widget.topicName;
     final color = widget.color;
+    final isPractice = widget.isPractice;
 
     Navigator.pushReplacement(
       context,
       AppPageRoute(
         builder: (ctx) => QuizResultScreen(
           result: result,
-          onPracticeAgain: () => Navigator.of(ctx).pushReplacement(
-            AppPageRoute(
-              builder: (_) => QuizScreen(
-                categoryId: catId,
-                categoryName: catName,
-                topicId: topId,
-                topicName: topName,
-                color: color,
-              ),
-            ),
-          ),
+          onPracticeAgain: isPractice
+              ? null
+              : () => Navigator.of(ctx).pushReplacement(
+                    AppPageRoute(
+                      builder: (_) => QuizScreen(
+                        categoryId: catId,
+                        categoryName: catName,
+                        topicId: topId,
+                        topicName: topName,
+                        color: color,
+                        forReplay: true,
+                      ),
+                    ),
+                  ),
         ),
       ),
     );
@@ -175,13 +211,59 @@ class _QuizScreenState extends State<QuizScreen> {
       backgroundColor: AppColors.background,
       body: SafeArea(
         child: _isLoading
-            ? const Center(
-                child: CircularProgressIndicator(color: AppColors.blue))
+            ? _buildLoading()
             : _questions.isEmpty
                 ? _buildEmpty()
                 : _buildQuiz(),
       ),
     );
+  }
+
+  Widget _buildLoading() {
+    return Column(
+      children: [
+        // Skeleton top bar
+        Padding(
+          padding: const EdgeInsets.fromLTRB(8, 10, 16, 0),
+          child: Row(
+            children: [
+              const SizedBox(width: 48),
+              Expanded(
+                child: Column(
+                  children: [
+                    _SkeletonBox(width: 100, height: 14, radius: 7),
+                    const SizedBox(height: 4),
+                    _SkeletonBox(width: 80, height: 12, radius: 6),
+                  ],
+                ),
+              ),
+              _SkeletonBox(width: 56, height: 32, radius: 16),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: _SkeletonBox(width: double.infinity, height: 10, radius: 8),
+        ),
+        const SizedBox(height: 20),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          child: _SkeletonBox(width: double.infinity, height: 100, radius: 16),
+        ),
+        const SizedBox(height: 16),
+        ...List.generate(
+          4,
+          (_) => Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+            child: _SkeletonBox(
+                width: double.infinity, height: 68, radius: 16),
+          ),
+        ),
+      ],
+    )
+        .animate(onPlay: (c) => c.repeat(reverse: true))
+        .shimmer(duration: const Duration(milliseconds: 1000));
   }
 
   Widget _buildEmpty() {
@@ -192,17 +274,18 @@ class _QuizScreenState extends State<QuizScreen> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 80, height: 80,
-              decoration: BoxDecoration(
+              width: 80,
+              height: 80,
+              decoration: const BoxDecoration(
                 color: AppColors.blueLight,
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.search_off_rounded,
+              child: const Icon(Icons.check_circle_rounded,
                   color: AppColors.blue, size: 44),
             ),
             const SizedBox(height: 16),
             const Text(
-              'No questions yet!',
+              'All done here!',
               style: TextStyle(
                   fontSize: 20,
                   fontWeight: FontWeight.w900,
@@ -210,12 +293,30 @@ class _QuizScreenState extends State<QuizScreen> {
             ),
             const SizedBox(height: 8),
             const Text(
-              'Check back soon for new challenges.',
+              'You\'ve answered all available questions.\nCome back for more soon!',
               textAlign: TextAlign.center,
-              style:
-                  TextStyle(color: AppColors.textSecondary, fontSize: 14),
+              style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
             ),
             const SizedBox(height: 28),
+            AppButton(
+              label: 'Play Again',
+              variant: AppButtonVariant.primary,
+              icon: Icons.replay_rounded,
+              onTap: () => Navigator.pushReplacement(
+                context,
+                AppPageRoute(
+                  builder: (_) => QuizScreen(
+                    categoryId: widget.categoryId,
+                    categoryName: widget.categoryName,
+                    topicId: widget.topicId,
+                    topicName: widget.topicName,
+                    color: widget.color,
+                    forReplay: true,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
             AppButton(
               label: 'Go Back',
               variant: AppButtonVariant.secondary,
@@ -231,8 +332,8 @@ class _QuizScreenState extends State<QuizScreen> {
     final question = _questions[_currentIndex];
     final letters = ['A', 'B', 'C', 'D'];
     final progress = (_currentIndex + 1) / _questions.length;
-    final isCorrect = _answered &&
-        _selectedAnswer == question.correctIndex;
+    final isCorrect =
+        _answered && _selectedAnswer == question.correctIndex;
 
     return Stack(
       children: [
@@ -253,7 +354,9 @@ class _QuizScreenState extends State<QuizScreen> {
                     child: Column(
                       children: [
                         Text(
-                          widget.topicName,
+                          widget.isPractice
+                              ? '⚡ Practice Mode'
+                              : widget.topicName,
                           style: const TextStyle(
                             fontWeight: FontWeight.w800,
                             fontSize: 14,
@@ -305,14 +408,18 @@ class _QuizScreenState extends State<QuizScreen> {
                 borderRadius: BorderRadius.circular(8),
                 child: TweenAnimationBuilder<double>(
                   key: ValueKey(_currentIndex),
-                  tween: Tween(begin: _currentIndex / _questions.length, end: progress),
+                  tween: Tween(
+                      begin: _currentIndex / _questions.length,
+                      end: progress),
                   duration: const Duration(milliseconds: 400),
                   curve: Curves.easeOut,
                   builder: (_, v, __) => LinearProgressIndicator(
                     value: v,
                     backgroundColor: AppColors.border,
-                    valueColor: const AlwaysStoppedAnimation<Color>(
-                        AppColors.blue),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                        widget.isPractice
+                            ? AppColors.orange
+                            : AppColors.blue),
                     minHeight: 10,
                   ),
                 ),
@@ -392,7 +499,6 @@ class _QuizScreenState extends State<QuizScreen> {
                           ),
                           child: Row(
                             children: [
-                              // Letter / check / cross circle
                               AnimatedContainer(
                                 duration: const Duration(milliseconds: 250),
                                 width: 34,
@@ -413,7 +519,8 @@ class _QuizScreenState extends State<QuizScreen> {
                                             : optIsWrong
                                                 ? AppColors.red
                                                 : AppColors.borderDark)
-                                        : AppColors.blue.withValues(alpha: 0.3),
+                                        : AppColors.blue
+                                            .withValues(alpha: 0.3),
                                   ),
                                 ),
                                 child: Center(
@@ -463,7 +570,8 @@ class _QuizScreenState extends State<QuizScreen> {
                       if (optIsWrong) {
                         return option
                             .animate(
-                                key: ValueKey('wrong_${_currentIndex}_$index'))
+                                key: ValueKey(
+                                    'wrong_${_currentIndex}_$index'))
                             .shake(
                               duration: const Duration(milliseconds: 450),
                               hz: 4,
@@ -526,7 +634,8 @@ class _QuizScreenState extends State<QuizScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Container(
-                  width: 56, height: 56,
+                  width: 56,
+                  height: 56,
                   decoration: const BoxDecoration(
                     color: AppColors.redLight,
                     shape: BoxShape.circle,
@@ -547,8 +656,8 @@ class _QuizScreenState extends State<QuizScreen> {
                 const Text(
                   'Your progress will be lost.',
                   textAlign: TextAlign.center,
-                  style:
-                      TextStyle(color: AppColors.textSecondary, fontSize: 14),
+                  style: TextStyle(
+                      color: AppColors.textSecondary, fontSize: 14),
                 ),
                 const SizedBox(height: 24),
                 Row(
@@ -577,6 +686,32 @@ class _QuizScreenState extends State<QuizScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+// ─── Skeleton box ──────────────────────────────────────────────────────────────
+
+class _SkeletonBox extends StatelessWidget {
+  final double width;
+  final double height;
+  final double radius;
+
+  const _SkeletonBox({
+    required this.width,
+    required this.height,
+    required this.radius,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: AppColors.border,
+        borderRadius: BorderRadius.circular(radius),
       ),
     );
   }
@@ -611,7 +746,8 @@ class _ExplanationSheet extends StatelessWidget {
           20, 20, 20, MediaQuery.of(context).padding.bottom + 20),
       decoration: BoxDecoration(
         color: color,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        borderRadius:
+            const BorderRadius.vertical(top: Radius.circular(28)),
         boxShadow: [
           BoxShadow(
             color: darkColor.withValues(alpha: 0.4),
@@ -651,7 +787,6 @@ class _ExplanationSheet extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
           const SizedBox(height: 16),
-          // White continue button with colored text
           GestureDetector(
             onTap: onContinue,
             child: Container(

@@ -179,6 +179,7 @@ class AppCard extends StatelessWidget {
 class AppTopBar extends StatelessWidget {
   final int stars;
   final int streak;
+  final int coins;
   final String? username;
   final VoidCallback? onAvatarTap;
 
@@ -186,6 +187,7 @@ class AppTopBar extends StatelessWidget {
     super.key,
     required this.stars,
     required this.streak,
+    this.coins = 0,
     this.username,
     this.onAvatarTap,
   });
@@ -198,14 +200,20 @@ class AppTopBar extends StatelessWidget {
           horizontal: AppSpacing.md, vertical: AppSpacing.sm),
       child: Row(
         children: [
-          _Chip(icon: Icons.local_fire_department_rounded,
-              value: '$streak', color: AppColors.orange),
+          _Chip(
+              icon: Icons.local_fire_department_rounded,
+              value: '$streak',
+              color: streak > 0 ? AppColors.orange : AppColors.textLight),
           const Spacer(),
-          _Chip(icon: Icons.star_rounded,
-              value: '$stars', color: AppColors.gold),
+          _Chip(
+              icon: Icons.star_rounded,
+              value: '$stars',
+              color: AppColors.gold),
           const SizedBox(width: AppSpacing.sm),
-          _Chip(icon: Icons.monetization_on_rounded,
-              value: '${stars * 10}', color: AppColors.orangeDark),
+          _Chip(
+              icon: Icons.monetization_on_rounded,
+              value: '$coins',
+              color: AppColors.orangeDark),
           if (username != null) ...[
             const SizedBox(width: 12),
             MouseRegion(
