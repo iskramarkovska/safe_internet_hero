@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../core/app_page_route.dart';
@@ -13,7 +14,6 @@ import '../../services/topics_service.dart';
 import '../../widgets/app_avatar.dart';
 import '../../widgets/app_widgets.dart';
 import '../admin/admin_dashboard_screen.dart';
-import '../profile/profile_screen.dart';
 import '../quiz/quiz_screen.dart';
 import '../quiz/topics_screen.dart';
 
@@ -68,11 +68,6 @@ class _HomeScreenState extends State<HomeScreen> {
                   stars: stars,
                   streak: streak,
                   coins: coins,
-                  username: isGuest ? null : username,
-                  onAvatarTap: isGuest
-                      ? null
-                      : () => Navigator.push(context,
-                          AppPageRoute(builder: (_) => const ProfileScreen())),
                 ),
                 Container(height: 1, color: AppColors.border),
               ],
@@ -290,7 +285,7 @@ class _HeroBanner extends StatelessWidget {
 
           // Content
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 24, 0, 24),
+            padding: const EdgeInsets.fromLTRB(20, 8, 0, 8),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
@@ -341,20 +336,15 @@ class _HeroBanner extends StatelessWidget {
                 ),
 
                 // Mascot
-                SizedBox(
-                  width: 130,
-                  height: 130,
-                  child: Image.asset(
-                    'assets/images/mascot.png',
-                    fit: BoxFit.contain,
-                    alignment: Alignment.bottomCenter,
-                    errorBuilder: (_, __, ___) => Padding(
-                      padding: const EdgeInsets.only(right: 20),
-                      child: Icon(
-                        Icons.shield_rounded,
-                        size: 90,
-                        color: Colors.white.withValues(alpha: 0.18),
-                      ),
+                Padding(
+                  padding: const EdgeInsets.only(right: 32),
+                  child: SizedBox(
+                    width: 80,
+                    height: 142,
+                    child: SvgPicture.asset(
+                      'assets/images/mascot.svg',
+                      fit: BoxFit.contain,
+                      alignment: Alignment.bottomCenter,
                     ),
                   ),
                 ),

@@ -8,6 +8,7 @@ import '../../providers/auth_provider.dart';
 import '../../widgets/app_widgets.dart';
 import '../home/main_screen.dart';
 import 'register_screen.dart';
+import 'splash_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -44,13 +45,19 @@ class _LoginScreenState extends State<LoginScreen> {
       email: _emailController.text.trim(),
       password: _passwordController.text.trim(),
     );
-    if (!success && mounted) {
+    if (!mounted) return;
+    if (success) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        AppPageRoute(builder: (_) => const PostLoginSplash()),
+        (r) => false,
+      );
+    } else {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
         content: Text(auth.errorMessage ?? 'Login failed'),
         backgroundColor: AppColors.red,
         behavior: SnackBarBehavior.floating,
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ));
     }
   }

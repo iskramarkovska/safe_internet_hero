@@ -73,6 +73,11 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  void exitGuestMode() {
+    _isGuest = false;
+    notifyListeners();
+  }
+
   Future<void> logout() async {
     await _authService.logout();
     _user = null;

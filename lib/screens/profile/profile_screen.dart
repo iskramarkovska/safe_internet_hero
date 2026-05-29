@@ -69,26 +69,23 @@ const _badges = [
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
 class ProfileScreen extends StatelessWidget {
-  const ProfileScreen({super.key});
+  final bool showBackButton;
+  const ProfileScreen({super.key, this.showBackButton = true});
 
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final user = auth.user;
 
-    if (user == null) {
-      return const Scaffold(
-        backgroundColor: AppColors.background,
-        body: Center(
-            child: CircularProgressIndicator(color: AppColors.blue)),
-      );
+    if (auth.isGuest || user == null) {
+      return _GuestProfileScreen(showBackButton: showBackButton);
     }
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: CustomScrollView(
         slivers: [
-          SliverToBoxAdapter(child: _ProfileHeader(user: user)),
+          SliverToBoxAdapter(child: _ProfileHeader(user: user, showBackButton: showBackButton)),
           SliverPadding(
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 48),
             sliver: SliverList(
@@ -227,7 +224,8 @@ class ProfileScreen extends StatelessWidget {
 
 class _ProfileHeader extends StatelessWidget {
   final UserModel user;
-  const _ProfileHeader({required this.user});
+  final bool showBackButton;
+  const _ProfileHeader({required this.user, required this.showBackButton});
 
   @override
   Widget build(BuildContext context) {
@@ -251,11 +249,14 @@ class _ProfileHeader extends StatelessWidget {
                   const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
               child: Row(
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_rounded,
-                        color: Colors.white, size: 22),
-                    onPressed: () => Navigator.pop(context),
-                  ),
+                  if (showBackButton)
+                    IconButton(
+                      icon: const Icon(Icons.arrow_back_ios_rounded,
+                          color: Colors.white, size: 22),
+                      onPressed: () => Navigator.pop(context),
+                    )
+                  else
+                    const SizedBox(width: 48),
                   const Expanded(
                     child: Text(
                       'My Profile',
@@ -330,6 +331,118 @@ class _ProfileHeader extends StatelessWidget {
             const SizedBox(height: 24),
           ],
         ),
+      ),
+    );
+  }
+}
+
+// ─── Guest profile screen ─────────────────────────────────────────────────────
+
+class _GuestProfileScreen extends StatelessWidget {
+  final bool showBackButton;
+  const _GuestProfileScreen({required this.showBackButton});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: Column(
+        children: [
+          SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                const AppTopBar(stars: 0, streak: 0, coins: 0),
+                Container(height: 1, color: AppColors.border),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 18),
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [AppColors.blue, Color(0xFF5AB4F7)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                  ),
+                  child: const Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Profile',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 24,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      SizedBox(height: 2),
+                      Text(
+                        'Create an account to track your progress',
+                        style: TextStyle(color: Colors.white70, fontSize: 13),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(height: 1, color: AppColors.border),
+              ],
+            ),
+          ),
+          Expanded(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 80,
+                      height: 80,
+                      decoration: const BoxDecoration(
+                        color: AppColors.blueLight,
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(Icons.person_rounded,
+                          color: AppColors.blue, size: 44),
+                    ),
+                    const SizedBox(height: 20),
+                    const Text(
+                      'Create an account',
+                      style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'Sign up to track your progress,\nearn stars and climb the leaderboard!',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 14,
+                        height: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    AppButton(
+                      label: 'Get Started — It\'s Free!',
+                      variant: AppButtonVariant.success,
+                      icon: Icons.person_add_rounded,
+                      onTap: () {
+                        context.read<AuthProvider>().exitGuestMode();
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          AppPageRoute(builder: (_) => const AuthGate()),
+                          (r) => false,
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

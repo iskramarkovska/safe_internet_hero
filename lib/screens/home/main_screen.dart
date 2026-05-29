@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../core/theme.dart';
 import 'home_screen.dart';
 import '../learn/learn_screen.dart';
 import '../social/leaderboard_screen.dart';
 import '../social/activity_screen.dart';
+import '../profile/profile_screen.dart';
 
 class MainScreen extends StatefulWidget {
   const MainScreen({super.key});
@@ -19,8 +20,9 @@ class _MainScreenState extends State<MainScreen> {
   final List<Widget> _screens = const [
     HomeScreen(),
     LearnScreen(),
-    ActivityScreen(),
     LeaderboardScreen(),
+    ActivityScreen(),
+    ProfileScreen(showBackButton: false),
   ];
 
   @override
@@ -44,11 +46,12 @@ class _DuolingoBottomNav extends StatelessWidget {
     required this.onTap,
   });
 
-  static const _items = [
-    (icon: Icons.home_rounded, label: 'Home'),
-    (icon: Icons.menu_book_rounded, label: 'Learn'),
-    (icon: Icons.bolt_rounded, label: 'Activity'),
-    (icon: Icons.emoji_events_rounded, label: 'Ranks'),
+  static const _svgPaths = [
+    'assets/images/home.svg',
+    'assets/images/learn.svg',
+    'assets/images/leaderboard.svg',
+    'assets/images/activity.svg',
+    'assets/images/profile.svg',
   ];
 
   @override
@@ -63,8 +66,7 @@ class _DuolingoBottomNav extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.symmetric(vertical: 6),
           child: Row(
-            children: List.generate(_items.length, (i) {
-              final item = _items[i];
+            children: List.generate(_svgPaths.length, (i) {
               final selected = i == currentIndex;
 
               return Expanded(
@@ -79,30 +81,16 @@ class _DuolingoBottomNav extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 18, vertical: 6),
                         decoration: BoxDecoration(
-                          color: selected
-                              ? AppColors.blueLight
-                              : Colors.transparent,
+                          color: Colors.transparent,
                           borderRadius: BorderRadius.circular(14),
+                          border: selected
+                              ? Border.all(color: AppColors.blue, width: 2)
+                              : null,
                         ),
-                        child: Icon(
-                          item.icon,
-                          color: selected
-                              ? AppColors.blue
-                              : AppColors.textLight,
-                          size: 24,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        item.label,
-                        style: GoogleFonts.nunito(
-                          color: selected
-                              ? AppColors.blue
-                              : AppColors.textLight,
-                          fontSize: 10,
-                          fontWeight: selected
-                              ? FontWeight.w800
-                              : FontWeight.w600,
+                        child: SvgPicture.asset(
+                          _svgPaths[i],
+                          width: 24,
+                          height: 24,
                         ),
                       ),
                     ],
