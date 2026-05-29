@@ -71,6 +71,7 @@ class UserModel {
       'isAdmin': isAdmin,
       'answeredQuestions': answeredQuestions,
       'incorrectlyAnsweredIds': incorrectlyAnsweredIds,
+      'usernameLower': username.toLowerCase(),
     };
   }
 

@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme.dart';
 import '../../models/enums.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/friend_service.dart';
 import '../../widgets/app_widgets.dart';
 import 'login_screen.dart';
 import 'splash_screen.dart';
@@ -31,17 +32,28 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }
 
   Future<void> _register() async {
-    if (_usernameController.text.trim().isEmpty ||
-        _emailController.text.trim().isEmpty ||
-        _passwordController.text.trim().isEmpty) {
+    final username = _usernameController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text.trim();
+
+    if (username.isEmpty || email.isEmpty || password.isEmpty) {
       _snack('Please fill in all fields');
       return;
     }
+
+    // Enforce unique usernames (case-insensitive)
+    final taken = await FriendService().isUsernameTaken(username);
+    if (!mounted) return;
+    if (taken) {
+      _snack('That username is already taken — try another');
+      return;
+    }
+
     final auth = context.read<AuthProvider>();
     final success = await auth.register(
-      email: _emailController.text.trim(),
-      password: _passwordController.text.trim(),
-      username: _usernameController.text.trim(),
+      email: email,
+      password: password,
+      username: username,
       ageGroup: AgeGroup.teens,
     );
     if (!mounted) return;

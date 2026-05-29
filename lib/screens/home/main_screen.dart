@@ -4,7 +4,6 @@ import '../../core/theme.dart';
 import 'home_screen.dart';
 import '../learn/learn_screen.dart';
 import '../social/leaderboard_screen.dart';
-import '../social/activity_screen.dart';
 import '../profile/profile_screen.dart';
 
 class MainScreen extends StatefulWidget {
@@ -17,11 +16,10 @@ class MainScreen extends StatefulWidget {
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
 
-  final List<Widget> _screens = const [
+  static const _screens = [
     HomeScreen(),
     LearnScreen(),
     LeaderboardScreen(),
-    ActivityScreen(),
     ProfileScreen(showBackButton: false),
   ];
 
@@ -50,7 +48,6 @@ class _DuolingoBottomNav extends StatelessWidget {
     'assets/images/home.svg',
     'assets/images/learn.svg',
     'assets/images/leaderboard.svg',
-    'assets/images/activity.svg',
     'assets/images/profile.svg',
   ];
 
@@ -68,7 +65,6 @@ class _DuolingoBottomNav extends StatelessWidget {
           child: Row(
             children: List.generate(_svgPaths.length, (i) {
               final selected = i == currentIndex;
-
               return Expanded(
                 child: GestureDetector(
                   onTap: () => onTap(i),
@@ -81,7 +77,6 @@ class _DuolingoBottomNav extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 18, vertical: 6),
                         decoration: BoxDecoration(
-                          color: Colors.transparent,
                           borderRadius: BorderRadius.circular(14),
                           border: selected
                               ? Border.all(color: AppColors.blue, width: 2)

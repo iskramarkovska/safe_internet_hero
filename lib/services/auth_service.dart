@@ -51,7 +51,16 @@ class AuthService {
       return user;
     }
 
-    return UserModel.fromMap(doc.data()!);
+    final data = doc.data()!;
+    // Lazy backfill: older documents may not have usernameLower yet
+    if (data['usernameLower'] == null) {
+      final username = (data['username'] ?? '') as String;
+      await _db.collection('users').doc(cred.user!.uid).update({
+        'usernameLower': username.toLowerCase(),
+      });
+    }
+
+    return UserModel.fromMap(data);
   }
 
   Future<void> logout() => _auth.signOut();
