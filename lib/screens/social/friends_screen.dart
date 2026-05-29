@@ -1,13 +1,17 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import '../../core/app_page_route.dart';
 import '../../core/theme.dart';
 import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/friend_service.dart';
 import '../../widgets/app_avatar.dart';
+import '../../widgets/app_widgets.dart';
+import '../home/main_screen.dart';
 
 class AllFriendsScreen extends StatefulWidget {
   final UserModel user;
@@ -31,8 +35,8 @@ class _AllFriendsScreenState extends State<AllFriendsScreen>
   @override
   void initState() {
     super.initState();
-    _tabs = TabController(length: 2, vsync: this,
-        initialIndex: widget.initialTab);
+    _tabs = TabController(length: 2, vsync: this, initialIndex: widget.initialTab);
+    _tabs.addListener(() => setState(() {}));
     _sub = FirebaseFirestore.instance
         .collection('users')
         .doc(widget.user.id)
@@ -74,97 +78,131 @@ class _AllFriendsScreenState extends State<AllFriendsScreen>
     super.dispose();
   }
 
+  void _onNavTap(BuildContext context, int index) {
+    if (index == 3) {
+      Navigator.pop(context);
+    } else {
+      Navigator.pushAndRemoveUntil(
+        context,
+        AppPageRoute(builder: (_) => MainScreen(initialIndex: index)),
+        (route) => false,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthProvider>().user ?? widget.user;
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Colors.white,
+      bottomNavigationBar: _AllFriendsBottomNav(
+        onTap: (i) => _onNavTap(context, i),
+      ),
       body: SafeArea(
+        bottom: false,
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top bar
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-              child: Row(
+            // ── AppTopBar + blue header (same pattern as leaderboard) ─────
+            AppTopBar(
+              stars: user.totalStars,
+              streak: user.currentStreak,
+              coins: user.coins,
+            ),
+            Container(height: 1, color: AppColors.border),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(4, 4, 20, 20),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [AppColors.blue, Color(0xFF5AB4F7)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Container(
-                      width: 36, height: 36,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: AppColors.border),
+                  // Back button — same style as create account screen
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back_ios_rounded,
+                            color: Colors.white, size: 22),
+                        onPressed: () => Navigator.pop(context),
                       ),
-                      child: const Icon(Icons.arrow_back_ios_rounded,
-                          size: 16, color: AppColors.textPrimary),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'All friends',
+                          style: GoogleFonts.nunito(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.w900,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          'Stay connected and cheer each other on',
+                          style: GoogleFonts.nunito(
+                            color: Colors.white.withValues(alpha: 0.85),
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  const Spacer(),
-                  _TopStat(
-                      icon: Icons.local_fire_department_rounded,
-                      color: AppColors.orange,
-                      value: '${user.currentStreak}'),
-                  const SizedBox(width: 20),
-                  _TopStat(
-                      icon: Icons.monetization_on_rounded,
-                      color: AppColors.gold,
-                      value: '${user.coins}'),
-                  const SizedBox(width: 20),
-                  _TopStat(
-                      icon: Icons.star_rounded,
-                      color: const Color(0xFFE57373),
-                      value: '${user.totalStars}'),
                 ],
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // Title
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20),
-              child: Text(
-                'All friends',
-                style: TextStyle(
-                  color: AppColors.textPrimary,
-                  fontSize: 26,
-                  fontWeight: FontWeight.w900,
-                ),
               ),
             ),
 
             const SizedBox(height: 16),
 
-            // Tab bar
+            // ── Underlined tab bar (same style as profile friends section) ─
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: TabBar(
                 controller: _tabs,
                 labelColor: AppColors.blue,
                 unselectedLabelColor: AppColors.textSecondary,
-                labelStyle: GoogleFonts.nunito(
-                    fontSize: 13, fontWeight: FontWeight.w800,
+                labelStyle: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
                     letterSpacing: 0.5),
-                unselectedLabelStyle: GoogleFonts.nunito(
-                    fontSize: 13, fontWeight: FontWeight.w700,
+                unselectedLabelStyle: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
                     letterSpacing: 0.5),
                 indicatorColor: AppColors.blue,
                 indicatorWeight: 2.5,
                 indicatorSize: TabBarIndicatorSize.label,
                 dividerColor: AppColors.border,
                 tabs: [
-                  Tab(text: 'FOLLOWING (${_friends.length})'),
-                  Tab(text: 'FOLLOWERS (${_requesters.length})'),
+                  Tab(
+                    text: _friends.isEmpty
+                        ? 'FOLLOWING'
+                        : 'FOLLOWING (${_friends.length})',
+                  ),
+                  Tab(
+                    text: _requesters.isEmpty
+                        ? 'REQUESTS'
+                        : 'REQUESTS (${_requesters.length})',
+                  ),
                 ],
               ),
             ),
 
             const SizedBox(height: 16),
 
-            // Tab views
+            // ── Tab views ─────────────────────────────────────────────────
             Expanded(
               child: _loading
                   ? const Center(
@@ -199,26 +237,65 @@ class _AllFriendsScreenState extends State<AllFriendsScreen>
   }
 }
 
-// ─── Stat chip in top bar ─────────────────────────────────────────────────────
+// ── Bottom nav for AllFriendsScreen (profile tab = index 3, selected) ─────────
 
-class _TopStat extends StatelessWidget {
-  final IconData icon;
-  final Color color;
-  final String value;
-  const _TopStat({required this.icon, required this.color, required this.value});
+class _AllFriendsBottomNav extends StatelessWidget {
+  final ValueChanged<int> onTap;
+  const _AllFriendsBottomNav({required this.onTap});
+
+  static const _svgPaths = [
+    'assets/images/home.svg',
+    'assets/images/leaderboard.svg',
+    'assets/images/learn.svg',
+    'assets/images/profile.svg',
+  ];
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(icon, color: color, size: 18),
-        const SizedBox(width: 4),
-        Text(value,
-            style: const TextStyle(
-                color: AppColors.textPrimary,
-                fontWeight: FontWeight.w800,
-                fontSize: 14)),
-      ],
+    const selectedIndex = 3; // profile tab
+    return Container(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: AppColors.border, width: 1.5)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Row(
+            children: List.generate(_svgPaths.length, (i) {
+              final selected = i == selectedIndex;
+              return Expanded(
+                child: GestureDetector(
+                  onTap: () => onTap(i),
+                  behavior: HitTestBehavior.opaque,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 18, vertical: 6),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(14),
+                          border: selected
+                              ? Border.all(color: AppColors.blue, width: 2)
+                              : null,
+                        ),
+                        child: SvgPicture.asset(
+                          _svgPaths[i],
+                          width: 30,
+                          height: 30,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -247,25 +324,26 @@ class _FollowingTab extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 72, height: 72,
-                decoration: BoxDecoration(
-                    color: AppColors.blueLight,
-                    borderRadius: BorderRadius.circular(20)),
-                child: const Icon(Icons.people_outline_rounded,
-                    color: AppColors.blue, size: 36),
+              SvgPicture.asset(
+                'assets/images/friends.svg',
+                width: 120,
+                height: 120,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               const Text('No friends yet',
                   style: TextStyle(
                       color: AppColors.textPrimary,
                       fontWeight: FontWeight.w800,
                       fontSize: 16)),
-              const SizedBox(height: 6),
-              const Text('Add friends to compete together!',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      color: AppColors.textSecondary, fontSize: 13)),
+              const SizedBox(height: 8),
+              const Text(
+                'Learning is more fun and effective\nwhen you connect with others',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 13,
+                    height: 1.5),
+              ),
             ],
           ),
         ),
@@ -468,25 +546,26 @@ class _RequestsTab extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 72, height: 72,
-                decoration: BoxDecoration(
-                    color: AppColors.blueLight,
-                    borderRadius: BorderRadius.circular(20)),
-                child: const Icon(Icons.person_add_outlined,
-                    color: AppColors.blue, size: 36),
+              SvgPicture.asset(
+                'assets/images/no_requests.svg',
+                width: 120,
+                height: 120,
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               const Text('No pending requests',
                   style: TextStyle(
                       color: AppColors.textPrimary,
                       fontWeight: FontWeight.w800,
                       fontSize: 16)),
-              const SizedBox(height: 6),
-              const Text('Friend requests will appear here.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      color: AppColors.textSecondary, fontSize: 13)),
+              const SizedBox(height: 8),
+              const Text(
+                'When someone sends you a friend request\nit will appear here',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                    color: AppColors.textSecondary,
+                    fontSize: 13,
+                    height: 1.5),
+              ),
             ],
           ),
         ),

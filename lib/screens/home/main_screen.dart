@@ -7,19 +7,26 @@ import '../social/leaderboard_screen.dart';
 import '../profile/profile_screen.dart';
 
 class MainScreen extends StatefulWidget {
-  const MainScreen({super.key});
+  final int initialIndex;
+  const MainScreen({super.key, this.initialIndex = 0});
 
   @override
   State<MainScreen> createState() => _MainScreenState();
 }
 
 class _MainScreenState extends State<MainScreen> {
-  int _currentIndex = 0;
+  late int _currentIndex;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentIndex = widget.initialIndex;
+  }
 
   static const _screens = [
     HomeScreen(),
-    LearnScreen(),
     LeaderboardScreen(),
+    LearnScreen(),
     ProfileScreen(showBackButton: false),
   ];
 
@@ -46,8 +53,8 @@ class _DuolingoBottomNav extends StatelessWidget {
 
   static const _svgPaths = [
     'assets/images/home.svg',
-    'assets/images/learn.svg',
     'assets/images/leaderboard.svg',
+    'assets/images/learn.svg',
     'assets/images/profile.svg',
   ];
 
@@ -84,8 +91,8 @@ class _DuolingoBottomNav extends StatelessWidget {
                         ),
                         child: SvgPicture.asset(
                           _svgPaths[i],
-                          width: 24,
-                          height: 24,
+                          width: 30,
+                          height: 30,
                         ),
                       ),
                     ],
