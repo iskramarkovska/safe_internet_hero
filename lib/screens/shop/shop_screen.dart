@@ -1,0 +1,507 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import '../../core/theme.dart';
+import '../../providers/auth_provider.dart';
+import '../../services/shop_service.dart';
+import '../../widgets/app_avatar.dart';
+
+class ShopScreen extends StatefulWidget {
+  const ShopScreen({super.key});
+
+  @override
+  State<ShopScreen> createState() => _ShopScreenState();
+}
+
+class _ShopScreenState extends State<ShopScreen> {
+  // Tracks which item is currently being purchased.
+  // Other items stay fully interactive while one is loading.
+  final Set<String> _loadingIds = {};
+
+  Future<void> _buy(String itemId) async {
+    if (_loadingIds.contains(itemId)) return;
+    final auth = context.read<AuthProvider>();
+    final user = auth.user;
+    if (user == null) return;
+
+    setState(() => _loadingIds.add(itemId));
+
+    final shop = ShopService();
+    bool success = false;
+
+    switch (itemId) {
+      case 'streak_freeze':
+        success = await shop.buyStreakFreeze(user.id);
+      case 'xp_boost':
+        success = await shop.buyXpBoost(user.id);
+      case 'gold_frame':
+        success = await shop.buyGoldFrame(user.id);
+    }
+
+    await auth.refreshUser();
+    if (!mounted) return;
+    setState(() => _loadingIds.remove(itemId));
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          success ? 'Purchased!' : "Not enough coins!",
+          style: GoogleFonts.nunito(fontWeight: FontWeight.w700),
+        ),
+        backgroundColor: success ? AppColors.green : AppColors.red,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final auth = context.watch<AuthProvider>();
+    final user = auth.user;
+    final isGuest = auth.isGuest;
+    final coins = user?.coins ?? 0;
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // ── Header ──────────────────────────────────────────────────────
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+              child: Row(
+                children: [
+                  Text(
+                    'Shop',
+                    style: GoogleFonts.nunito(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const Spacer(),
+                  _CoinBadge(coins: coins),
+                ],
+              ),
+            ),
+            Container(height: 1, color: AppColors.border),
+
+            // ── Body ────────────────────────────────────────────────────────
+            Expanded(
+              child: isGuest
+                  ? _GuestPrompt()
+                  : ListView(
+                      padding: const EdgeInsets.fromLTRB(20, 24, 20, 48),
+                      children: [
+                        // Power-Ups section
+                        _SectionLabel('Power-Ups'),
+                        const SizedBox(height: 12),
+
+                        _ShopItemCard(
+                          icon: Icons.ac_unit_rounded,
+                          iconColor: AppColors.blue,
+                          name: 'Streak Freeze',
+                          description:
+                              'Miss a day without losing your streak. You can hold up to 2.',
+                          price: 10,
+                          userCoins: coins,
+                          tag: user != null && user.streakFreezeCount > 0
+                              ? '${user.streakFreezeCount}/2'
+                              : null,
+                          tagColor: AppColors.blue,
+                          canBuy: (user?.streakFreezeCount ?? 0) < 2,
+                          loading: _loadingIds.contains('streak_freeze'),
+                          onBuy: () => _buy('streak_freeze'),
+                        ).animate(delay: 80.ms).fadeIn(duration: 250.ms).slideY(begin: 0.06, end: 0),
+
+                        const SizedBox(height: 12),
+
+                        _ShopItemCard(
+                          icon: Icons.electric_bolt_rounded,
+                          iconColor: AppColors.gold,
+                          name: 'XP Boost',
+                          description:
+                              'Earn 2× stars on your next quiz. Used automatically.',
+                          price: 25,
+                          userCoins: coins,
+                          tag: (user?.xpBoostActive ?? false) ? 'ACTIVE' : null,
+                          tagColor: AppColors.orange,
+                          canBuy: !(user?.xpBoostActive ?? false),
+                          loading: _loadingIds.contains('xp_boost'),
+                          onBuy: () => _buy('xp_boost'),
+                        ).animate(delay: 140.ms).fadeIn(duration: 250.ms).slideY(begin: 0.06, end: 0),
+
+                        const SizedBox(height: 28),
+
+                        // Cosmetics section
+                        _SectionLabel('Cosmetics'),
+                        const SizedBox(height: 12),
+
+                        _ShopItemCard(
+                          icon: Icons.circle_rounded,
+                          iconColor: AppColors.gold,
+                          name: 'Gold Frame',
+                          description:
+                              'Add a golden ring around your profile picture.',
+                          price: 50,
+                          userCoins: coins,
+                          tag: (user?.hasGoldFrame ?? false) ? 'OWNED' : null,
+                          tagColor: AppColors.green,
+                          canBuy: !(user?.hasGoldFrame ?? false),
+                          loading: _loadingIds.contains('gold_frame'),
+                          onBuy: () => _buy('gold_frame'),
+                          preview: (user?.hasGoldFrame ?? false)
+                              ? null
+                              : AppAvatar(
+                                  name: user?.username ?? 'You',
+                                  size: 42,
+                                  goldFrame: true,
+                                ),
+                        ).animate(delay: 200.ms).fadeIn(duration: 250.ms).slideY(begin: 0.06, end: 0),
+                      ],
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Coin badge ───────────────────────────────────────────────────────────────
+
+class _CoinBadge extends StatelessWidget {
+  final int coins;
+  const _CoinBadge({required this.coins});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+      decoration: BoxDecoration(
+        color: AppColors.orangeDark.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+            color: AppColors.orangeDark.withValues(alpha: 0.35), width: 1.5),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.monetization_on_rounded,
+              color: AppColors.orangeDark, size: 16),
+          const SizedBox(width: 5),
+          Text(
+            '$coins coins',
+            style: GoogleFonts.nunito(
+              color: AppColors.orangeDark,
+              fontWeight: FontWeight.w800,
+              fontSize: 14,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Section label ────────────────────────────────────────────────────────────
+
+class _SectionLabel extends StatelessWidget {
+  final String text;
+  const _SectionLabel(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text.toUpperCase(),
+      style: GoogleFonts.nunito(
+        color: AppColors.textSecondary,
+        fontSize: 11,
+        fontWeight: FontWeight.w800,
+        letterSpacing: 0.8,
+      ),
+    );
+  }
+}
+
+// ─── Shop item card ───────────────────────────────────────────────────────────
+
+class _ShopItemCard extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final String name;
+  final String description;
+  final int price;
+  final int userCoins;
+  final String? tag;
+  final Color? tagColor;
+  final bool canBuy;
+  final bool loading;
+  final VoidCallback onBuy;
+  final Widget? preview;
+
+  const _ShopItemCard({
+    required this.icon,
+    required this.iconColor,
+    required this.name,
+    required this.description,
+    required this.price,
+    required this.userCoins,
+    this.tag,
+    this.tagColor,
+    required this.canBuy,
+    required this.loading,
+    required this.onBuy,
+    this.preview,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final canAfford = userCoins >= price;
+    final actionable = canBuy && canAfford && !loading;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border, width: 1.5),
+      ),
+      child: Row(
+        children: [
+          // Icon
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Icon(icon, color: iconColor, size: 26),
+          ),
+          const SizedBox(width: 14),
+
+          // Name + description
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Flexible(
+                      child: Text(
+                        name,
+                        style: GoogleFonts.nunito(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w800,
+                          fontSize: 15,
+                        ),
+                      ),
+                    ),
+                    if (tag != null) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 7, vertical: 2),
+                        decoration: BoxDecoration(
+                          color:
+                              (tagColor ?? AppColors.blue).withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          tag!,
+                          style: GoogleFonts.nunito(
+                            color: tagColor ?? AppColors.blue,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 10,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  description,
+                  style: GoogleFonts.nunito(
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 12,
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(width: 12),
+
+          // Preview or buy button column
+          Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              if (preview != null) ...[
+                preview!,
+                const SizedBox(height: 6),
+              ],
+              _BuyButton(
+                price: price,
+                canBuy: canBuy,
+                canAfford: canAfford,
+                loading: loading,
+                onTap: actionable ? onBuy : null,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Buy button ───────────────────────────────────────────────────────────────
+
+class _BuyButton extends StatelessWidget {
+  final int price;
+  final bool canBuy;
+  final bool canAfford;
+  final bool loading;
+  final VoidCallback? onTap;
+
+  const _BuyButton({
+    required this.price,
+    required this.canBuy,
+    required this.canAfford,
+    required this.loading,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final owned = !canBuy;
+    final disabled = owned || !canAfford;
+
+    final Color bgColor = loading
+        ? AppColors.blue.withValues(alpha: 0.6)
+        : owned
+            ? AppColors.green.withValues(alpha: 0.15)
+            : disabled
+                ? AppColors.border
+                : AppColors.blue;
+
+    final Color contentColor = owned
+        ? AppColors.greenDark
+        : disabled && !loading
+            ? AppColors.textSecondary
+            : Colors.white;
+
+    Widget content;
+    if (loading) {
+      content = const SizedBox(
+        width: 16,
+        height: 16,
+        child: CircularProgressIndicator(
+          strokeWidth: 2,
+          valueColor: AlwaysStoppedAnimation(Colors.white),
+        ),
+      );
+    } else if (owned) {
+      content = Text(
+        'OWNED',
+        style: GoogleFonts.nunito(
+          color: contentColor,
+          fontWeight: FontWeight.w800,
+          fontSize: 12,
+        ),
+      );
+    } else {
+      content = Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.monetization_on_rounded, color: contentColor, size: 13),
+          const SizedBox(width: 3),
+          Text(
+            '$price',
+            style: GoogleFonts.nunito(
+              color: contentColor,
+              fontWeight: FontWeight.w800,
+              fontSize: 13,
+            ),
+          ),
+        ],
+      );
+    }
+
+    return GestureDetector(
+      onTap: loading ? null : onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+        decoration: BoxDecoration(
+          color: bgColor,
+          borderRadius: BorderRadius.circular(12),
+          border: owned
+              ? Border.all(
+                  color: AppColors.green.withValues(alpha: 0.4), width: 1.5)
+              : null,
+        ),
+        child: content,
+      ),
+    );
+  }
+}
+
+// ─── Guest prompt ─────────────────────────────────────────────────────────────
+
+class _GuestPrompt extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(36),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: AppColors.orangeDark.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.store_rounded,
+                  color: AppColors.orangeDark, size: 40),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Create an account to use the shop',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.nunito(
+                color: AppColors.textPrimary,
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Earn coins by completing quizzes and spend them on power-ups and cosmetics.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.nunito(
+                color: AppColors.textSecondary,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                height: 1.5,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

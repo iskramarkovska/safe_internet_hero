@@ -16,6 +16,9 @@ class UserModel {
   final bool isAdmin;
   final List<String> answeredQuestions;
   final List<String> incorrectlyAnsweredIds;
+  final int streakFreezeCount;
+  final bool xpBoostActive;
+  final bool hasGoldFrame;
 
   UserModel({
     required this.id,
@@ -32,6 +35,9 @@ class UserModel {
     this.isAdmin = false,
     this.answeredQuestions = const [],
     this.incorrectlyAnsweredIds = const [],
+    this.streakFreezeCount = 0,
+    this.xpBoostActive = false,
+    this.hasGoldFrame = false,
   });
 
   factory UserModel.fromMap(Map<String, dynamic> map) {
@@ -51,6 +57,9 @@ class UserModel {
       answeredQuestions: List<String>.from(map['answeredQuestions'] ?? []),
       incorrectlyAnsweredIds:
           List<String>.from(map['incorrectlyAnsweredIds'] ?? []),
+      streakFreezeCount: map['streakFreezeCount'] ?? 0,
+      xpBoostActive: map['xpBoostActive'] ?? false,
+      hasGoldFrame: map['hasGoldFrame'] ?? false,
     );
   }
 
@@ -71,6 +80,9 @@ class UserModel {
       'isAdmin': isAdmin,
       'answeredQuestions': answeredQuestions,
       'incorrectlyAnsweredIds': incorrectlyAnsweredIds,
+      'streakFreezeCount': streakFreezeCount,
+      'xpBoostActive': xpBoostActive,
+      'hasGoldFrame': hasGoldFrame,
       'usernameLower': username.toLowerCase(),
     };
   }

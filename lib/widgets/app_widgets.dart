@@ -188,6 +188,7 @@ class AppTopBar extends StatelessWidget {
   final int coins;
   final String? username;
   final VoidCallback? onAvatarTap;
+  final bool goldFrame;
 
   const AppTopBar({
     super.key,
@@ -196,6 +197,7 @@ class AppTopBar extends StatelessWidget {
     this.coins = 0,
     this.username,
     this.onAvatarTap,
+    this.goldFrame = false,
   });
 
   @override
@@ -228,7 +230,7 @@ class AppTopBar extends StatelessWidget {
                   : MouseCursor.defer,
               child: GestureDetector(
                 onTap: onAvatarTap,
-                child: AppAvatar(name: username!, size: 34),
+                child: AppAvatar(name: username!, size: 34, goldFrame: goldFrame),
               ),
             ),
           ],

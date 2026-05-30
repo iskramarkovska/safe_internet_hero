@@ -14,6 +14,7 @@ class StreakService {
 
     final data = doc.data()!;
     final currentStreak = (data['currentStreak'] as int?) ?? 0;
+    final streakFreezeCount = (data['streakFreezeCount'] as int?) ?? 0;
     final lastActiveRaw = data['lastActiveDate'];
 
     DateTime? lastActive;
@@ -30,6 +31,15 @@ class StreakService {
         newStreak = currentStreak; // Already active today — preserve streak
       } else if (diff == 1) {
         newStreak = currentStreak + 1; // Consecutive day — extend
+      } else if (streakFreezeCount > 0) {
+        // Use a freeze instead of resetting
+        newStreak = currentStreak;
+        await _db.collection('users').doc(userId).update({
+          'currentStreak': newStreak,
+          'streakFreezeCount': FieldValue.increment(-1),
+          'lastActiveDate': Timestamp.fromDate(now),
+        });
+        return newStreak;
       } else {
         newStreak = 1; // Missed days — reset
       }

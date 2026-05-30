@@ -172,6 +172,7 @@ class _QuizScreenState extends State<QuizScreen> {
       completedAt: DateTime.now(),
       correctlyAnsweredIds: correctIds,
       incorrectlyAnsweredIds: incorrectIds,
+      isReplay: widget.forReplay,
     );
 
     final catId = widget.categoryId;

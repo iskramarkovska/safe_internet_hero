@@ -10,6 +10,7 @@ class AppAvatar extends StatelessWidget {
   final double size;
   final Color? borderColor;
   final double borderWidth;
+  final bool goldFrame;
 
   const AppAvatar({
     super.key,
@@ -17,6 +18,7 @@ class AppAvatar extends StatelessWidget {
     this.size = 40,
     this.borderColor,
     this.borderWidth = 2.5,
+    this.goldFrame = false,
   });
 
   static const _gradients = [
@@ -71,7 +73,50 @@ class AppAvatar extends StatelessWidget {
       ),
     );
 
-    if (borderColor != null) {
+    if (goldFrame) {
+      // White inner gap
+      avatar = Container(
+        width: size + 4,
+        height: size + 4,
+        decoration: const BoxDecoration(
+          shape: BoxShape.circle,
+          color: Colors.white,
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(2),
+          child: avatar,
+        ),
+      );
+      // Gold gradient outer ring with glow
+      avatar = Container(
+        width: size + 12,
+        height: size + 12,
+        decoration: BoxDecoration(
+          shape: BoxShape.circle,
+          gradient: const LinearGradient(
+            colors: [
+              Color(0xFFFFE566),
+              Color(0xFFFFB300),
+              Color(0xFFCC7800),
+              Color(0xFFFFB300),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFFFB300).withValues(alpha: 0.55),
+              blurRadius: 12,
+              spreadRadius: 1,
+            ),
+          ],
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(4),
+          child: avatar,
+        ),
+      );
+    } else if (borderColor != null) {
       avatar = Container(
         width: size + borderWidth * 2,
         height: size + borderWidth * 2,

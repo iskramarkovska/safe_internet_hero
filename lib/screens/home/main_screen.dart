@@ -3,6 +3,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import '../../core/theme.dart';
 import 'home_screen.dart';
 import '../learn/learn_screen.dart';
+import '../shop/shop_screen.dart';
 import '../social/leaderboard_screen.dart';
 import '../profile/profile_screen.dart';
 
@@ -25,8 +26,9 @@ class _MainScreenState extends State<MainScreen> {
 
   static const _screens = [
     HomeScreen(),
-    LeaderboardScreen(),
     LearnScreen(),
+    ShopScreen(),
+    LeaderboardScreen(),
     ProfileScreen(showBackButton: false),
   ];
 
@@ -53,8 +55,9 @@ class _DuolingoBottomNav extends StatelessWidget {
 
   static const _svgPaths = [
     'assets/images/home.svg',
-    'assets/images/leaderboard.svg',
     'assets/images/learn.svg',
+    'assets/images/store.svg',
+    'assets/images/leaderboard.svg',
     'assets/images/profile.svg',
   ];
 

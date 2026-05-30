@@ -18,6 +18,7 @@ class QuizResultModel {
   final DateTime completedAt;
   final List<String> correctlyAnsweredIds;
   final List<String> incorrectlyAnsweredIds;
+  final bool isReplay;
 
   QuizResultModel({
     required this.id,
@@ -36,6 +37,7 @@ class QuizResultModel {
     required this.completedAt,
     this.correctlyAnsweredIds = const [],
     this.incorrectlyAnsweredIds = const [],
+    this.isReplay = false,
   });
 
   int get percentage {
@@ -68,6 +70,7 @@ class QuizResultModel {
           List<String>.from(map['correctlyAnsweredIds'] ?? []),
       incorrectlyAnsweredIds:
           List<String>.from(map['incorrectlyAnsweredIds'] ?? []),
+      isReplay: map['isReplay'] ?? false,
     );
   }
 
@@ -89,6 +92,7 @@ class QuizResultModel {
       'completedAt': Timestamp.fromDate(completedAt),
       'correctlyAnsweredIds': correctlyAnsweredIds,
       'incorrectlyAnsweredIds': incorrectlyAnsweredIds,
+      'isReplay': isReplay,
     };
   }
 

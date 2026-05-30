@@ -8,6 +8,7 @@ import '../../models/quiz_result_model.dart';
 import '../../models/topic_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/questions_service.dart';
+import '../../services/shop_service.dart';
 import '../../services/streak_service.dart';
 import '../../services/topics_service.dart';
 import '../../widgets/app_avatar.dart';
@@ -34,6 +35,7 @@ class _QuizResultScreenState extends State<QuizResultScreen>
   late final AnimationController _trophyCtrl;
   bool _showConfetti = false;
   int _newStreak = 0;
+  int _boostedStars = 0;
   TopicModel? _nextTopic;
 
   @override
@@ -42,9 +44,11 @@ class _QuizResultScreenState extends State<QuizResultScreen>
     _confettiCtrl = AnimationController(vsync: this);
     _trophyCtrl = AnimationController(vsync: this);
 
-    if (!widget.result.isPractice) _loadNextTopic();
+    if (!widget.result.isPractice && !widget.result.isReplay) _loadNextTopic();
 
-    if (widget.result.starsEarned >= 2 && !widget.result.isPractice) {
+    if (widget.result.starsEarned >= 2 &&
+        !widget.result.isPractice &&
+        !widget.result.isReplay) {
       _showConfetti = true;
       _confettiCtrl.addStatusListener((status) {
         if (status == AnimationStatus.completed && mounted) {
@@ -86,6 +90,13 @@ class _QuizResultScreenState extends State<QuizResultScreen>
 
       await svc.saveResult(widget.result);
 
+      // Replays earn no rewards and don't update answered question lists.
+      if (widget.result.isReplay) {
+        if (!mounted) return;
+        await auth.refreshUser();
+        return;
+      }
+
       if (widget.result.correctlyAnsweredIds.isNotEmpty ||
           widget.result.incorrectlyAnsweredIds.isNotEmpty) {
         await svc.saveAnsweredQuestions(
@@ -98,9 +109,15 @@ class _QuizResultScreenState extends State<QuizResultScreen>
       if (widget.result.isPractice) {
         await svc.addRewards(userId: user.id, starsToAdd: 0, coinsToAdd: 3);
       } else {
+        int starsToAdd = widget.result.starsEarned;
+        if (user.xpBoostActive && starsToAdd > 0) {
+          starsToAdd *= 2;
+          if (mounted) setState(() => _boostedStars = starsToAdd);
+          await ShopService().deactivateXpBoost(user.id);
+        }
         await svc.addRewards(
           userId: user.id,
-          starsToAdd: widget.result.starsEarned,
+          starsToAdd: starsToAdd,
           coinsToAdd: widget.result.coinsEarned,
         );
         if (widget.result.starsEarned > 0) {
@@ -115,10 +132,7 @@ class _QuizResultScreenState extends State<QuizResultScreen>
   }
 
   void _goHome() {
-    Navigator.of(context).pushAndRemoveUntil(
-      AppPageRoute(builder: (_) => const MainScreen()),
-      (route) => false,
-    );
+    Navigator.of(context).pop();
   }
 
   void _practiceAgain() {
@@ -142,6 +156,8 @@ class _QuizResultScreenState extends State<QuizResultScreen>
     final isPractice = result.isPractice;
     final isGuest = context.watch<AuthProvider>().isGuest;
 
+    final isReplay = result.isReplay;
+
     final Color accent = isPractice
         ? AppColors.orange
         : result.starsEarned == 3
@@ -150,25 +166,33 @@ class _QuizResultScreenState extends State<QuizResultScreen>
                 ? AppColors.blue
                 : const Color(0xFF9E9E9E);
 
-    final String titleText = isPractice
+    final String titleText = isReplay
         ? (result.starsEarned == 3
-            ? 'Perfect Practice!'
+            ? 'Perfect Replay!'
             : result.starsEarned >= 1
-                ? 'Good Practice!'
-                : 'Keep Practicing!')
-        : result.starsEarned == 0
-            ? 'Keep Trying!'
-            : result.starsEarned == 1
-                ? 'Good Job!'
-                : result.starsEarned == 2
-                    ? 'Great Work!'
-                    : 'Perfect Score!';
+                ? 'Good Replay!'
+                : 'Keep Trying!')
+        : isPractice
+            ? (result.starsEarned == 3
+                ? 'Perfect Practice!'
+                : result.starsEarned >= 1
+                    ? 'Good Practice!'
+                    : 'Keep Practicing!')
+            : result.starsEarned == 0
+                ? 'Keep Trying!'
+                : result.starsEarned == 1
+                    ? 'Good Job!'
+                    : result.starsEarned == 2
+                        ? 'Great Work!'
+                        : 'Perfect Score!';
 
-    final String motivationText = isPractice
-        ? 'Reviewing weak spots makes you stronger.'
-        : result.starsEarned >= 2
-            ? "You're becoming a true internet safety hero!"
-            : 'Every question makes you safer online!';
+    final String motivationText = isReplay
+        ? 'Practice makes perfect!'
+        : isPractice
+            ? 'Reviewing weak spots makes you stronger.'
+            : result.starsEarned >= 2
+                ? "You're becoming a true internet safety hero!"
+                : 'Every question makes you safer online!';
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -241,7 +265,11 @@ class _QuizResultScreenState extends State<QuizResultScreen>
                   const SizedBox(height: 4),
 
                   Text(
-                    isPractice ? 'Practice Session' : result.categoryName,
+                    isReplay
+                        ? 'Replay · ${result.categoryName}'
+                        : isPractice
+                            ? 'Practice Session'
+                            : result.categoryName,
                     style: GoogleFonts.nunito(
                       color: AppColors.textSecondary,
                       fontSize: 14,
@@ -282,11 +310,19 @@ class _QuizResultScreenState extends State<QuizResultScreen>
 
                   // ── Rewards — single line ────────────────────────────────
                   Text(
-                    isPractice
-                        ? '+3 coins earned'
-                        : '+${result.starsEarned} XP  ·  +${result.coinsEarned} coins',
+                    isReplay
+                        ? 'Replay mode · no rewards earned'
+                        : isPractice
+                            ? '+3 coins earned'
+                            : _boostedStars > 0
+                                ? '+$_boostedStars XP ⚡  ·  +${result.coinsEarned} coins'
+                                : '+${result.starsEarned} XP  ·  +${result.coinsEarned} coins',
                     style: GoogleFonts.nunito(
-                      color: accent,
+                      color: isReplay
+                          ? AppColors.textSecondary
+                          : _boostedStars > 0
+                              ? AppColors.gold
+                              : accent,
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
                     ),
@@ -422,7 +458,6 @@ class _QuizResultScreenState extends State<QuizResultScreen>
                     AppButton(
                       label: isPractice ? 'Done' : 'Continue',
                       variant: AppButtonVariant.primary,
-                      icon: Icons.home_rounded,
                       onTap: _goHome,
                     )
                         .animate(delay: 1000.ms)

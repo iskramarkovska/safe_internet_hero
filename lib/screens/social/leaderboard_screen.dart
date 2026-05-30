@@ -215,6 +215,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                               username: data['username'] ?? 'Unknown',
                               stars: data['totalStars'] ?? 0,
                               isMe: isMe,
+                              hasGoldFrame: (data['hasGoldFrame'] as bool?) ?? false,
                             )
                                 .animate(
                                     delay: Duration(
@@ -279,7 +280,8 @@ class _YourRankCard extends StatelessWidget {
           AppAvatar(
             name: user.username,
             size: 44,
-            borderColor: Colors.white,
+            goldFrame: user.hasGoldFrame,
+            borderColor: user.hasGoldFrame ? null : Colors.white,
             borderWidth: 2.5,
           ),
           const SizedBox(width: 12),
@@ -456,6 +458,7 @@ class _PodiumSlot extends StatelessWidget {
     final data = doc.data() as Map<String, dynamic>;
     final username = data['username'] ?? '?';
     final stars = data['totalStars'] ?? 0;
+    final hasGoldFrame = (data['hasGoldFrame'] as bool?) ?? false;
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.end,
@@ -466,7 +469,8 @@ class _PodiumSlot extends StatelessWidget {
         AppAvatar(
           name: username,
           size: 46,
-          borderColor: isMe ? AppColors.blue : color,
+          goldFrame: hasGoldFrame,
+          borderColor: hasGoldFrame ? null : (isMe ? AppColors.blue : color),
           borderWidth: isMe ? 3 : 2.5,
         ),
 
@@ -550,12 +554,14 @@ class _LeaderboardRow extends StatelessWidget {
   final String username;
   final int stars;
   final bool isMe;
+  final bool hasGoldFrame;
 
   const _LeaderboardRow({
     required this.rank,
     required this.username,
     required this.stars,
     required this.isMe,
+    this.hasGoldFrame = false,
   });
 
   @override
@@ -616,7 +622,7 @@ class _LeaderboardRow extends StatelessWidget {
           ),
           const SizedBox(width: 10),
 
-          AppAvatar(name: username, size: 38),
+          AppAvatar(name: username, size: 38, goldFrame: hasGoldFrame),
           const SizedBox(width: 12),
 
           Expanded(

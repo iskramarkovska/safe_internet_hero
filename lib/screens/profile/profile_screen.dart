@@ -201,7 +201,7 @@ class _ProfileInfoSection extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Left: avatar box (blue_box.png style)
-          _AvatarBox(username: user.username),
+          _AvatarBox(username: user.username, hasGoldFrame: user.hasGoldFrame),
 
           const SizedBox(width: 20),
 
@@ -305,7 +305,8 @@ class _ProfileInfoSection extends StatelessWidget {
 
 class _AvatarBox extends StatelessWidget {
   final String username;
-  const _AvatarBox({required this.username});
+  final bool hasGoldFrame;
+  const _AvatarBox({required this.username, this.hasGoldFrame = false});
 
   @override
   Widget build(BuildContext context) {
@@ -341,7 +342,7 @@ class _AvatarBox extends StatelessWidget {
                             strokeWidth: 2,
                           ),
                         ),
-                        AppAvatar(name: username, size: 64),
+                        AppAvatar(name: username, size: 64, goldFrame: hasGoldFrame),
                       ],
                     ),
                   ),
