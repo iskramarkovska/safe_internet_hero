@@ -111,10 +111,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
           if (isGuest)
             Expanded(
               child: GuestLockedState(
-                icon: Icons.leaderboard_rounded,
-                title: 'Compete with the world',
-                subtitle:
-                    'Create a free account to appear on the leaderboard and track your rank against other internet safety heroes.',
+                svgAsset: 'assets/images/leaderboard.svg',
+                title: 'Compete with heroes worldwide',
+                subtitle: 'Create a free account to appear on the leaderboard and track your rank.',
                 onGetStarted: () => Navigator.of(context).pushAndRemoveUntil(
                   MaterialPageRoute(builder: (_) => const LandingScreen()),
                   (route) => false,

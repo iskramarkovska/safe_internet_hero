@@ -1,4 +1,5 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../core/theme.dart';
 import 'app_avatar.dart';
@@ -278,71 +279,219 @@ class _Chip extends StatelessWidget {
   }
 }
 
+// ─── Shared guest CTA button ──────────────────────────────────────────────────
+
+class GuestCTAButton extends StatefulWidget {
+  final VoidCallback onTap;
+  const GuestCTAButton({super.key, required this.onTap});
+
+  @override
+  State<GuestCTAButton> createState() => _GuestCTAButtonState();
+}
+
+class _GuestCTAButtonState extends State<GuestCTAButton> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: widget.onTap,
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapUp: (_) => setState(() => _pressed = false),
+      onTapCancel: () => setState(() => _pressed = false),
+      child: Stack(
+        alignment: Alignment.topCenter,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 4),
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 15),
+              decoration: BoxDecoration(
+                color: AppColors.blueDark,
+                borderRadius: BorderRadius.circular(16),
+              ),
+            ),
+          ),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 80),
+            width: double.infinity,
+            margin: EdgeInsets.only(top: _pressed ? 4 : 0),
+            padding: const EdgeInsets.symmetric(vertical: 15),
+            decoration: BoxDecoration(
+              color: AppColors.blue,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.person_add_rounded,
+                    color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  'Create Free Account',
+                  style: GoogleFonts.nunito(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 15,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 // ─── GuestLockedState ──────────────────────────────────────────────────────────
-// Full-area locked placeholder shown to guests on social screens.
 
 class GuestLockedState extends StatelessWidget {
-  final IconData icon;
   final String title;
   final String subtitle;
-  /// Navigate to the landing/auth screen. Caller decides the exact route.
+  final String svgAsset;
   final VoidCallback onGetStarted;
 
   const GuestLockedState({
     super.key,
-    required this.icon,
     required this.title,
     required this.subtitle,
+    required this.svgAsset,
     required this.onGetStarted,
+    IconData? icon, // kept for call-site compatibility, ignored
   });
 
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 48),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 96,
-              height: 96,
-              decoration: const BoxDecoration(
-                color: AppColors.blueLight,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: AppColors.blue, size: 48),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              title,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 20,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              subtitle,
-              textAlign: TextAlign.center,
-              style: const TextStyle(
-                color: AppColors.textSecondary,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                height: 1.5,
-              ),
-            ),
-            const SizedBox(height: 28),
-            AppButton(
-              label: 'Get Started — It\'s Free',
-              variant: AppButtonVariant.success,
-              icon: Icons.person_add_rounded,
-              onTap: onGetStarted,
-            ),
-          ],
+    return Column(
+      children: [
+        // ── SVG on top ────────────────────────────────────────────────
+        Padding(
+          padding: const EdgeInsets.fromLTRB(0, 24, 0, 8),
+          child: SvgPicture.asset(svgAsset, height: 110),
         ),
+
+        // ── Ghost rows + fade + CTA ───────────────────────────────────
+        Expanded(
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
+                  child: Column(
+                    children: List.generate(5, (i) => _GhostLeaderboardRow(index: i)),
+                  ),
+                ),
+              ),
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      stops: const [0.0, 0.3, 0.62, 1.0],
+                      colors: [
+                        AppColors.background.withValues(alpha: 0.0),
+                        AppColors.background.withValues(alpha: 0.5),
+                        AppColors.background.withValues(alpha: 0.92),
+                        AppColors.background,
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 0, right: 0, bottom: 0,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(28, 0, 28, 32),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        title,
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.nunito(
+                          color: AppColors.textPrimary,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w900,
+                          height: 1.2,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        subtitle,
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.nunito(
+                          color: AppColors.textSecondary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          height: 1.55,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      GuestCTAButton(onTap: onGetStarted),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _GhostLeaderboardRow extends StatelessWidget {
+  final int index;
+  const _GhostLeaderboardRow({required this.index});
+
+  static const _names = ['HeroStar99', 'SafeKnight', 'CyberGuard', 'NetDefender', 'PrivacyPro'];
+  static const _stars = [1840, 1620, 1430, 1290, 1100];
+
+  @override
+  Widget build(BuildContext context) {
+    return Opacity(
+      opacity: (1.0 - index * 0.16).clamp(0.15, 0.75),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 11),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.border, width: 1),
+        ),
+        child: Row(children: [
+          SizedBox(
+            width: 32,
+            child: Text('${index + 1}',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.nunito(
+                    color: AppColors.textSecondary,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14)),
+          ),
+          const SizedBox(width: 10),
+          AppAvatar(name: _names[index], size: 36),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(_names[index],
+                style: GoogleFonts.nunito(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14)),
+          ),
+          Row(children: [
+            const Icon(Icons.star_rounded, color: AppColors.gold, size: 16),
+            const SizedBox(width: 3),
+            Text('${_stars[index]}',
+                style: GoogleFonts.nunito(
+                    color: AppColors.goldDark,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14)),
+          ]),
+        ]),
       ),
     );
   }

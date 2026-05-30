@@ -26,9 +26,9 @@ class _MainScreenState extends State<MainScreen> {
 
   static const _screens = [
     HomeScreen(),
-    LeaderboardScreen(),
-    ShopScreen(),
     LearnScreen(),
+    ShopScreen(),
+    LeaderboardScreen(),
     ProfileScreen(showBackButton: false),
   ];
 
@@ -55,9 +55,9 @@ class _DuolingoBottomNav extends StatelessWidget {
 
   static const _svgPaths = [
     'assets/images/home.svg',
-    'assets/images/leaderboard.svg',
-    'assets/images/store.svg',
     'assets/images/learn.svg',
+    'assets/images/store.svg',
+    'assets/images/leaderboard.svg',
     'assets/images/profile.svg',
   ];
 

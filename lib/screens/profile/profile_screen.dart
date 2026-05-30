@@ -418,7 +418,7 @@ class _DashedCirclePainter extends CustomPainter {
       old.color != color || old.strokeWidth != strokeWidth;
 }
 
-// ─── Guest profile screen (unchanged original) ───────────────────────────────
+// ─── Guest profile screen ─────────────────────────────────────────────────────
 
 class _GuestProfileScreen extends StatelessWidget {
   final bool showBackButton;
@@ -436,80 +436,233 @@ class _GuestProfileScreen extends StatelessWidget {
               children: [
                 const AppTopBar(stars: 0, streak: 0, coins: 0),
                 Container(height: 1, color: AppColors.border),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 18),
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [AppColors.blue, Color(0xFF5AB4F7)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                  ),
-                  child: const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Profile',
-                          style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 24,
-                              fontWeight: FontWeight.w900)),
-                      SizedBox(height: 2),
-                      Text('Create an account to track your progress',
-                          style: TextStyle(color: Colors.white70, fontSize: 13)),
-                    ],
-                  ),
-                ),
-                Container(height: 1, color: AppColors.border),
               ],
             ),
           ),
+
+          // ── SVG on top ──────────────────────────────────────────────
+          Padding(
+            padding: const EdgeInsets.fromLTRB(0, 20, 0, 8),
+            child: SvgPicture.asset('assets/images/mascot.svg', height: 100),
+          ),
+
+          // ── Ghost stats + fade + CTA ─────────────────────────────────
           Expanded(
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.all(32),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: 80, height: 80,
-                      decoration: const BoxDecoration(
-                          color: AppColors.blueLight, shape: BoxShape.circle),
-                      child: const Icon(Icons.person_rounded,
-                          color: AppColors.blue, size: 44),
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+                    child: Column(
+                      children: [
+                        // Ghost avatar + name bar
+                        Opacity(
+                          opacity: 0.7,
+                          child: Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(20),
+                              border: Border.all(
+                                  color: AppColors.border, width: 1.5),
+                            ),
+                            child: Row(children: [
+                              Container(
+                                width: 52, height: 52,
+                                decoration: const BoxDecoration(
+                                  color: AppColors.blueLight,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.person_rounded,
+                                    color: AppColors.blue, size: 28),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                  Container(
+                                    height: 13, width: 110,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.border,
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 7),
+                                  Container(
+                                    height: 9, width: 75,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.border
+                                          .withValues(alpha: 0.6),
+                                      borderRadius: BorderRadius.circular(5),
+                                    ),
+                                  ),
+                                ]),
+                              ),
+                            ]),
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        // Ghost stat boxes row
+                        Opacity(
+                          opacity: 0.55,
+                          child: Row(children: [
+                            _GhostStatBox(
+                                icon: Icons.star_rounded,
+                                color: AppColors.gold,
+                                label: 'Stars'),
+                            const SizedBox(width: 10),
+                            _GhostStatBox(
+                                icon: Icons.local_fire_department_rounded,
+                                color: AppColors.orange,
+                                label: 'Streak'),
+                            const SizedBox(width: 10),
+                            _GhostStatBox(
+                                icon: Icons.quiz_rounded,
+                                color: AppColors.blue,
+                                label: 'Quizzes'),
+                          ]),
+                        ),
+                        const SizedBox(height: 12),
+                        // Ghost badges row
+                        Opacity(
+                          opacity: 0.35,
+                          child: Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(18),
+                              border: Border.all(
+                                  color: AppColors.border, width: 1.5),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                AppColors.categoryPrivacy,
+                                AppColors.categoryPasswords,
+                                AppColors.categoryCyberbullying,
+                                AppColors.categorySocialMedia,
+                              ].map((c) => Container(
+                                    width: 40, height: 40,
+                                    decoration: BoxDecoration(
+                                      color: c.withValues(alpha: 0.15),
+                                      shape: BoxShape.circle,
+                                    ),
+                                    child: Icon(Icons.lock_rounded,
+                                        color: c, size: 20),
+                                  )).toList(),
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 20),
-                    const Text('Create an account',
-                        style: TextStyle(
-                            color: AppColors.textPrimary,
-                            fontSize: 22,
-                            fontWeight: FontWeight.w900)),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'Sign up to track your progress,\nearn stars and climb the leaderboard!',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                          color: AppColors.textSecondary, fontSize: 14, height: 1.5),
-                    ),
-                    const SizedBox(height: 32),
-                    AppButton(
-                      label: 'Get Started — It\'s Free!',
-                      variant: AppButtonVariant.success,
-                      icon: Icons.person_add_rounded,
-                      onTap: () {
-                        context.read<AuthProvider>().exitGuestMode();
-                        Navigator.pushAndRemoveUntil(
-                            context,
-                            AppPageRoute(builder: (_) => const AuthGate()),
-                            (r) => false);
-                      },
-                    ),
-                  ],
+                  ),
                 ),
-              ),
+
+                // Fade overlay
+                Positioned.fill(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        stops: const [0.0, 0.3, 0.62, 1.0],
+                        colors: [
+                          AppColors.background.withValues(alpha: 0.0),
+                          AppColors.background.withValues(alpha: 0.5),
+                          AppColors.background.withValues(alpha: 0.92),
+                          AppColors.background,
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+
+                // CTA at bottom
+                Positioned(
+                  left: 0, right: 0, bottom: 0,
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(28, 0, 28, 32),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('Build your profile',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.nunito(
+                              color: AppColors.textPrimary,
+                              fontSize: 22,
+                              fontWeight: FontWeight.w900,
+                            )),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Track your progress, earn badges\nand climb the leaderboard.',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.nunito(
+                            color: AppColors.textSecondary,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            height: 1.55,
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                        GuestCTAButton(
+                          onTap: () {
+                            context.read<AuthProvider>().exitGuestMode();
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              AppPageRoute(builder: (_) => const AuthGate()),
+                              (r) => false,
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _GhostStatBox extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String label;
+  const _GhostStatBox(
+      {required this.icon, required this.color, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.border, width: 1.5),
+        ),
+        child: Column(children: [
+          Icon(icon, color: color, size: 22),
+          const SizedBox(height: 6),
+          Container(
+            height: 10, width: 30,
+            decoration: BoxDecoration(
+              color: AppColors.border,
+              borderRadius: BorderRadius.circular(5),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(label,
+              style: GoogleFonts.nunito(
+                  color: AppColors.textSecondary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600)),
+        ]),
       ),
     );
   }

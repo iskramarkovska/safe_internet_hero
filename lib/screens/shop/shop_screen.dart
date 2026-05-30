@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import '../../core/app_page_route.dart';
 import '../../core/theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/shop_service.dart';
 import '../../widgets/app_avatar.dart';
+import '../../widgets/app_widgets.dart';
+import '../auth/splash_screen.dart';
 
 class ShopScreen extends StatefulWidget {
   const ShopScreen({super.key});
@@ -460,48 +464,159 @@ class _BuyButton extends StatelessWidget {
 // ─── Guest prompt ─────────────────────────────────────────────────────────────
 
 class _GuestPrompt extends StatelessWidget {
+  static const _ghostItems = [
+    (Icons.ac_unit_rounded, AppColors.blue, 'Streak Freeze', 10),
+    (Icons.electric_bolt_rounded, AppColors.gold, 'XP Boost', 25),
+    (Icons.circle_rounded, AppColors.gold, 'Gold Frame', 50),
+  ];
+
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(36),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 80,
-              height: 80,
-              decoration: BoxDecoration(
-                color: AppColors.orangeDark.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.store_rounded,
-                  color: AppColors.orangeDark, size: 40),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              'Create an account to use the shop',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.nunito(
-                color: AppColors.textPrimary,
-                fontSize: 18,
-                fontWeight: FontWeight.w900,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Earn coins by completing quizzes and spend them on power-ups and cosmetics.',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.nunito(
-                color: AppColors.textSecondary,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                height: 1.5,
-              ),
-            ),
-          ],
+    return Column(
+      children: [
+        // ── SVG on top ────────────────────────────────────────────────
+        Padding(
+          padding: const EdgeInsets.fromLTRB(0, 24, 0, 8),
+          child: SvgPicture.asset('assets/images/store_guest.svg', height: 110),
         ),
-      ),
+
+        // ── Ghost cards + fade + CTA ──────────────────────────────────
+        Expanded(
+          child: Stack(
+            children: [
+              Positioned.fill(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 4, 20, 0),
+                  child: Column(
+                    children: _ghostItems.asMap().entries.map((e) {
+                      final i = e.key;
+                      final item = e.value;
+                      return Opacity(
+                        opacity: (1.0 - i * 0.22).clamp(0.15, 0.75),
+                        child: Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(
+                                color: AppColors.border, width: 1.5),
+                          ),
+                          child: Row(children: [
+                            Container(
+                              width: 52, height: 52,
+                              decoration: BoxDecoration(
+                                color: item.$2.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(14),
+                              ),
+                              child: Icon(item.$1, color: item.$2, size: 26),
+                            ),
+                            const SizedBox(width: 14),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(item.$3,
+                                      style: GoogleFonts.nunito(
+                                          fontWeight: FontWeight.w800,
+                                          fontSize: 15,
+                                          color: AppColors.textPrimary)),
+                                  const SizedBox(height: 5),
+                                  Container(
+                                    height: 9, width: 130,
+                                    decoration: BoxDecoration(
+                                      color: AppColors.border,
+                                      borderRadius: BorderRadius.circular(5),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: AppColors.orangeDark
+                                    .withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.monetization_on_rounded,
+                                        color: AppColors.orangeDark, size: 13),
+                                    const SizedBox(width: 3),
+                                    Text('${item.$4}',
+                                        style: GoogleFonts.nunito(
+                                            color: AppColors.orangeDark,
+                                            fontWeight: FontWeight.w800,
+                                            fontSize: 13)),
+                                  ]),
+                            ),
+                          ]),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+              ),
+              Positioned.fill(
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      stops: const [0.0, 0.28, 0.62, 1.0],
+                      colors: [
+                        AppColors.background.withValues(alpha: 0.0),
+                        AppColors.background.withValues(alpha: 0.5),
+                        AppColors.background.withValues(alpha: 0.92),
+                        AppColors.background,
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 0, right: 0, bottom: 0,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(28, 0, 28, 32),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('Unlock the Shop',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.nunito(
+                            color: AppColors.textPrimary,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w900,
+                          )),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Earn coins by completing quizzes.\nSpend them on power-ups and cosmetics.',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.nunito(
+                          color: AppColors.textSecondary,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          height: 1.55,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      GuestCTAButton(
+                        onTap: () => Navigator.of(context).pushAndRemoveUntil(
+                          AppPageRoute(builder: (_) => const LandingScreen()),
+                          (r) => false,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
