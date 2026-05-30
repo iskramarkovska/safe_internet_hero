@@ -5,13 +5,17 @@ import 'package:lottie/lottie.dart';
 import 'package:provider/provider.dart';
 import '../../core/theme.dart';
 import '../../models/quiz_result_model.dart';
+import '../../models/topic_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/questions_service.dart';
 import '../../services/streak_service.dart';
+import '../../services/topics_service.dart';
+import '../../widgets/app_avatar.dart';
 import '../../widgets/app_widgets.dart';
 import '../../core/app_page_route.dart';
 import '../home/main_screen.dart';
 import '../auth/splash_screen.dart';
+import 'quiz_screen.dart';
 
 class QuizResultScreen extends StatefulWidget {
   final QuizResultModel result;
@@ -30,12 +34,15 @@ class _QuizResultScreenState extends State<QuizResultScreen>
   late final AnimationController _trophyCtrl;
   bool _showConfetti = false;
   int _newStreak = 0;
+  TopicModel? _nextTopic;
 
   @override
   void initState() {
     super.initState();
     _confettiCtrl = AnimationController(vsync: this);
     _trophyCtrl = AnimationController(vsync: this);
+
+    if (!widget.result.isPractice) _loadNextTopic();
 
     if (widget.result.starsEarned >= 2 && !widget.result.isPractice) {
       _showConfetti = true;
@@ -56,6 +63,18 @@ class _QuizResultScreenState extends State<QuizResultScreen>
     super.dispose();
   }
 
+  Future<void> _loadNextTopic() async {
+    if (widget.result.categoryId.isEmpty || widget.result.topicId.isEmpty) return;
+    try {
+      final topics =
+          await TopicsService().getTopicsByCategory(widget.result.categoryId);
+      final idx = topics.indexWhere((t) => t.id == widget.result.topicId);
+      if (idx >= 0 && idx < topics.length - 1) {
+        if (mounted) setState(() => _nextTopic = topics[idx + 1]);
+      }
+    } catch (_) {}
+  }
+
   Future<void> _saveResult() async {
     final auth = context.read<AuthProvider>();
     final user = auth.user;
@@ -67,7 +86,6 @@ class _QuizResultScreenState extends State<QuizResultScreen>
 
       await svc.saveResult(widget.result);
 
-      // Update answered/incorrect question tracking for ALL modes
       if (widget.result.correctlyAnsweredIds.isNotEmpty ||
           widget.result.incorrectlyAnsweredIds.isNotEmpty) {
         await svc.saveAnsweredQuestions(
@@ -77,11 +95,8 @@ class _QuizResultScreenState extends State<QuizResultScreen>
         );
       }
 
-      // Practice mode: small coin reward only, no stars.
-      // Normal mode: award stars + coins, update streak on success.
       if (widget.result.isPractice) {
-        await svc.addRewards(
-            userId: user.id, starsToAdd: 0, coinsToAdd: 3);
+        await svc.addRewards(userId: user.id, starsToAdd: 0, coinsToAdd: 3);
       } else {
         await svc.addRewards(
           userId: user.id,
@@ -96,9 +111,7 @@ class _QuizResultScreenState extends State<QuizResultScreen>
 
       if (!mounted) return;
       await auth.refreshUser();
-    } catch (_) {
-      // Result screen stays visible even if saving fails.
-    }
+    } catch (_) {}
   }
 
   void _goHome() {
@@ -126,76 +139,54 @@ class _QuizResultScreenState extends State<QuizResultScreen>
   @override
   Widget build(BuildContext context) {
     final result = widget.result;
-    final pct = result.percentage;
     final isPractice = result.isPractice;
-    final isGreat = result.starsEarned >= 2;
-    final isThree = result.starsEarned == 3;
     final isGuest = context.watch<AuthProvider>().isGuest;
 
-    String titleText;
-    if (isPractice) {
-      titleText = result.starsEarned == 3
-          ? 'Perfect Practice!'
-          : result.starsEarned >= 1
-              ? 'Good Practice!'
-              : 'Keep Practicing!';
-    } else {
-      titleText = result.starsEarned == 0
-          ? 'Keep Trying!'
-          : result.starsEarned == 1
-              ? 'Good Job!'
-              : result.starsEarned == 2
-                  ? 'Great Work!'
-                  : 'Perfect Score!';
-    }
+    final Color accent = isPractice
+        ? AppColors.orange
+        : result.starsEarned == 3
+            ? AppColors.green
+            : result.starsEarned >= 1
+                ? AppColors.blue
+                : const Color(0xFF9E9E9E);
+
+    final String titleText = isPractice
+        ? (result.starsEarned == 3
+            ? 'Perfect Practice!'
+            : result.starsEarned >= 1
+                ? 'Good Practice!'
+                : 'Keep Practicing!')
+        : result.starsEarned == 0
+            ? 'Keep Trying!'
+            : result.starsEarned == 1
+                ? 'Good Job!'
+                : result.starsEarned == 2
+                    ? 'Great Work!'
+                    : 'Perfect Score!';
+
+    final String motivationText = isPractice
+        ? 'Reviewing weak spots makes you stronger.'
+        : result.starsEarned >= 2
+            ? "You're becoming a true internet safety hero!"
+            : 'Every question makes you safer online!';
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Colors.white,
       body: Stack(
         children: [
-          // ── Main content ───────────────────────────────────────────────────
           SafeArea(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(20, 24, 20, 40),
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 48),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  // Practice mode badge
-                  if (isPractice)
-                    Container(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: AppColors.orange.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                            color: AppColors.orange.withValues(alpha: 0.4)),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.bolt_rounded,
-                              color: AppColors.orange, size: 16),
-                          SizedBox(width: 5),
-                          Text(
-                            'Practice Session',
-                            style: TextStyle(
-                              color: AppColors.orange,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ],
-                      ),
-                    )
-                        .animate()
-                        .fadeIn(duration: const Duration(milliseconds: 300)),
+                  const SizedBox(height: 52),
 
-                  // Hero icon / trophy
-                  if (isThree && !isPractice)
+                  // ── Hero icon / trophy ──────────────────────────────────
+                  if (result.starsEarned == 3 && !isPractice)
                     SizedBox(
-                      width: 140,
-                      height: 140,
+                      width: 130,
+                      height: 130,
                       child: Lottie.asset(
                         'assets/lottie/trophy.json',
                         controller: _trophyCtrl,
@@ -207,30 +198,20 @@ class _QuizResultScreenState extends State<QuizResultScreen>
                     )
                   else
                     Container(
-                      width: 110,
-                      height: 110,
+                      width: 96,
+                      height: 96,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        color: isPractice
-                            ? AppColors.orange.withValues(alpha: 0.12)
-                            : isGreat
-                                ? AppColors.greenLight
-                                : AppColors.blueLight,
+                        color: accent.withValues(alpha: 0.12),
                       ),
-                      child: Center(
-                        child: Icon(
-                          isPractice
-                              ? Icons.fitness_center_rounded
-                              : isGreat
-                                  ? Icons.emoji_events_rounded
-                                  : Icons.sentiment_neutral_rounded,
-                          size: 60,
-                          color: isPractice
-                              ? AppColors.orange
-                              : isGreat
-                                  ? AppColors.green
-                                  : AppColors.blue,
-                        ),
+                      child: Icon(
+                        isPractice
+                            ? Icons.fitness_center_rounded
+                            : result.starsEarned >= 2
+                                ? Icons.emoji_events_rounded
+                                : Icons.sentiment_neutral_rounded,
+                        size: 52,
+                        color: accent,
                       ),
                     )
                         .animate()
@@ -238,17 +219,18 @@ class _QuizResultScreenState extends State<QuizResultScreen>
                           begin: const Offset(0, 0),
                           end: const Offset(1, 1),
                           curve: Curves.elasticOut,
-                          duration: const Duration(milliseconds: 700),
+                          duration: 700.ms,
                         ),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 22),
 
-                  // Title
+                  // ── Title ───────────────────────────────────────────────
                   Text(
                     titleText,
+                    textAlign: TextAlign.center,
                     style: GoogleFonts.nunito(
                       color: AppColors.textPrimary,
-                      fontSize: 30,
+                      fontSize: 28,
                       fontWeight: FontWeight.w900,
                     ),
                   )
@@ -259,104 +241,89 @@ class _QuizResultScreenState extends State<QuizResultScreen>
                   const SizedBox(height: 4),
 
                   Text(
-                    isPractice ? 'Weak Spots Review' : result.categoryName,
+                    isPractice ? 'Practice Session' : result.categoryName,
                     style: GoogleFonts.nunito(
                       color: AppColors.textSecondary,
-                      fontSize: 15,
+                      fontSize: 14,
                       fontWeight: FontWeight.w600,
                     ),
-                  ).animate(delay: 280.ms).fadeIn(duration: 250.ms),
+                  ).animate(delay: 270.ms).fadeIn(duration: 250.ms),
 
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 30),
 
-                  // ── Star reveal ────────────────────────────────────────────
+                  // ── Stars ───────────────────────────────────────────────
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: List.generate(3, (i) {
                       final earned = i < result.starsEarned;
                       return Padding(
-                        padding:
-                            const EdgeInsets.symmetric(horizontal: 6),
+                        padding: const EdgeInsets.symmetric(horizontal: 5),
                         child: Icon(
                           Icons.star_rounded,
-                          size: earned ? 52 : 44,
+                          size: earned ? 48 : 40,
                           color: earned
                               ? AppColors.gold
-                              : AppColors.borderDark,
+                              : const Color(0xFFE0E0E0),
                         )
                             .animate(
-                                delay: Duration(
-                                    milliseconds: 400 + i * 200))
+                              delay: Duration(milliseconds: 400 + i * 180),
+                            )
                             .scale(
                               begin: const Offset(0, 0),
                               end: const Offset(1, 1),
                               curve: Curves.elasticOut,
-                              duration:
-                                  const Duration(milliseconds: 600),
+                              duration: 600.ms,
                             ),
                       );
                     }),
                   ),
 
-                  const SizedBox(height: 28),
+                  const SizedBox(height: 12),
 
-                  // ── Earned rewards ─────────────────────────────────────────
-                  Row(
-                    children: [
-                      if (!isPractice)
-                        Expanded(
-                          child: _EarnedChip(
-                            icon: Icons.star_rounded,
-                            label: '+${result.starsEarned} XP',
-                            color: AppColors.gold,
-                            delay: 900,
-                          ),
-                        ),
-                      if (!isPractice) const SizedBox(width: 12),
-                      Expanded(
-                        child: _EarnedChip(
-                          icon: Icons.monetization_on_rounded,
-                          label: '+${isPractice ? 3 : result.coinsEarned} Coins',
-                          color: AppColors.orange,
-                          delay: isPractice ? 700 : 1050,
-                        ),
-                      ),
-                    ],
-                  ),
+                  // ── Rewards — single line ────────────────────────────────
+                  Text(
+                    isPractice
+                        ? '+3 coins earned'
+                        : '+${result.starsEarned} XP  ·  +${result.coinsEarned} coins',
+                    style: GoogleFonts.nunito(
+                      color: accent,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ).animate(delay: 950.ms).fadeIn(duration: 300.ms),
 
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 32),
 
-                  // ── Stats card ─────────────────────────────────────────────
-                  AppCard(
+                  // ── Stats strip ──────────────────────────────────────────
+                  Container(
                     padding: const EdgeInsets.symmetric(
-                        vertical: 20, horizontal: 16),
+                        vertical: 22, horizontal: 8),
+                    decoration: BoxDecoration(
+                      color: AppColors.background,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceAround,
                       children: [
                         _StatCell(
-                          icon: Icons.check_circle_rounded,
-                          color: AppColors.green,
                           value:
                               '${result.score}/${result.totalQuestions}',
                           label: 'Correct',
                         ),
                         Container(
                             width: 1,
-                            height: 44,
+                            height: 40,
                             color: AppColors.border),
                         _StatCell(
-                          icon: Icons.bar_chart_rounded,
-                          color: AppColors.blue,
-                          value: '$pct%',
+                          value: '${result.percentage}%',
                           label: 'Score',
+                          valueColor: accent,
                         ),
                         Container(
                             width: 1,
-                            height: 44,
+                            height: 40,
                             color: AppColors.border),
                         _StatCell(
-                          icon: Icons.emoji_events_rounded,
-                          color: AppColors.gold,
                           value: '${result.pointsEarned}',
                           label: 'Points',
                         ),
@@ -364,110 +331,58 @@ class _QuizResultScreenState extends State<QuizResultScreen>
                     ),
                   )
                       .animate(delay: 700.ms)
-                      .slideY(
-                        begin: 0.3,
-                        end: 0,
-                        duration: const Duration(milliseconds: 400),
-                        curve: Curves.easeOut,
-                      )
-                      .fadeIn(duration: const Duration(milliseconds: 400)),
+                      .fadeIn(duration: 400.ms)
+                      .slideY(begin: 0.2, end: 0, curve: Curves.easeOut),
 
-                  const SizedBox(height: 14),
-
-                  // ── Streak notification ────────────────────────────────────
-                  if (_newStreak > 1 && !isPractice)
-                    AppCard(
-                      color: AppColors.orange.withValues(alpha: 0.1),
-                      padding: const EdgeInsets.all(16),
+                  // ── Streak pill ──────────────────────────────────────────
+                  if (_newStreak > 1 && !isPractice) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: AppColors.orange.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                            color:
+                                AppColors.orange.withValues(alpha: 0.3)),
+                      ),
                       child: Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
                           const Text('🔥',
-                              style: TextStyle(fontSize: 26)),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  '$_newStreak Day Streak!',
-                                  style: GoogleFonts.nunito(
-                                    color: AppColors.orangeDark,
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 15,
-                                  ),
-                                ),
-                                Text(
-                                  'You\'re on a roll — keep it up!',
-                                  style: GoogleFonts.nunito(
-                                    color: AppColors.orange,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
+                              style: TextStyle(fontSize: 15)),
+                          const SizedBox(width: 6),
+                          Text(
+                            '$_newStreak day streak!',
+                            style: GoogleFonts.nunito(
+                              color: AppColors.orangeDark,
+                              fontWeight: FontWeight.w800,
+                              fontSize: 13,
                             ),
                           ),
                         ],
                       ),
-                    )
-                        .animate(delay: 1200.ms)
-                        .fadeIn(duration: const Duration(milliseconds: 350))
-                        .slideY(begin: 0.1, end: 0),
+                    ).animate(delay: 1200.ms).fadeIn(duration: 300.ms),
+                  ],
 
-                  if (_newStreak > 1 && !isPractice)
-                    const SizedBox(height: 14),
+                  const SizedBox(height: 24),
 
-                  // ── Motivational message ───────────────────────────────────
-                  AppCard(
-                    color: isPractice
-                        ? AppColors.orange.withValues(alpha: 0.08)
-                        : isGreat
-                            ? AppColors.greenLight
-                            : AppColors.blueLight,
-                    padding: const EdgeInsets.all(16),
-                    child: Row(
-                      children: [
-                        Icon(
-                          isPractice
-                              ? Icons.psychology_rounded
-                              : isGreat
-                                  ? Icons.rocket_launch_rounded
-                                  : Icons.fitness_center_rounded,
-                          color: isPractice
-                              ? AppColors.orange
-                              : isGreat
-                                  ? AppColors.greenDark
-                                  : AppColors.blue,
-                          size: 24,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            isPractice
-                                ? 'Great practice! Reviewing weak spots makes you stronger.'
-                                : isGreat
-                                    ? 'Amazing! You\'re becoming a true internet safety hero!'
-                                    : 'Keep practicing — every question makes you safer online!',
-                            style: GoogleFonts.nunito(
-                              color: isPractice
-                                  ? AppColors.orangeDark
-                                  : isGreat
-                                      ? AppColors.greenDark
-                                      : AppColors.blue,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 13,
-                              height: 1.45,
-                            ),
-                          ),
-                        ),
-                      ],
+                  // ── Motivational line ────────────────────────────────────
+                  Text(
+                    motivationText,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.nunito(
+                      color: AppColors.textSecondary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      height: 1.5,
                     ),
-                  ).animate(delay: 900.ms).fadeIn(
-                      duration: const Duration(milliseconds: 350)),
+                  ).animate(delay: 900.ms).fadeIn(duration: 300.ms),
 
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 36),
 
-                  // ── Guest CTA ──────────────────────────────────────────────
+                  // ── Actions ──────────────────────────────────────────────
                   if (isGuest)
                     _GuestSaveCTA(
                       starsEarned: result.starsEarned,
@@ -476,10 +391,34 @@ class _QuizResultScreenState extends State<QuizResultScreen>
                     )
                         .animate(delay: 1000.ms)
                         .fadeIn(duration: 300.ms)
-                        .slideY(begin: 0.15, end: 0),
+                        .slideY(begin: 0.15, end: 0)
+                  else ...[
+                    if (_nextTopic != null && !isPractice) ...[
+                      _NextTopicCard(
+                        topic: _nextTopic!,
+                        categoryId: result.categoryId,
+                        categoryName: result.categoryName,
+                        color: AppCategoryIcon.colorFor(result.categoryName),
+                        onStart: () => Navigator.pushReplacement(
+                          context,
+                          AppPageRoute(
+                            builder: (_) => QuizScreen(
+                              categoryId: result.categoryId,
+                              categoryName: result.categoryName,
+                              topicId: _nextTopic!.id,
+                              topicName: _nextTopic!.name,
+                              color: AppCategoryIcon.colorFor(
+                                  result.categoryName),
+                            ),
+                          ),
+                        ),
+                      )
+                          .animate(delay: 1050.ms)
+                          .fadeIn(duration: 300.ms)
+                          .slideY(begin: 0.08, end: 0),
+                      const SizedBox(height: 12),
+                    ],
 
-                  // ── Logged-in actions ──────────────────────────────────────
-                  if (!isGuest) ...[
                     AppButton(
                       label: isPractice ? 'Done' : 'Continue',
                       variant: AppButtonVariant.primary,
@@ -491,11 +430,19 @@ class _QuizResultScreenState extends State<QuizResultScreen>
                         .slideY(begin: 0.1, end: 0),
 
                     if (widget.onPracticeAgain != null) ...[
-                      const SizedBox(height: 12),
-                      AppButton(
-                        label: 'Play Again',
-                        variant: AppButtonVariant.secondary,
+                      const SizedBox(height: 18),
+                      GestureDetector(
                         onTap: _practiceAgain,
+                        child: Text(
+                          'Play Again',
+                          style: GoogleFonts.nunito(
+                            color: AppColors.textSecondary,
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            decoration: TextDecoration.underline,
+                            decorationColor: AppColors.textSecondary,
+                          ),
+                        ),
                       ).animate(delay: 1100.ms).fadeIn(duration: 300.ms),
                     ],
                   ],
@@ -504,7 +451,7 @@ class _QuizResultScreenState extends State<QuizResultScreen>
             ),
           ),
 
-          // ── Confetti overlay ───────────────────────────────────────────────
+          // ── Confetti overlay ──────────────────────────────────────────────
           if (_showConfetti)
             Positioned.fill(
               child: IgnorePointer(
@@ -525,92 +472,137 @@ class _QuizResultScreenState extends State<QuizResultScreen>
   }
 }
 
-// ─── Sub-widgets ──────────────────────────────────────────────────────────────
-
-class _EarnedChip extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final Color color;
-  final int delay;
-
-  const _EarnedChip({
-    required this.icon,
-    required this.label,
-    required this.color,
-    required this.delay,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: color.withValues(alpha: 0.3), width: 1.5),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(icon, color: color, size: 22),
-          const SizedBox(width: 8),
-          Text(
-            label,
-            style: GoogleFonts.nunito(
-              color: color,
-              fontWeight: FontWeight.w900,
-              fontSize: 16,
-            ),
-          ),
-        ],
-      ),
-    )
-        .animate(delay: Duration(milliseconds: delay))
-        .fadeIn(duration: const Duration(milliseconds: 350))
-        .scale(
-          begin: const Offset(0.8, 0.8),
-          end: const Offset(1, 1),
-          curve: Curves.elasticOut,
-          duration: const Duration(milliseconds: 500),
-        );
-  }
-}
+// ─── Stat cell ─────────────────────────────────────────────────────────────────
 
 class _StatCell extends StatelessWidget {
-  final IconData icon;
-  final Color color;
   final String value;
   final String label;
+  final Color? valueColor;
 
   const _StatCell({
-    required this.icon,
-    required this.color,
     required this.value,
     required this.label,
+    this.valueColor,
   });
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Icon(icon, color: color, size: 26),
-        const SizedBox(height: 6),
-        Text(value,
-            style: GoogleFonts.nunito(
-                color: AppColors.textPrimary,
-                fontSize: 16,
-                fontWeight: FontWeight.w800)),
-        Text(label,
-            style: GoogleFonts.nunito(
-                color: AppColors.textSecondary,
-                fontSize: 11,
-                fontWeight: FontWeight.w600)),
+        Text(
+          value,
+          style: GoogleFonts.nunito(
+            color: valueColor ?? AppColors.textPrimary,
+            fontSize: 20,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          label,
+          style: GoogleFonts.nunito(
+            color: AppColors.textSecondary,
+            fontSize: 11,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ],
     );
   }
 }
 
-// ─── Guest save-progress CTA ──────────────────────────────────────────────────
+// ─── Next topic card ───────────────────────────────────────────────────────────
+
+class _NextTopicCard extends StatelessWidget {
+  final TopicModel topic;
+  final String categoryId;
+  final String categoryName;
+  final Color color;
+  final VoidCallback onStart;
+
+  const _NextTopicCard({
+    required this.topic,
+    required this.categoryId,
+    required this.categoryName,
+    required this.color,
+    required this.onStart,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.border, width: 1.5),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(Icons.quiz_rounded, color: color, size: 22),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'UP NEXT',
+                  style: GoogleFonts.nunito(
+                    color: AppColors.textSecondary,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                Text(
+                  topic.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.nunito(
+                    color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 10),
+          GestureDetector(
+            onTap: onStart,
+            child: Container(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+              decoration: BoxDecoration(
+                color: color,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Text(
+                'Start',
+                style: GoogleFonts.nunito(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Guest save-progress CTA ───────────────────────────────────────────────────
 
 class _GuestSaveCTA extends StatelessWidget {
   final int starsEarned;
@@ -627,65 +619,48 @@ class _GuestSaveCTA extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF5CB85C), Color(0xFF3E9C3E)],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(20),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.green.withValues(alpha: 0.35),
-                blurRadius: 12,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            children: [
-              const Icon(Icons.lock_open_rounded,
-                  color: Colors.white, size: 36),
-              const SizedBox(height: 10),
-              Text(
-                'Save your progress!',
-                style: GoogleFonts.nunito(
-                  color: Colors.white,
-                  fontSize: 20,
-                  fontWeight: FontWeight.w900,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                starsEarned > 0
-                    ? 'You earned $starsEarned star${starsEarned > 1 ? 's' : ''} — create a free account to keep them!'
-                    : 'Create a free account to track your learning and climb the leaderboard.',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.nunito(
-                  color: Colors.white.withValues(alpha: 0.9),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  height: 1.5,
-                ),
-              ),
-            ],
+        Text(
+          'Save your progress!',
+          textAlign: TextAlign.center,
+          style: GoogleFonts.nunito(
+            color: AppColors.textPrimary,
+            fontSize: 20,
+            fontWeight: FontWeight.w900,
           ),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 8),
+        Text(
+          starsEarned > 0
+              ? 'You earned $starsEarned star${starsEarned > 1 ? 's' : ''} — create a free account to keep them!'
+              : 'Create a free account to track your learning and climb the leaderboard.',
+          textAlign: TextAlign.center,
+          style: GoogleFonts.nunito(
+            color: AppColors.textSecondary,
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            height: 1.5,
+          ),
+        ),
+        const SizedBox(height: 24),
         AppButton(
           label: 'Create Free Account',
           variant: AppButtonVariant.success,
           icon: Icons.person_add_rounded,
           onTap: onCreateAccount,
         ),
-        const SizedBox(height: 10),
-        AppButton(
-          label: 'Skip for now',
-          variant: AppButtonVariant.secondary,
+        const SizedBox(height: 16),
+        GestureDetector(
           onTap: onSkip,
+          child: Text(
+            'Skip for now',
+            style: GoogleFonts.nunito(
+              color: AppColors.textSecondary,
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              decoration: TextDecoration.underline,
+              decorationColor: AppColors.textSecondary,
+            ),
+          ),
         ),
       ],
     );

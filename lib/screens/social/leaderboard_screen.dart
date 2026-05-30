@@ -289,6 +289,8 @@ class _YourRankCard extends StatelessWidget {
               children: [
                 Text(
                   user.username,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w900,
@@ -620,6 +622,8 @@ class _LeaderboardRow extends StatelessWidget {
           Expanded(
             child: Text(
               username,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: GoogleFonts.nunito(
                 color: isMe ? AppColors.blue : AppColors.textPrimary,
                 fontWeight: FontWeight.w800,

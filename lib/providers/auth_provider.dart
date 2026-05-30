@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../models/user_model.dart';
 import '../services/auth_service.dart';
@@ -7,9 +8,39 @@ class AuthProvider extends ChangeNotifier {
   final AuthService _authService = AuthService();
 
   UserModel? _user;
-  bool _isLoading = false;
+  bool _isLoading = true; // true until Firebase restores session
   bool _isGuest = false;
   String? _errorMessage;
+  StreamSubscription? _authSub;
+
+  AuthProvider() {
+    _authSub = _authService.authStateChanges.listen(_onAuthStateChanged);
+  }
+
+  Future<void> _onAuthStateChanged(firebaseUser) async {
+    if (firebaseUser == null) {
+      // Explicit sign-out or no session — only clear if not guest
+      if (!_isGuest) _user = null;
+      _isLoading = false;
+      notifyListeners();
+    } else {
+      // Firebase restored (or just set) a session — load profile
+      try {
+        _user = await _authService.getCurrentUser();
+      } catch (_) {
+        _user = null;
+      }
+      _isGuest = false;
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  @override
+  void dispose() {
+    _authSub?.cancel();
+    super.dispose();
+  }
 
   UserModel? get user => _user;
   bool get isLoading => _isLoading;
@@ -82,11 +113,6 @@ class AuthProvider extends ChangeNotifier {
     await _authService.logout();
     _user = null;
     _isGuest = false;
-    notifyListeners();
-  }
-
-  Future<void> checkCurrentUser() async {
-    _user = await _authService.getCurrentUser();
     notifyListeners();
   }
 

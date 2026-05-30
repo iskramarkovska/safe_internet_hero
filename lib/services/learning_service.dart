@@ -52,4 +52,24 @@ class LearningService {
   Future<void> deleteContent(String id) async {
     await _db.collection('learning_content').doc(id).delete();
   }
+
+  /// Awards XP the first time a user reads/watches a content item.
+  /// Returns the XP actually awarded — 0 if the item was already completed.
+  Future<int> markContentRead({
+    required String userId,
+    required String contentId,
+    required int xpToAward,
+  }) async {
+    final userRef = _db.collection('users').doc(userId);
+    final doc = await userRef.get();
+    if (!doc.exists) return 0;
+    final data = doc.data() as Map<String, dynamic>;
+    final readIds = List<String>.from(data['readContentIds'] ?? []);
+    if (readIds.contains(contentId)) return 0;
+    await userRef.update({
+      'readContentIds': FieldValue.arrayUnion([contentId]),
+      'totalStars': FieldValue.increment(xpToAward),
+    });
+    return xpToAward;
+  }
 }

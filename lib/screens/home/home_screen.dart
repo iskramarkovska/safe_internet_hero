@@ -314,6 +314,8 @@ class _HeroBanner extends StatelessWidget {
                       const SizedBox(height: 6),
                       Text(
                         username,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.nunito(
                           color: Colors.white,
                           fontSize: 28,
@@ -506,6 +508,8 @@ class _QuestCardState extends State<_QuestCard> {
                     children: [
                       Text(
                         widget.category.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: AppColors.textPrimary,
                           fontSize: 15,

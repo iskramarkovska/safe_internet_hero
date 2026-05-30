@@ -293,7 +293,7 @@ class LandingScreen extends StatelessWidget {
                   const SizedBox(height: 14),
 
                   AppButton(
-                    label: 'I ALREADY HAVE AN ACCOUNT',
+                    label: 'I HAVE AN ACCOUNT',
                     variant: AppButtonVariant.secondary,
                     onTap: () => Navigator.push(
                         context,

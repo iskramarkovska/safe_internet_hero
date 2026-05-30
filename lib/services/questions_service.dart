@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import '../models/enums.dart';
 import '../models/question_model.dart';
 import '../models/quiz_result_model.dart';
 
@@ -33,7 +34,7 @@ class QuestionService {
         ? allQuestions
         : allQuestions.where((q) => !excludeIds.contains(q.id)).toList();
 
-    return (filtered..shuffle()).take(limit).toList();
+    return _sortedByDifficulty(filtered).take(limit).toList();
   }
 
   /// Loads specific questions by their document IDs (used for practice mode).
@@ -49,12 +50,19 @@ class QuestionService {
         .where(FieldPath.documentId, whereIn: chunk)
         .get());
     final snaps = await Future.wait(futures);
-    return snaps
+    final questions = snaps
         .expand((s) => s.docs)
         .map((doc) => QuestionModel.fromMap(
             {'id': doc.id, ...doc.data() as Map<String, dynamic>}))
-        .toList()
-      ..shuffle();
+        .toList();
+    return _sortedByDifficulty(questions);
+  }
+
+  /// Shuffles within each difficulty tier, then concatenates beginner → intermediate → advanced.
+  List<QuestionModel> _sortedByDifficulty(List<QuestionModel> questions) {
+    return DifficultyLevel.values
+        .expand((d) => questions.where((q) => q.difficulty == d).toList()..shuffle())
+        .toList();
   }
 
   Future<void> seedQuestions(List<QuestionModel> questions) async {

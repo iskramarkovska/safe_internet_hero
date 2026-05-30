@@ -56,18 +56,24 @@ class _AppButtonState extends State<AppButton> {
 
     final content = Row(
       mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
       children: [
         if (widget.icon != null) ...[
           Icon(widget.icon, color: _fg, size: 20),
           const SizedBox(width: 8),
         ],
-        Text(
-          widget.label,
-          style: GoogleFonts.nunito(
-            color: _fg,
-            fontSize: 16,
-            fontWeight: FontWeight.w800,
-            letterSpacing: 0.3,
+        Flexible(
+          child: Text(
+            widget.label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.nunito(
+              color: _fg,
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              letterSpacing: 0.3,
+            ),
           ),
         ),
       ],

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
+import 'package:flutter_svg/flutter_svg.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:lottie/lottie.dart';
 import 'package:provider/provider.dart';
 import '../../core/app_page_route.dart';
 import '../../core/theme.dart';
@@ -51,6 +54,8 @@ class _QuizScreenState extends State<QuizScreen> {
   bool _answered = false;
   bool _isLoading = true;
   final Map<int, bool> _answeredCorrectly = {};
+  // null = practice/unknown, 0 = no questions in DB, >0 = has questions (all answered)
+  int? _topicQuestionCount;
 
   static const _sheetHeight = 230.0;
 
@@ -76,9 +81,20 @@ class _QuizScreenState extends State<QuizScreen> {
       );
     }
 
+    // When the filtered list is empty and this is not a replay or practice,
+    // check if the topic actually has questions so we can show the right screen.
+    int? totalCount;
+    if (questions.isEmpty && !widget.isPractice && !widget.forReplay) {
+      totalCount = await _questionService.getTotalQuestionsCount(
+        categoryId: widget.categoryId,
+        topicId: widget.topicId,
+      );
+    }
+
     if (!mounted) return;
     setState(() {
       _questions = questions;
+      _topicQuestionCount = totalCount;
       _isLoading = false;
     });
   }
@@ -207,14 +223,25 @@ class _QuizScreenState extends State<QuizScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: _isLoading
-            ? _buildLoading()
-            : _questions.isEmpty
-                ? _buildEmpty()
-                : _buildQuiz(),
+    // Intercept hardware back only when a quiz is actively in progress.
+    // Loading and empty states allow normal back navigation.
+    final quizActive = !_isLoading && _questions.isNotEmpty;
+
+    return PopScope(
+      canPop: !quizActive,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        _confirmQuit(context);
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        body: SafeArea(
+          child: _isLoading
+              ? _buildLoading()
+              : _questions.isEmpty
+                  ? _buildEmptyState()
+                  : _buildQuiz(),
+        ),
       ),
     );
   }
@@ -266,7 +293,206 @@ class _QuizScreenState extends State<QuizScreen> {
         .shimmer(duration: const Duration(milliseconds: 1000));
   }
 
-  Widget _buildEmpty() {
+  // Dispatches to the right empty screen based on what we know about the topic.
+  Widget _buildEmptyState() {
+    if (_topicQuestionCount == null) {
+      // Practice mode or replay with no questions — generic fallback.
+      return _buildGenericEmpty();
+    }
+    if (_topicQuestionCount == 0) {
+      return _buildNoQuestions();
+    }
+    // topicQuestionCount > 0 — user has answered everything.
+    return _buildTopicComplete();
+  }
+
+  // ── All questions answered — show trophy ────────────────────────────────────
+
+  Widget _buildTopicComplete() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.fromLTRB(28, 40, 28, 48),
+      child: Column(
+        children: [
+          // Back button
+          Align(
+            alignment: Alignment.centerLeft,
+            child: IconButton(
+              icon: const Icon(Icons.close_rounded,
+                  color: AppColors.textSecondary, size: 24),
+              onPressed: () => Navigator.pop(context),
+            ),
+          ),
+
+          const SizedBox(height: 16),
+
+          // Trophy Lottie
+          SizedBox(
+            width: 160,
+            height: 160,
+            child: Lottie.asset(
+              'assets/lottie/trophy.json',
+              repeat: false,
+            ),
+          )
+              .animate()
+              .scale(
+                begin: const Offset(0.5, 0.5),
+                end: const Offset(1, 1),
+                curve: Curves.elasticOut,
+                duration: 800.ms,
+              ),
+
+          const SizedBox(height: 20),
+
+          Text(
+            'Topic Complete!',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.nunito(
+              color: AppColors.textPrimary,
+              fontSize: 28,
+              fontWeight: FontWeight.w900,
+            ),
+          )
+              .animate(delay: 300.ms)
+              .fadeIn(duration: 350.ms)
+              .slideY(begin: 0.1, end: 0),
+
+          const SizedBox(height: 10),
+
+          Text(
+            'You\'ve answered all questions\nin ${widget.topicName}.',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.nunito(
+              color: AppColors.textSecondary,
+              fontSize: 15,
+              fontWeight: FontWeight.w600,
+              height: 1.5,
+            ),
+          )
+              .animate(delay: 400.ms)
+              .fadeIn(duration: 300.ms),
+
+          const SizedBox(height: 32),
+
+          // Stats strip
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 24),
+            decoration: BoxDecoration(
+              color: AppColors.greenLight,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                  color: AppColors.green.withValues(alpha: 0.35), width: 1.5),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.check_circle_rounded,
+                    color: AppColors.green, size: 26),
+                const SizedBox(width: 10),
+                Text(
+                  '${_topicQuestionCount!} question${_topicQuestionCount! == 1 ? '' : 's'} mastered',
+                  style: GoogleFonts.nunito(
+                    color: AppColors.greenDark,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 15,
+                  ),
+                ),
+              ],
+            ),
+          )
+              .animate(delay: 500.ms)
+              .fadeIn(duration: 300.ms)
+              .slideY(begin: 0.1, end: 0),
+
+          const SizedBox(height: 28),
+
+          AppButton(
+            label: 'Practice Again',
+            variant: AppButtonVariant.primary,
+            icon: Icons.replay_rounded,
+            onTap: () => Navigator.pushReplacement(
+              context,
+              AppPageRoute(
+                builder: (_) => QuizScreen(
+                  categoryId: widget.categoryId,
+                  categoryName: widget.categoryName,
+                  topicId: widget.topicId,
+                  topicName: widget.topicName,
+                  color: widget.color,
+                  forReplay: true,
+                ),
+              ),
+            ),
+          ).animate(delay: 650.ms).fadeIn(duration: 300.ms),
+
+          const SizedBox(height: 12),
+
+          AppButton(
+            label: 'Go Back',
+            variant: AppButtonVariant.secondary,
+            onTap: () => Navigator.pop(context),
+          ).animate(delay: 700.ms).fadeIn(duration: 300.ms),
+        ],
+      ),
+    );
+  }
+
+  // ── No questions in the database yet ───────────────────────────────────────
+
+  Widget _buildNoQuestions() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(36),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 90,
+              height: 90,
+              decoration: BoxDecoration(
+                color: AppColors.blueLight,
+                shape: BoxShape.circle,
+                border: Border.all(
+                    color: AppColors.blue.withValues(alpha: 0.25), width: 2),
+              ),
+              child: const Icon(Icons.hourglass_top_rounded,
+                  color: AppColors.blue, size: 44),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Coming Soon',
+              style: GoogleFonts.nunito(
+                color: AppColors.textPrimary,
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Questions for this topic are\nbeing prepared. Check back soon!',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.nunito(
+                color: AppColors.textSecondary,
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 32),
+            AppButton(
+              label: 'Go Back',
+              variant: AppButtonVariant.secondary,
+              onTap: () => Navigator.pop(context),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Generic fallback (practice mode with nothing to review) ────────────────
+
+  Widget _buildGenericEmpty() {
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32),
@@ -284,39 +510,24 @@ class _QuizScreenState extends State<QuizScreen> {
                   color: AppColors.blue, size: 44),
             ),
             const SizedBox(height: 16),
-            const Text(
-              'All done here!',
-              style: TextStyle(
+            Text(
+              'All caught up!',
+              style: GoogleFonts.nunito(
                   fontSize: 20,
                   fontWeight: FontWeight.w900,
                   color: AppColors.textPrimary),
             ),
             const SizedBox(height: 8),
-            const Text(
-              'You\'ve answered all available questions.\nCome back for more soon!',
+            Text(
+              'Nothing left to review right now.\nKeep playing to build your streak!',
               textAlign: TextAlign.center,
-              style: TextStyle(color: AppColors.textSecondary, fontSize: 14),
+              style: GoogleFonts.nunito(
+                  color: AppColors.textSecondary,
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  height: 1.5),
             ),
             const SizedBox(height: 28),
-            AppButton(
-              label: 'Play Again',
-              variant: AppButtonVariant.primary,
-              icon: Icons.replay_rounded,
-              onTap: () => Navigator.pushReplacement(
-                context,
-                AppPageRoute(
-                  builder: (_) => QuizScreen(
-                    categoryId: widget.categoryId,
-                    categoryName: widget.categoryName,
-                    topicId: widget.topicId,
-                    topicName: widget.topicName,
-                    color: widget.color,
-                    forReplay: true,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
             AppButton(
               label: 'Go Back',
               variant: AppButtonVariant.secondary,
@@ -620,73 +831,109 @@ class _QuizScreenState extends State<QuizScreen> {
   }
 
   void _confirmQuit(BuildContext context) {
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (_) => Dialog(
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        backgroundColor: Colors.white,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 360),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: const BoxDecoration(
-                    color: AppColors.redLight,
-                    shape: BoxShape.circle,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => _QuitSheet(
+        onKeepGoing: () => Navigator.pop(context),
+        onQuit: () {
+          Navigator.pop(context); // close sheet
+          Navigator.pop(context); // close quiz
+        },
+      ),
+    );
+  }
+}
+
+// ─── Quit bottom sheet ────────────────────────────────────────────────────────
+
+class _QuitSheet extends StatelessWidget {
+  final VoidCallback onKeepGoing;
+  final VoidCallback onQuit;
+
+  const _QuitSheet({required this.onKeepGoing, required this.onQuit});
+
+  @override
+  Widget build(BuildContext context) {
+    final bottomPad = MediaQuery.of(context).padding.bottom;
+
+    // The mascot is 110 px tall. We centre it on the sheet's top edge:
+    // – top 55 px float above the white surface
+    // – bottom 55 px sit inside the sheet (cleared by the padding-top)
+    const mascotH = 110.0;
+    const halfMascot = mascotH / 2;
+
+    return Stack(
+      clipBehavior: Clip.none,
+      alignment: Alignment.topCenter,
+      children: [
+        // ── White sheet ─────────────────────────────────────────────────────
+        Container(
+          margin: const EdgeInsets.only(top: halfMascot),
+          padding: EdgeInsets.fromLTRB(
+              28, halfMascot + 20, 28, bottomPad + 32),
+          width: double.infinity,
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                "Wait, don't go!",
+                textAlign: TextAlign.center,
+                style: GoogleFonts.nunito(
+                  color: AppColors.textPrimary,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                "You'll lose your progress\nif you quit now",
+                textAlign: TextAlign.center,
+                style: GoogleFonts.nunito(
+                  color: AppColors.textSecondary,
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  height: 1.45,
+                ),
+              ),
+              const SizedBox(height: 28),
+              AppButton(
+                label: 'KEEP LEARNING',
+                variant: AppButtonVariant.primary,
+                onTap: onKeepGoing,
+              ),
+              const SizedBox(height: 18),
+              GestureDetector(
+                onTap: onQuit,
+                child: Text(
+                  'END SESSION',
+                  style: GoogleFonts.nunito(
+                    color: AppColors.textSecondary,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.5,
                   ),
-                  child: const Icon(Icons.exit_to_app_rounded,
-                      color: AppColors.red, size: 30),
                 ),
-                const SizedBox(height: 12),
-                const Text(
-                  'Quit Quiz?',
-                  style: TextStyle(
-                    color: AppColors.textPrimary,
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Your progress will be lost.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                      color: AppColors.textSecondary, fontSize: 14),
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  children: [
-                    Expanded(
-                      child: AppButton(
-                        label: 'Keep Going',
-                        variant: AppButtonVariant.success,
-                        onTap: () => Navigator.pop(context),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: AppButton(
-                        label: 'Quit',
-                        variant: AppButtonVariant.danger,
-                        onTap: () {
-                          Navigator.pop(context);
-                          Navigator.pop(context);
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
-      ),
+
+        // ── Mascot — floats centred on the sheet's top edge ─────────────────
+        Positioned(
+          top: 0,
+          child: SvgPicture.asset(
+            'assets/images/end_quiz_mascot.svg',
+            width: mascotH,
+            height: mascotH,
+          ),
+        ),
+      ],
     );
   }
 }

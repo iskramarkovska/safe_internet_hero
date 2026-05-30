@@ -214,6 +214,8 @@ class _ProfileInfoSection extends StatelessWidget {
                 children: [
                   Text(
                     user.username,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: AppColors.textPrimary,
                       fontWeight: FontWeight.w900,
@@ -225,6 +227,8 @@ class _ProfileInfoSection extends StatelessWidget {
 
                   Text(
                     '@${user.username}',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       color: AppColors.textSecondary,
                       fontSize: 13,
