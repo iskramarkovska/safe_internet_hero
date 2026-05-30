@@ -696,7 +696,8 @@ class _ContentCard extends StatelessWidget {
                             fontWeight: FontWeight.w900,
                             fontSize: 14,
                             color: AppColors.textPrimary,
-                            height: 1.3,
+                            letterSpacing: -0.5,
+                            height: 1.05,
                           ),
                         ),
 
@@ -711,7 +712,7 @@ class _ContentCard extends StatelessWidget {
                             style: GoogleFonts.nunito(
                               color: AppColors.textSecondary,
                               fontSize: 12,
-                              height: 1.35,
+                              height: 1.4,
                               fontWeight: FontWeight.w500,
                             ),
                           ),

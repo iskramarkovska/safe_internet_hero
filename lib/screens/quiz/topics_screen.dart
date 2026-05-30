@@ -451,12 +451,12 @@ class _SectionHeader extends StatelessWidget {
           AppCategoryIcon(title: category.title, size: 24),
           const SizedBox(width: 8),
           Text(
-            category.title.toUpperCase(),
+            category.title,
             style: GoogleFonts.nunito(
               color: color,
-              fontSize: 11,
+              fontSize: 13,
               fontWeight: FontWeight.w900,
-              letterSpacing: 1.4,
+              letterSpacing: 0,
             ),
           ),
         ],

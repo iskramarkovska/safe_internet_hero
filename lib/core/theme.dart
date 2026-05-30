@@ -4,61 +4,104 @@ import 'package:google_fonts/google_fonts.dart';
 class AppColors {
   AppColors._();
 
-  // ── Primary palette ──────────────────────────────────────────────────────
-  static const blue = Color(0xFF1CB0F6);
-  static const blueDark = Color(0xFF0E8FC7);
-  static const blueLight = Color(0xFFD4F0FD);
+  // ── Blues — Macaw / Whale / Iguana ───────────────────────────────────────
+  static const blue      = Color(0xFF1CB0F6); // Macaw
+  static const blueDark  = Color(0xFF1899D6); // Whale
+  static const blueLight = Color(0xFFDDF4FF); // Iguana
 
-  static const green = Color(0xFF58CC02);
-  static const greenDark = Color(0xFF46A302);
-  static const greenLight = Color(0xFFDDF5C1);
+  // ── Greens — Owl / Tree Frog / Sea Sponge ───────────────────────────────
+  static const green      = Color(0xFF58CC02); // Owl
+  static const greenDark  = Color(0xFF58A700); // Tree Frog
+  static const greenLight = Color(0xFFD7FFB8); // Sea Sponge
 
-  static const red = Color(0xFFFF4B4B);
-  static const redDark = Color(0xFFD93636);
-  static const redLight = Color(0xFFFFE0E0);
+  // ── Reds — Cardinal / Fire Ant / Walking Fish ────────────────────────────
+  static const red      = Color(0xFFFF4B4B); // Cardinal
+  static const redDark  = Color(0xFFEA2B2B); // Fire Ant
+  static const redLight = Color(0xFFFFDFE0); // Walking Fish
 
-  static const orange = Color(0xFFFF9600);
-  static const orangeDark = Color(0xFFCC7800);
+  // ── Oranges — Fox / Guinea Pig / Cheetah ────────────────────────────────
+  static const orange      = Color(0xFFFF9600); // Fox
+  static const orangeDark  = Color(0xFFCD7900); // Guinea Pig
+  static const orangeLight = Color(0xFFFFCE8E); // Cheetah
 
-  static const gold = Color(0xFFFFD700);
-  static const goldDark = Color(0xFFC8A830);
-
-  // ── Brand teal (kept for backward compat) ────────────────────────────────
-  static const teal = Color(0xFF2BBFAA);
-  static const darkTeal = Color(0xFF1A9E8F);
-  static const tealLight = Color(0xFF4DD0C4);
+  // ── Yellows — Bee / Lion ─────────────────────────────────────────────────
+  static const gold     = Color(0xFFFFC800); // Bee
+  static const goldDark = Color(0xFFFFB100); // Lion
 
   // ── Legacy aliases so existing screens compile unchanged ─────────────────
-  static const primary = blue;
+  static const teal     = Color(0xFF2BBFAA);
+  static const darkTeal = Color(0xFF1A9E8F);
+  static const tealLight = Color(0xFF4DD0C4);
+  static const primary  = blue;
   static const secondary = Color(0xFFFF6B6B);
-  static const accent = Color(0xFF4ECDC4);
-  static const hero = Color(0xFFE8524A);
-  static const amber = Color(0xFFFFB300);
-  static const pink = Color(0xFFF45B8C);
-  static const correct = green;
-  static const wrong = red;
+  static const accent   = Color(0xFF4ECDC4);
+  static const hero     = Color(0xFFE8524A);
+  static const amber    = Color(0xFFFFB300);
+  static const pink     = Color(0xFFF45B8C);
+  static const correct  = green;
+  static const wrong    = red;
 
   // ── Backgrounds ──────────────────────────────────────────────────────────
-  static const background = Color(0xFFF7F7F7);
-  static const surface = Colors.white;
-  static const cream = Color(0xFFF5FAF7);
-  static const card = Colors.white;
+  static const background = Color(0xFFF7F7F7); // Polar
+  static const surface    = Colors.white;
+  static const cream      = Color(0xFFF5FAF7);
+  static const card       = Colors.white;
 
-  // ── Borders ──────────────────────────────────────────────────────────────
-  static const border = Color(0xFFE5E7EB);
-  static const borderDark = Color(0xFFD1D5DB);
+  // ── Borders — Swan / Hare ────────────────────────────────────────────────
+  static const border     = Color(0xFFE5E5E5); // Swan
+  static const borderDark = Color(0xFFAFAFAF); // Hare
 
-  // ── Text ─────────────────────────────────────────────────────────────────
-  static const textPrimary = Color(0xFF3C3C3C);
-  static const textSecondary = Color(0xFF6B7280);
-  static const textLight = Color(0xFF9CA3AF);
+  // ── Text — Eel / Wolf / Hare ─────────────────────────────────────────────
+  static const textPrimary   = Color(0xFF4B4B4B); // Eel
+  static const textSecondary = Color(0xFF777777); // Wolf
+  static const textLight     = Color(0xFFAFAFAF); // Hare
 
   // ── Category palette ─────────────────────────────────────────────────────
-  static const categoryPrivacy = Color(0xFF7C4DFF);
-  static const categoryPasswords = Color(0xFF00BCD4);
-  static const categoryCyberbullying = Color(0xFFFF5252);
-  static const categorySocialMedia = Color(0xFFFFAB00);
-  static const categoryPhishing = Color(0xFFFF6D00);
+  static const categoryPrivacy       = Color(0xFF9069CD); // Betta       (purple)
+  static const categoryPasswords     = Color(0xFF1CB0F6); // Macaw       (sky blue)
+  static const categoryCyberbullying = Color(0xFFFF7878); // Crab        (soft red)
+  static const categorySocialMedia   = Color(0xFFE5A259); // Monkey      (warm amber)
+  static const categoryPhishing      = Color(0xFFFFB100); // Lion        (golden)
+}
+
+// ─── Typography ───────────────────────────────────────────────────────────────
+// Substitute rules (Feather Bold → Nunito Black, DIN Next Rounded → Nunito):
+//
+//  Headline  — Nunito w900, letterSpacing: -0.5, height: 1.05, always lowercase
+//  Body      — Nunito w500–w600, letterSpacing: 0,  height: 1.4,  min 14 px
+//  Label     — Nunito w700–w800, letterSpacing: 0,  no ALL-CAPS
+//
+//  Headline px ≈ body px × 1.5   (150 % size ratio)
+//  Never use positive letterSpacing on headline text.
+
+class AppTypography {
+  AppTypography._();
+
+  // ── Headline styles (Feather Bold substitute) ──────────────────────────
+  static TextStyle headline(double size) => GoogleFonts.nunito(
+        fontSize: size,
+        fontWeight: FontWeight.w900,
+        letterSpacing: -0.5,
+        height: 1.05,
+      );
+
+  // ── Body styles (DIN Next Rounded substitute) ──────────────────────────
+  static TextStyle body(double size, {FontWeight weight = FontWeight.w500}) =>
+      GoogleFonts.nunito(
+        fontSize: size,
+        fontWeight: weight,
+        letterSpacing: 0,
+        height: 1.4,
+      );
+
+  // ── Label/UI chip (small, never ALL-CAPS) ─────────────────────────────
+  static TextStyle label(double size, {FontWeight weight = FontWeight.w700}) =>
+      GoogleFonts.nunito(
+        fontSize: size,
+        fontWeight: weight,
+        letterSpacing: 0,
+        height: 1.2,
+      );
 }
 
 class AppSpacing {

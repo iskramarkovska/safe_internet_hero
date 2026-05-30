@@ -321,14 +321,15 @@ class _HeroCard extends StatelessWidget {
               color: Colors.white,
               fontSize: 22,
               fontWeight: FontWeight.w900,
-              height: 1.25,
+              letterSpacing: -0.5,
+              height: 1.05,
             ),
           ),
           const SizedBox(height: 10),
           Row(children: [
             _HeroBadge(
               icon: Icons.menu_book_rounded,
-              label: 'ARTICLE',
+              label: 'article',
             ),
             if (readTimeMinutes > 0) ...[
               const SizedBox(width: 8),
@@ -368,7 +369,7 @@ class _HeroBadge extends StatelessWidget {
             color: Colors.white,
             fontWeight: FontWeight.w800,
             fontSize: 10,
-            letterSpacing: 0.5,
+            letterSpacing: 0,
           ),
         ),
       ]),

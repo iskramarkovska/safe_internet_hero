@@ -385,12 +385,12 @@ class _Podium extends StatelessWidget {
       child: Column(
         children: [
           Text(
-            'Top Performers',
+            'Top performers',
             style: GoogleFonts.nunito(
               color: AppColors.textSecondary,
-              fontSize: 12,
+              fontSize: 13,
               fontWeight: FontWeight.w700,
-              letterSpacing: 1,
+              letterSpacing: 0,
             ),
           ),
           const SizedBox(height: 16),

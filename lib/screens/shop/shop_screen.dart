@@ -222,12 +222,12 @@ class _SectionLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(
-      text.toUpperCase(),
+      text,
       style: GoogleFonts.nunito(
         color: AppColors.textSecondary,
-        fontSize: 11,
+        fontSize: 13,
         fontWeight: FontWeight.w800,
-        letterSpacing: 0.8,
+        letterSpacing: 0,
       ),
     );
   }

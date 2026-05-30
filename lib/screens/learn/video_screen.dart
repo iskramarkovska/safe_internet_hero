@@ -290,13 +290,14 @@ class _VideoHero extends StatelessWidget {
               color: Colors.white,
               fontSize: 22,
               fontWeight: FontWeight.w900,
-              height: 1.25,
+              letterSpacing: -0.5,
+              height: 1.05,
             ),
           ),
           const SizedBox(height: 10),
           Row(children: [
             _HeroBadge(
-                icon: Icons.play_circle_rounded, label: 'VIDEO'),
+                icon: Icons.play_circle_rounded, label: 'video'),
             const SizedBox(width: 8),
             _HeroBadge(
                 icon: Icons.star_rounded, label: '+$_kXp XP'),
@@ -333,7 +334,7 @@ class _HeroBadge extends StatelessWidget {
             color: Colors.white,
             fontWeight: FontWeight.w800,
             fontSize: 10,
-            letterSpacing: 0.5,
+            letterSpacing: 0,
           ),
         ),
       ]),

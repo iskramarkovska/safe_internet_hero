@@ -118,14 +118,14 @@ class _LoadingBody extends StatelessWidget {
                 ),
             const SizedBox(height: 20),
             Text(
-              'SAFE INTERNET\nHERO',
+              'safe internet\nhero',
               textAlign: TextAlign.center,
               style: GoogleFonts.nunito(
                 color: Colors.white,
                 fontSize: 26,
                 fontWeight: FontWeight.w900,
-                letterSpacing: 1,
-                height: 1.2,
+                letterSpacing: -0.5,
+                height: 1.05,
               ),
             )
                 .animate(delay: const Duration(milliseconds: 200))

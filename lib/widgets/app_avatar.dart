@@ -163,8 +163,11 @@ class AppCategoryIcon extends StatelessWidget {
 
   static Color darkColorFor(String title) {
     final base = colorFor(title);
-    return HSLColor.fromColor(base)
-        .withLightness((HSLColor.fromColor(base).lightness - 0.12).clamp(0, 1))
+    final hsl = HSLColor.fromColor(base);
+    // Gradient end: lighter + more pastel (desaturated) version of the base
+    return hsl
+        .withSaturation((hsl.saturation - 0.18).clamp(0, 1))
+        .withLightness((hsl.lightness + 0.22).clamp(0, 0.92))
         .toColor();
   }
 
