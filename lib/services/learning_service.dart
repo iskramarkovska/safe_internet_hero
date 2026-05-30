@@ -40,6 +40,19 @@ class LearningService {
     await doc.set(content.toMap()..['id'] = doc.id);
   }
 
+  Future<void> seedContent(List<LearningContentModel> items) async {
+    const chunkSize = 400;
+    for (var i = 0; i < items.length; i += chunkSize) {
+      final chunk = items.sublist(i, (i + chunkSize).clamp(0, items.length));
+      final batch = _db.batch();
+      for (final item in chunk) {
+        final doc = _db.collection('learning_content').doc();
+        batch.set(doc, item.toMap()..['id'] = doc.id);
+      }
+      await batch.commit();
+    }
+  }
+
   // Update existing content
   Future<void> updateContent(LearningContentModel content) async {
     await _db

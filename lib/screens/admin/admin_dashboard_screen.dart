@@ -1,129 +1,143 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../core/theme.dart';
 import '../../widgets/admin_widgets.dart';
+import 'import_data_screen.dart';
 import 'manage_categories_topics_screen.dart';
 import 'manage_learning_content_screen.dart';
 import 'manage_questions_screen.dart';
 
-
 class AdminDashboardScreen extends StatelessWidget {
   const AdminDashboardScreen({super.key});
-
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.cream,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Container(
-              decoration: const BoxDecoration(
-                color: AppColors.teal,
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(26),
-                  bottomRight: Radius.circular(26),
+      backgroundColor: AppColors.background,
+      body: Column(
+        children: [
+          AdminHeader(
+            title: 'Admin',
+            trailing: Container(
+              margin: const EdgeInsets.only(right: 4),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.blue.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                    color: AppColors.blue.withValues(alpha: 0.3),
+                    width: 1.5),
+              ),
+              child: Text(
+                'ADMIN',
+                style: GoogleFonts.nunito(
+                  color: AppColors.blue,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 11,
+                  letterSpacing: 0.5,
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 10,
-                    offset: Offset(0, 4),
-                  ),
-                ],
-              ),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-              child: Row(
-                children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: const Color(0xFFFFF0C2),
-                        width: 2,
-                      ),
-                    ),
-                    child: IconButton(
-                      icon: const Icon(
-                        Icons.arrow_back_ios_new_rounded,
-                        color: AppColors.darkTeal,
-                        size: 20,
-                      ),
-                      onPressed: () => Navigator.pop(context),
-                    ),
-                  ),
-                  const Expanded(
-                    child: Text(
-                      'Admin Dashboard',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 24,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 48),
-                ],
               ),
             ),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
-                children: [
-                  AdminDashboardCard(
-                    title: 'Manage Questions',
-                    subtitle:
-                    'Create quiz questions, choose difficulty, and set correct answers.',
-                    icon: Icons.quiz_rounded,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const ManageQuestionsScreen(),
-                        ),
-                      );
-                    },
+          ),
+          Expanded(
+            child: ListView(
+              padding: const EdgeInsets.fromLTRB(16, 20, 16, 40),
+              children: [
+                Text(
+                  'Content',
+                  style: GoogleFonts.nunito(
+                    color: AppColors.textSecondary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.8,
                   ),
-                  const SizedBox(height: 16),
-                  AdminDashboardCard(
-                    title: 'Manage Learning Content',
-                    subtitle:
-                    'Create and edit articles, videos, images, and learning resources.',
-                    icon: Icons.library_books_rounded,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                          const ManageLearningContentScreen(),
-                        ),
-                      );
-                    },
+                ),
+                const SizedBox(height: 10),
+                AdminDashboardCard(
+                  title: 'Questions',
+                  subtitle: 'Create quiz questions, set difficulty and correct answers.',
+                  icon: Icons.quiz_rounded,
+                  onTap: () => Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const ManageQuestionsScreen())),
+                ),
+                const SizedBox(height: 10),
+                AdminDashboardCard(
+                  title: 'Learning Content',
+                  subtitle: 'Create and edit articles and video resources.',
+                  icon: Icons.library_books_rounded,
+                  onTap: () => Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const ManageLearningContentScreen())),
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  'Structure',
+                  style: GoogleFonts.nunito(
+                    color: AppColors.textSecondary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.8,
                   ),
-                  const SizedBox(height: 16),
-                  AdminDashboardCard(
-                    title: 'Manage Categories & Topics',
-                    subtitle:
-                    'Create, edit, organize, and delete categories and topics.',
-                    icon: Icons.category_rounded,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                          const CategoryTopicManagerScreen(),
-                        ),
-                      );
-                    },
+                ),
+                const SizedBox(height: 10),
+                AdminDashboardCard(
+                  title: 'Categories & Topics',
+                  subtitle: 'Organise categories and their topics.',
+                  icon: Icons.account_tree_rounded,
+                  onTap: () => Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const CategoryTopicManagerScreen())),
+                ),
+                const SizedBox(height: 24),
+                Text(
+                  'Tools',
+                  style: GoogleFonts.nunito(
+                    color: AppColors.textSecondary,
+                    fontSize: 11,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: 0.8,
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(height: 10),
+                AdminDashboardCard(
+                  title: 'Import JSON',
+                  subtitle: 'Bulk-upload questions or articles from a JSON file.',
+                  icon: Icons.upload_file_rounded,
+                  onTap: () => Navigator.push(context,
+                      MaterialPageRoute(builder: (_) => const ImportDataScreen())),
+                ),
+                const SizedBox(height: 32),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppColors.blueLight,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                        color: AppColors.blue.withValues(alpha: 0.2),
+                        width: 1.5),
+                  ),
+                  child: Row(children: [
+                    const Icon(Icons.info_outline_rounded,
+                        color: AppColors.blue, size: 16),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Admin accounts are excluded from the leaderboard and public rankings.',
+                        style: GoogleFonts.nunito(
+                          color: AppColors.blue,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ]),
+                ),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
+

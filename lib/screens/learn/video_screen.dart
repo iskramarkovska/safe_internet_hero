@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/app_page_route.dart';
 import '../../core/theme.dart';
 import '../../models/learning_content_model.dart';
+import '../../widgets/app_avatar.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/learning_service.dart';
 import '../auth/splash_screen.dart';
@@ -20,17 +21,33 @@ class VideoScreen extends StatefulWidget {
 
 class _VideoScreenState extends State<VideoScreen> {
   static const _xp = 5;
-  static const _ytRed = Color(0xFFFF0000);
 
   final _learningService = LearningService();
 
   bool _watchTriggered = false;
   bool _xpLoading = false;
-  // null = not watched yet, 0 = already watched, >0 = just earned
   int? _xpEarned;
 
-  String get _thumbUrl =>
-      'https://img.youtube.com/vi/${widget.content.content.trim()}/maxresdefault.jpg';
+  String get _videoId => _extractVideoId(widget.content.content);
+
+  static String _extractVideoId(String input) {
+    final s = input.trim();
+    if (!s.contains('/') && !s.contains('?')) return s;
+    try {
+      final uri = Uri.parse(s);
+      if (uri.host == 'youtu.be' && uri.pathSegments.isNotEmpty) {
+        return uri.pathSegments.first;
+      }
+      if (uri.queryParameters.containsKey('v')) {
+        return uri.queryParameters['v']!;
+      }
+      final embedIdx = uri.pathSegments.indexOf('embed');
+      if (embedIdx >= 0 && embedIdx + 1 < uri.pathSegments.length) {
+        return uri.pathSegments[embedIdx + 1];
+      }
+    } catch (_) {}
+    return s;
+  }
 
   Future<void> _onWatch() async {
     await _launchVideo();
@@ -41,10 +58,9 @@ class _VideoScreenState extends State<VideoScreen> {
   }
 
   Future<void> _launchVideo() async {
-    final videoId = widget.content.content.trim();
-    final youtubeApp = Uri.parse('vnd.youtube:$videoId');
+    final youtubeApp = Uri.parse('vnd.youtube:$_videoId');
     final youtubeWeb =
-        Uri.parse('https://www.youtube.com/watch?v=$videoId');
+        Uri.parse('https://www.youtube.com/watch?v=$_videoId');
     if (await canLaunchUrl(youtubeApp)) {
       await launchUrl(youtubeApp);
     } else if (await canLaunchUrl(youtubeWeb)) {
@@ -59,7 +75,7 @@ class _VideoScreenState extends State<VideoScreen> {
     final auth = context.read<AuthProvider>();
 
     if (auth.isGuest) {
-      setState(() => _xpEarned = -1); // sentinel for guest
+      setState(() => _xpEarned = -1);
       return;
     }
 
@@ -88,280 +104,328 @@ class _VideoScreenState extends State<VideoScreen> {
   @override
   Widget build(BuildContext context) {
     final isGuest = context.read<AuthProvider>().isGuest;
+    final accent = AppCategoryIcon.colorFor(widget.content.categoryId);
+    final darkAccent = AppCategoryIcon.darkColorFor(widget.content.categoryId);
+    final catIcon = AppCategoryIcon.iconFor(widget.content.categoryId);
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // ── Top bar ────────────────────────────────────────────────
-            Container(
-              color: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.close_rounded,
-                        color: AppColors.textSecondary, size: 24),
-                    onPressed: () => Navigator.pop(context),
-                  ),
-                  Expanded(
-                    child: Text(
-                      widget.content.title,
-                      textAlign: TextAlign.center,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.nunito(
-                        color: AppColors.textPrimary,
-                        fontSize: 15,
-                        fontWeight: FontWeight.w800,
+      backgroundColor: AppColors.background,
+      body: Column(
+        children: [
+          // ── Top bar ──────────────────────────────────────────────────
+          SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                Container(
+                  color: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 8, vertical: 10),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded,
+                            color: AppColors.textSecondary, size: 24),
+                        onPressed: () => Navigator.pop(context),
                       ),
+                      Expanded(
+                        child: Text(
+                          widget.content.title,
+                          textAlign: TextAlign.center,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: GoogleFonts.nunito(
+                            color: AppColors.textPrimary,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 48),
+                    ],
+                  ),
+                ),
+                Container(height: 1, color: AppColors.border),
+              ],
+            ),
+          ),
+
+          // ── Scrollable body ──────────────────────────────────────────
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Hero banner
+                  _VideoHero(
+                    title: widget.content.title,
+                    categoryId: widget.content.categoryId,
+                    accent: accent,
+                    darkAccent: darkAccent,
+                    catIcon: catIcon,
+                  ),
+
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 20, 16, 48),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // Thumbnail card
+                        GestureDetector(
+                          onTap: _onWatch,
+                          child: _ThumbnailCard(videoId: _videoId),
+                        )
+                            .animate()
+                            .fadeIn(duration: 300.ms)
+                            .slideY(
+                                begin: 0.05,
+                                end: 0,
+                                duration: 300.ms,
+                                curve: Curves.easeOut),
+
+                        const SizedBox(height: 20),
+
+                        // Description
+                        if (widget.content.description.isNotEmpty) ...[
+                          Text(
+                            widget.content.description,
+                            style: GoogleFonts.nunito(
+                              fontSize: 15,
+                              color: AppColors.textSecondary,
+                              height: 1.6,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                        ],
+
+                        // XP result
+                        AnimatedSize(
+                          duration: const Duration(milliseconds: 350),
+                          curve: Curves.easeOut,
+                          child: _watchTriggered
+                              ? _XpResultCard(
+                                  isGuest: isGuest,
+                                  isLoading: _xpLoading,
+                                  xpEarned: _xpEarned,
+                                  onCreateAccount: () {
+                                    context
+                                        .read<AuthProvider>()
+                                        .exitGuestMode();
+                                    Navigator.pushAndRemoveUntil(
+                                      context,
+                                      AppPageRoute(
+                                          builder: (_) =>
+                                              const LandingScreen()),
+                                      (r) => false,
+                                    );
+                                  },
+                                )
+                                    .animate()
+                                    .fadeIn(duration: 300.ms)
+                                    .slideY(
+                                        begin: 0.1,
+                                        end: 0,
+                                        duration: 300.ms)
+                              : const SizedBox.shrink(),
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 48),
                 ],
               ),
             ),
-            Container(height: 1, color: AppColors.border),
-
-            // ── Body ───────────────────────────────────────────────────
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 20, 20, 48),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Thumbnail with play overlay
-                    GestureDetector(
-                      onTap: _onWatch,
-                      child: Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(20),
-                            child: Image.network(
-                              _thumbUrl,
-                              height: 220,
-                              width: double.infinity,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) =>
-                                  _VideoPlaceholder(),
-                            ),
-                          ),
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(20),
-                            child: Container(
-                              height: 220,
-                              color: Colors.black.withValues(alpha: 0.28),
-                            ),
-                          ),
-                          Container(
-                            width: 72,
-                            height: 72,
-                            decoration: BoxDecoration(
-                              color: _ytRed,
-                              shape: BoxShape.circle,
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.45),
-                                  blurRadius: 18,
-                                  offset: const Offset(0, 6),
-                                ),
-                              ],
-                            ),
-                            child: const Icon(Icons.play_arrow_rounded,
-                                color: Colors.white, size: 46),
-                          ),
-                        ],
-                      ),
-                    )
-                        .animate()
-                        .scale(
-                          begin: const Offset(0.96, 0.96),
-                          end: const Offset(1, 1),
-                          duration: 350.ms,
-                          curve: Curves.easeOut,
-                        )
-                        .fadeIn(duration: 300.ms),
-
-                    const SizedBox(height: 10),
-                    Center(
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.touch_app_rounded,
-                              color: AppColors.textLight, size: 13),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Tap to watch on YouTube',
-                            style: GoogleFonts.nunito(
-                              color: AppColors.textLight,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    // VIDEO badge
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 5),
-                      decoration: BoxDecoration(
-                        color: _ytRed.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(
-                            color: _ytRed.withValues(alpha: 0.3), width: 1.5),
-                      ),
-                      child: Row(mainAxisSize: MainAxisSize.min, children: [
-                        const Icon(Icons.play_circle_rounded,
-                            color: _ytRed, size: 12),
-                        const SizedBox(width: 5),
-                        Text('VIDEO',
-                            style: GoogleFonts.nunito(
-                              color: _ytRed,
-                              fontWeight: FontWeight.w800,
-                              fontSize: 11,
-                              letterSpacing: 0.5,
-                            )),
-                      ]),
-                    ),
-
-                    const SizedBox(height: 14),
-
-                    Text(
-                      widget.content.title,
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.nunito(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                        color: AppColors.textPrimary,
-                        height: 1.3,
-                      ),
-                    ),
-
-                    if (widget.content.description.isNotEmpty) ...[
-                      const SizedBox(height: 10),
-                      Text(
-                        widget.content.description,
-                        style: GoogleFonts.nunito(
-                          fontSize: 15,
-                          color: AppColors.textSecondary,
-                          height: 1.55,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-
-                    const SizedBox(height: 28),
-
-                    // Watch button
-                    _WatchButton(onTap: _onWatch),
-
-                    const SizedBox(height: 16),
-
-                    // XP result card — appears after watching
-                    AnimatedSize(
-                      duration: const Duration(milliseconds: 350),
-                      curve: Curves.easeOut,
-                      child: _watchTriggered
-                          ? _XpResultCard(
-                              isGuest: isGuest,
-                              isLoading: _xpLoading,
-                              xpEarned: _xpEarned,
-                              onCreateAccount: () {
-                                context.read<AuthProvider>().exitGuestMode();
-                                Navigator.pushAndRemoveUntil(
-                                  context,
-                                  AppPageRoute(
-                                      builder: (_) => const LandingScreen()),
-                                  (r) => false,
-                                );
-                              },
-                            )
-                                .animate()
-                                .fadeIn(duration: 300.ms)
-                                .slideY(
-                                    begin: 0.1, end: 0, duration: 300.ms)
-                          : const SizedBox.shrink(),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
 
-// ─── Watch button ─────────────────────────────────────────────────────────────
+// ─── Hero banner ─────────────────────────────────────────────────────────────
 
-class _WatchButton extends StatefulWidget {
-  final VoidCallback onTap;
-  const _WatchButton({required this.onTap});
+class _VideoHero extends StatelessWidget {
+  final String title;
+  final String categoryId;
+  final Color accent;
+  final Color darkAccent;
+  final IconData catIcon;
 
-  @override
-  State<_WatchButton> createState() => _WatchButtonState();
-}
-
-class _WatchButtonState extends State<_WatchButton> {
-  bool _pressed = false;
-
-  static const _ytRed = Color(0xFFFF0000);
-  static const _ytDark = Color(0xFFCC0000);
+  const _VideoHero({
+    required this.title,
+    required this.categoryId,
+    required this.accent,
+    required this.darkAccent,
+    required this.catIcon,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: widget.onTap,
-      onTapDown: (_) => setState(() => _pressed = true),
-      onTapUp: (_) => setState(() => _pressed = false),
-      onTapCancel: () => setState(() => _pressed = false),
-      child: Stack(
-        alignment: Alignment.topCenter,
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(20, 28, 20, 28),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [accent, darkAccent],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.only(top: 4),
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 15),
-              decoration: BoxDecoration(
-                color: _ytDark,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: const SizedBox.shrink(),
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.2),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(catIcon, color: Colors.white, size: 28),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            title,
+            style: GoogleFonts.nunito(
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              height: 1.25,
             ),
           ),
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 80),
-            width: double.infinity,
-            margin: EdgeInsets.only(top: _pressed ? 4 : 0),
-            padding: const EdgeInsets.symmetric(vertical: 15),
-            decoration: BoxDecoration(
-              color: _ytRed,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const Icon(Icons.play_arrow_rounded,
-                    color: Colors.white, size: 22),
-                const SizedBox(width: 8),
-                Text('Watch on YouTube',
-                    style: GoogleFonts.nunito(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w800,
-                        fontSize: 15)),
-              ],
-            ),
+          const SizedBox(height: 10),
+          Row(children: [
+            _HeroBadge(
+                icon: Icons.play_circle_rounded, label: 'VIDEO'),
+            const SizedBox(width: 8),
+            _HeroBadge(
+                icon: Icons.star_rounded, label: '+$_kXp XP'),
+          ]),
+        ],
+      ),
+    );
+  }
+}
+
+const _kXp = 5;
+
+class _HeroBadge extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  const _HeroBadge({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(20),
+        border:
+            Border.all(color: Colors.white.withValues(alpha: 0.4), width: 1),
+      ),
+      child: Row(mainAxisSize: MainAxisSize.min, children: [
+        Icon(icon, color: Colors.white, size: 11),
+        const SizedBox(width: 5),
+        Text(
+          label,
+          style: GoogleFonts.nunito(
+            color: Colors.white,
+            fontWeight: FontWeight.w800,
+            fontSize: 10,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ]),
+    );
+  }
+}
+
+// ─── Thumbnail card ───────────────────────────────────────────────────────────
+
+class _ThumbnailCard extends StatelessWidget {
+  final String videoId;
+  const _ThumbnailCard({required this.videoId});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.18),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: AspectRatio(
+          aspectRatio: 16 / 9,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Image.network(
+                'https://img.youtube.com/vi/$videoId/maxresdefault.jpg',
+                fit: BoxFit.cover,
+                errorBuilder: (_, __, ___) => _VideoPlaceholder(),
+              ),
+              Container(color: Colors.black.withValues(alpha: 0.25)),
+              Center(
+                child: Container(
+                  width: 68,
+                  height: 68,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFF0000),
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.4),
+                        blurRadius: 16,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: const Icon(Icons.play_arrow_rounded,
+                      color: Colors.white, size: 44),
+                ),
+              ),
+              Positioned(
+                bottom: 12,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.55),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.touch_app_rounded,
+                            color: Colors.white70, size: 12),
+                        const SizedBox(width: 5),
+                        Text(
+                          'Tap to watch on YouTube',
+                          style: GoogleFonts.nunito(
+                            color: Colors.white,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -384,9 +448,7 @@ class _XpResultCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (isGuest) {
-      return _GuestXpCard(onCreateAccount: onCreateAccount);
-    }
+    if (isGuest) return _GuestXpCard(onCreateAccount: onCreateAccount);
     if (isLoading || xpEarned == null) {
       return Container(
         width: double.infinity,
@@ -409,7 +471,7 @@ class _XpResultCard extends StatelessWidget {
     }
     if (xpEarned! == 0) {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: AppColors.blueLight,
           borderRadius: BorderRadius.circular(16),
@@ -417,36 +479,88 @@ class _XpResultCard extends StatelessWidget {
               color: AppColors.blue.withValues(alpha: 0.3), width: 1.5),
         ),
         child: Row(children: [
-          const Icon(Icons.check_circle_rounded,
-              color: AppColors.blue, size: 22),
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: AppColors.blue.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.check_circle_rounded,
+                color: AppColors.blue, size: 26),
+          ),
           const SizedBox(width: 12),
           Expanded(
-            child: Text('Already watched — no extra XP.',
-                style: GoogleFonts.nunito(
-                    color: AppColors.blue,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 14)),
+            child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+              Text('Already watched',
+                  style: GoogleFonts.nunito(
+                      color: AppColors.blue,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 15)),
+              Text('You already earned XP for this video.',
+                  style: GoogleFonts.nunito(
+                      color: AppColors.blue.withValues(alpha: 0.75),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600)),
+            ]),
           ),
         ]),
       );
     }
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
       decoration: BoxDecoration(
-        color: AppColors.greenLight,
-        borderRadius: BorderRadius.circular(16),
-        border:
-            Border.all(color: AppColors.green.withValues(alpha: 0.3), width: 1.5),
+        gradient: const LinearGradient(
+          colors: [AppColors.green, Color(0xFF46A302)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.green.withValues(alpha: 0.4),
+            blurRadius: 14,
+            offset: const Offset(0, 6),
+          ),
+        ],
       ),
-      child: Row(children: [
-        const Icon(Icons.star_rounded, color: AppColors.green, size: 24),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text('+${xpEarned!} XP earned for watching!',
-              style: GoogleFonts.nunito(
-                  color: AppColors.greenDark,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 14)),
+      child: Column(children: [
+        const Text('🎉', style: TextStyle(fontSize: 36)),
+        const SizedBox(height: 6),
+        Text('Video Complete!',
+            style: GoogleFonts.nunito(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.w900)),
+        const SizedBox(height: 4),
+        Text('Great job! Keep exploring to level up.',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.nunito(
+                color: Colors.white.withValues(alpha: 0.88),
+                fontSize: 13,
+                fontWeight: FontWeight.w600)),
+        const SizedBox(height: 14),
+        Container(
+          padding:
+              const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.2),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+                color: Colors.white.withValues(alpha: 0.4), width: 1.5),
+          ),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            const Icon(Icons.star_rounded, color: Colors.white, size: 20),
+            const SizedBox(width: 8),
+            Text('+${xpEarned!} XP earned',
+                style: GoogleFonts.nunito(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 15)),
+          ]),
         ),
       ]),
     );
@@ -460,39 +574,64 @@ class _GuestXpCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.blueLight,
-        borderRadius: BorderRadius.circular(16),
-        border:
-            Border.all(color: AppColors.blue.withValues(alpha: 0.3), width: 1.5),
-      ),
-      child: Row(children: [
-        const Icon(Icons.lock_open_rounded, color: AppColors.blue, size: 22),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Text('Create a free account to earn XP for watching.',
-              style: GoogleFonts.nunito(
-                  color: AppColors.blue,
-                  fontWeight: FontWeight.w700,
-                  fontSize: 13,
-                  height: 1.4)),
+        gradient: const LinearGradient(
+          colors: [AppColors.blue, Color(0xFF5AB4F7)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        const SizedBox(width: 8),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.blue.withValues(alpha: 0.35),
+            blurRadius: 12,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(children: [
+        const Icon(Icons.lock_open_rounded, color: Colors.white, size: 32),
+        const SizedBox(height: 10),
+        Text('Want to earn XP for watching?',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.nunito(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w900)),
+        const SizedBox(height: 6),
+        Text(
+            'Create a free account to save your progress\nand earn XP for every video you watch.',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.nunito(
+                color: Colors.white.withValues(alpha: 0.88),
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                height: 1.5)),
+        const SizedBox(height: 16),
         GestureDetector(
           onTap: onCreateAccount,
           child: Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 13),
             decoration: BoxDecoration(
-              color: AppColors.blue,
-              borderRadius: BorderRadius.circular(10),
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.blueDark.withValues(alpha: 0.4),
+                  blurRadius: 0,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-            child: Text('Join',
+            child: Text('Create Free Account',
+                textAlign: TextAlign.center,
                 style: GoogleFonts.nunito(
-                    color: Colors.white,
+                    color: AppColors.blue,
                     fontWeight: FontWeight.w800,
-                    fontSize: 13)),
+                    fontSize: 15)),
           ),
         ),
       ]),
@@ -506,19 +645,16 @@ class _VideoPlaceholder extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 220,
-      width: double.infinity,
       decoration: const BoxDecoration(
         gradient: LinearGradient(
-          colors: [Color(0xFFFF0000), Color(0xFFFF6060)],
+          colors: [Color(0xFFFF4444), Color(0xFFCC0000)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        borderRadius: BorderRadius.all(Radius.circular(20)),
       ),
       child: Center(
         child: Icon(Icons.play_circle_outline_rounded,
-            color: Colors.white.withValues(alpha: 0.6), size: 80),
+            color: Colors.white.withValues(alpha: 0.5), size: 72),
       ),
     );
   }

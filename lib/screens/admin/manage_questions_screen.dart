@@ -1,4 +1,6 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../core/theme.dart';
 import '../../models/category_model.dart';
 import '../../models/enums.dart';
 import '../../models/question_model.dart';
@@ -16,88 +18,47 @@ class ManageQuestionsScreen extends StatefulWidget {
 
 class _ManageQuestionsScreenState extends State<ManageQuestionsScreen>
     with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+  late final TabController _tabs;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    _tabs = TabController(length: 2, vsync: this);
   }
 
   @override
   void dispose() {
-    _tabController.dispose();
+    _tabs.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AdminColors.cream,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _Header(tabController: _tabController),
-            Expanded(
-              child: TabBarView(
-                controller: _tabController,
-                children: const [
-                  _AddQuestionForm(),
-                  _QuestionsList(),
-                ],
-              ),
+      backgroundColor: AppColors.background,
+      body: Column(
+        children: [
+          AdminHeader(
+            title: 'Questions',
+            tabController: _tabs,
+            tabs: const ['Add Question', 'All Questions'],
+          ),
+          Expanded(
+            child: TabBarView(
+              controller: _tabs,
+              children: const [
+                _AddQuestionForm(),
+                _QuestionsList(),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// HEADER
-// ─────────────────────────────────────────────────────────────
-
-class _Header extends StatelessWidget {
-  final TabController tabController;
-  const _Header({required this.tabController});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      color: AdminColors.teal,
-      child: Column(children: [
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-          child: Row(children: [
-            IconButton(
-              icon: const Icon(Icons.arrow_back_ios_rounded, color: Colors.white, size: 22),
-              onPressed: () => Navigator.pop(context),
-            ),
-            const Expanded(
-              child: Text('Manage Questions', textAlign: TextAlign.center,
-                  style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w900)),
-            ),
-            const SizedBox(width: 48),
-          ]),
-        ),
-        TabBar(
-          controller: tabController,
-          indicatorColor: AdminColors.yellow,
-          indicatorWeight: 3,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white60,
-          labelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-          tabs: const [Tab(text: 'Add Question'), Tab(text: 'All Questions')],
-        ),
-      ]),
-    );
-  }
-}
-
-// ─────────────────────────────────────────────────────────────
-// ADD / EDIT FORM
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€ Add/Edit form â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _AddQuestionForm extends StatefulWidget {
   const _AddQuestionForm();
@@ -115,7 +76,7 @@ class _AddQuestionFormState extends State<_AddQuestionForm> {
   final _opt2Ctrl = TextEditingController();
   final _opt3Ctrl = TextEditingController();
 
-  final TopicsService _topicsService = TopicsService();
+  final _topicsService = TopicsService();
 
   List<CategoryModel> _categories = [];
   List<TopicModel> _topics = [];
@@ -136,9 +97,12 @@ class _AddQuestionFormState extends State<_AddQuestionForm> {
 
   @override
   void dispose() {
-    _textCtrl.dispose(); _explanationCtrl.dispose();
-    _opt0Ctrl.dispose(); _opt1Ctrl.dispose();
-    _opt2Ctrl.dispose(); _opt3Ctrl.dispose();
+    _textCtrl.dispose();
+    _explanationCtrl.dispose();
+    _opt0Ctrl.dispose();
+    _opt1Ctrl.dispose();
+    _opt2Ctrl.dispose();
+    _opt3Ctrl.dispose();
     super.dispose();
   }
 
@@ -146,7 +110,10 @@ class _AddQuestionFormState extends State<_AddQuestionForm> {
     try {
       final cats = await _topicsService.getCategories();
       if (!mounted) return;
-      setState(() { _categories = cats; _categoryId = cats.isNotEmpty ? cats.first.id : null; });
+      setState(() {
+        _categories = cats;
+        _categoryId = cats.isNotEmpty ? cats.first.id : null;
+      });
       if (_categoryId != null) {
         await _loadTopics(_categoryId!);
       } else {
@@ -162,41 +129,75 @@ class _AddQuestionFormState extends State<_AddQuestionForm> {
     try {
       final topics = await _topicsService.getTopicsByCategory(catId);
       if (!mounted) return;
-      setState(() { _topics = topics; _topicId = topics.isNotEmpty ? topics.first.id : null; _loading = false; });
+      setState(() {
+        _topics = topics;
+        _topicId = topics.isNotEmpty ? topics.first.id : null;
+        _loading = false;
+      });
     } catch (_) {
       if (mounted) setState(() => _loading = false);
     }
   }
 
   void _clearForm() {
-    _textCtrl.clear(); _explanationCtrl.clear();
-    _opt0Ctrl.clear(); _opt1Ctrl.clear(); _opt2Ctrl.clear(); _opt3Ctrl.clear();
-    setState(() { _editing = null; _correctIndex = 0; _type = QuestionType.multipleChoice; _difficulty = DifficultyLevel.beginner; });
+    _textCtrl.clear();
+    _explanationCtrl.clear();
+    _opt0Ctrl.clear();
+    _opt1Ctrl.clear();
+    _opt2Ctrl.clear();
+    _opt3Ctrl.clear();
+    setState(() {
+      _editing = null;
+      _correctIndex = 0;
+      _type = QuestionType.multipleChoice;
+      _difficulty = DifficultyLevel.beginner;
+    });
   }
 
-  int get _points => _difficulty == DifficultyLevel.beginner ? 10 : _difficulty == DifficultyLevel.intermediate ? 20 : 30;
+  int get _points => _difficulty == DifficultyLevel.beginner
+      ? 10
+      : _difficulty == DifficultyLevel.intermediate
+          ? 20
+          : 30;
 
   List<String> get _options => _type == QuestionType.trueFalse
       ? ['True', 'False']
-      : [_opt0Ctrl.text.trim(), _opt1Ctrl.text.trim(), _opt2Ctrl.text.trim(), _opt3Ctrl.text.trim()];
+      : [
+          _opt0Ctrl.text.trim(),
+          _opt1Ctrl.text.trim(),
+          _opt2Ctrl.text.trim(),
+          _opt3Ctrl.text.trim()
+        ];
 
   Future<void> _save() async {
-    if (_categoryId == null || _topicId == null) { _snack('Select category and topic', isError: true); return; }
+    if (_categoryId == null || _topicId == null) {
+      _snack('Select category and topic', isError: true);
+      return;
+    }
     if (!_formKey.currentState!.validate()) return;
     if (_type == QuestionType.multipleChoice) {
-      if ([_opt0Ctrl, _opt1Ctrl, _opt2Ctrl, _opt3Ctrl].any((c) => c.text.trim().isEmpty)) {
-        _snack('Fill in all 4 options', isError: true); return;
+      if ([_opt0Ctrl, _opt1Ctrl, _opt2Ctrl, _opt3Ctrl]
+          .any((c) => c.text.trim().isEmpty)) {
+        _snack('Fill in all 4 options', isError: true);
+        return;
       }
     }
     setState(() => _saving = true);
     try {
-      await QuestionService().seedQuestions([QuestionModel(
-        id: _editing?.id ?? '',
-        categoryId: _categoryId!, topicId: _topicId!,
-        text: _textCtrl.text.trim(), type: _type, options: _options,
-        correctIndex: _correctIndex, explanation: _explanationCtrl.text.trim(),
-        difficulty: _difficulty, points: _points,
-      )]);
+      await QuestionService().seedQuestions([
+        QuestionModel(
+          id: _editing?.id ?? '',
+          categoryId: _categoryId!,
+          topicId: _topicId!,
+          text: _textCtrl.text.trim(),
+          type: _type,
+          options: _options,
+          correctIndex: _correctIndex,
+          explanation: _explanationCtrl.text.trim(),
+          difficulty: _difficulty,
+          points: _points,
+        )
+      ]);
       _clearForm();
       setState(() => _saving = false);
       _snack('Question saved!');
@@ -206,115 +207,250 @@ class _AddQuestionFormState extends State<_AddQuestionForm> {
     }
   }
 
-  void _snack(String msg, {bool isError = false}) => ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(msg), backgroundColor: isError ? AdminColors.red : AdminColors.darkTeal));
+  void _snack(String msg, {bool isError = false}) =>
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: Text(msg, style: GoogleFonts.nunito(fontWeight: FontWeight.w700)),
+        backgroundColor: isError ? AppColors.red : AppColors.blue,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+      ));
 
   @override
   Widget build(BuildContext context) {
-    if (_loading) return const Center(child: CircularProgressIndicator(color: AdminColors.teal));
+    if (_loading) {
+      return const Center(
+          child: CircularProgressIndicator(color: AppColors.blue));
+    }
 
     return Form(
       key: _formKey,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
         children: [
-          if (_editing != null) AdminEditBanner(title: _editing!.text, onClear: _clearForm),
+          if (_editing != null)
+            AdminEditBanner(title: _editing!.text, onClear: _clearForm),
 
-          AdminCard(title: 'Where does this question belong?', child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const AdminLabel('Category'), const SizedBox(height: 8),
-              AdminDropdown<String>(value: _categoryId, hint: 'Select category',
-                  items: _categories.map((c) => DropdownMenuItem(value: c.id, child: Text(c.title))).toList(),
-                  onChanged: (val) async { if (val == null) return; setState(() { _categoryId = val; _topicId = null; }); await _loadTopics(val); }),
-              const SizedBox(height: 14),
-              const AdminLabel('Topic'), const SizedBox(height: 8),
-              AdminDropdown<String>(value: _topicId, hint: 'Select topic',
-                  items: _topics.map((t) => DropdownMenuItem(value: t.id, child: Text(t.name))).toList(),
-                  onChanged: (val) => setState(() => _topicId = val)),
-            ],
-          )),
-          const SizedBox(height: 14),
+          // â”€â”€ Location â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          AdminCard(
+            title: 'Location',
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const AdminLabel('Category'),
+              const SizedBox(height: 8),
+              AdminDropdown<String>(
+                value: _categoryId,
+                hint: 'Select category',
+                items: _categories
+                    .map((c) => DropdownMenuItem(value: c.id, child: Text(c.title)))
+                    .toList(),
+                onChanged: (val) async {
+                  if (val == null) return;
+                  setState(() {
+                    _categoryId = val;
+                    _topicId = null;
+                  });
+                  await _loadTopics(val);
+                },
+              ),
+              const SizedBox(height: 12),
+              const AdminLabel('Topic'),
+              const SizedBox(height: 8),
+              AdminDropdown<String>(
+                value: _topicId,
+                hint: 'Select topic',
+                items: _topics
+                    .map((t) => DropdownMenuItem(value: t.id, child: Text(t.name)))
+                    .toList(),
+                onChanged: (val) => setState(() => _topicId = val),
+              ),
+            ]),
+          ),
+          const SizedBox(height: 12),
 
-          AdminCard(title: 'Question setup', child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const AdminLabel('Type'), const SizedBox(height: 8),
+          // â”€â”€ Setup â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          AdminCard(
+            title: 'Setup',
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const AdminLabel('Type'),
+              const SizedBox(height: 8),
               Row(children: [
-                Expanded(child: AdminSelectTile(label: 'Multiple Choice', selected: _type == QuestionType.multipleChoice,
-                    onTap: () => setState(() { _type = QuestionType.multipleChoice; _correctIndex = 0; }))),
+                Expanded(
+                  child: AdminSelectTile(
+                    label: 'Multiple Choice',
+                    selected: _type == QuestionType.multipleChoice,
+                    onTap: () => setState(() {
+                      _type = QuestionType.multipleChoice;
+                      _correctIndex = 0;
+                    }),
+                  ),
+                ),
                 const SizedBox(width: 10),
-                Expanded(child: AdminSelectTile(label: 'True / False', selected: _type == QuestionType.trueFalse,
-                    onTap: () => setState(() { _type = QuestionType.trueFalse; _correctIndex = 0; }))),
+                Expanded(
+                  child: AdminSelectTile(
+                    label: 'True / False',
+                    selected: _type == QuestionType.trueFalse,
+                    onTap: () => setState(() {
+                      _type = QuestionType.trueFalse;
+                      _correctIndex = 0;
+                    }),
+                  ),
+                ),
               ]),
-              const SizedBox(height: 14),
-              const AdminLabel('Difficulty'), const SizedBox(height: 8),
+              const SizedBox(height: 12),
+              const AdminLabel('Difficulty'),
+              const SizedBox(height: 8),
               Row(children: [
-                Expanded(child: AdminDifficultyTile(label: 'Beginner', color: Colors.green,
-                    selected: _difficulty == DifficultyLevel.beginner, onTap: () => setState(() => _difficulty = DifficultyLevel.beginner))),
+                Expanded(
+                  child: AdminDifficultyTile(
+                    label: 'Beginner',
+                    color: AppColors.green,
+                    selected: _difficulty == DifficultyLevel.beginner,
+                    onTap: () => setState(() => _difficulty = DifficultyLevel.beginner),
+                  ),
+                ),
                 const SizedBox(width: 8),
-                Expanded(child: AdminDifficultyTile(label: 'Intermediate', color: Colors.orange,
-                    selected: _difficulty == DifficultyLevel.intermediate, onTap: () => setState(() => _difficulty = DifficultyLevel.intermediate))),
+                Expanded(
+                  child: AdminDifficultyTile(
+                    label: 'Intermediate',
+                    color: AppColors.orange,
+                    selected: _difficulty == DifficultyLevel.intermediate,
+                    onTap: () => setState(
+                        () => _difficulty = DifficultyLevel.intermediate),
+                  ),
+                ),
                 const SizedBox(width: 8),
-                Expanded(child: AdminDifficultyTile(label: 'Advanced', color: AdminColors.red,
-                    selected: _difficulty == DifficultyLevel.advanced, onTap: () => setState(() => _difficulty = DifficultyLevel.advanced))),
+                Expanded(
+                  child: AdminDifficultyTile(
+                    label: 'Advanced',
+                    color: AppColors.red,
+                    selected: _difficulty == DifficultyLevel.advanced,
+                    onTap: () => setState(() => _difficulty = DifficultyLevel.advanced),
+                  ),
+                ),
               ]),
-            ],
-          )),
-          const SizedBox(height: 14),
+            ]),
+          ),
+          const SizedBox(height: 12),
 
-          AdminCard(title: 'Question', child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextFormField(controller: _textCtrl, maxLines: 3,
-                  decoration: AdminField.decoration('Type your question here...'),
-                  validator: (v) => v == null || v.isEmpty ? 'Required' : null),
+          // â”€â”€ Content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+          AdminCard(
+            title: 'Question & Answers',
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              const AdminLabel('Question text'),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _textCtrl,
+                maxLines: 3,
+                style: GoogleFonts.nunito(
+                    fontSize: 14, color: AppColors.textPrimary),
+                decoration: AdminField.decoration('Type your question here...'),
+                validator: (v) =>
+                    v == null || v.isEmpty ? 'Required' : null,
+              ),
               const SizedBox(height: 14),
+
               if (_type == QuestionType.multipleChoice) ...[
-                const AdminLabel('Options — tap letter to mark correct'), const SizedBox(height: 8),
-                AdminOptionField(controller: _opt0Ctrl, letter: 'A', index: 0, correctIndex: _correctIndex, onTap: () => setState(() => _correctIndex = 0)),
+                const AdminLabel('Options - tap letter to mark correct'),
                 const SizedBox(height: 8),
-                AdminOptionField(controller: _opt1Ctrl, letter: 'B', index: 1, correctIndex: _correctIndex, onTap: () => setState(() => _correctIndex = 1)),
+                AdminOptionField(
+                    controller: _opt0Ctrl,
+                    letter: 'A',
+                    index: 0,
+                    correctIndex: _correctIndex,
+                    onTap: () => setState(() => _correctIndex = 0)),
                 const SizedBox(height: 8),
-                AdminOptionField(controller: _opt2Ctrl, letter: 'C', index: 2, correctIndex: _correctIndex, onTap: () => setState(() => _correctIndex = 2)),
+                AdminOptionField(
+                    controller: _opt1Ctrl,
+                    letter: 'B',
+                    index: 1,
+                    correctIndex: _correctIndex,
+                    onTap: () => setState(() => _correctIndex = 1)),
                 const SizedBox(height: 8),
-                AdminOptionField(controller: _opt3Ctrl, letter: 'D', index: 3, correctIndex: _correctIndex, onTap: () => setState(() => _correctIndex = 3)),
+                AdminOptionField(
+                    controller: _opt2Ctrl,
+                    letter: 'C',
+                    index: 2,
+                    correctIndex: _correctIndex,
+                    onTap: () => setState(() => _correctIndex = 2)),
+                const SizedBox(height: 8),
+                AdminOptionField(
+                    controller: _opt3Ctrl,
+                    letter: 'D',
+                    index: 3,
+                    correctIndex: _correctIndex,
+                    onTap: () => setState(() => _correctIndex = 3)),
               ],
+
               if (_type == QuestionType.trueFalse) ...[
-                const AdminLabel('Correct answer'), const SizedBox(height: 8),
+                const AdminLabel('Correct answer'),
+                const SizedBox(height: 8),
                 Row(children: [
-                  Expanded(child: AdminSelectTile(label: 'True', selected: _correctIndex == 0, color: Colors.green, onTap: () => setState(() => _correctIndex = 0))),
+                  Expanded(
+                    child: AdminSelectTile(
+                      label: 'True',
+                      selected: _correctIndex == 0,
+                      color: AppColors.green,
+                      onTap: () => setState(() => _correctIndex = 0),
+                    ),
+                  ),
                   const SizedBox(width: 12),
-                  Expanded(child: AdminSelectTile(label: 'False', selected: _correctIndex == 1, color: Colors.green, onTap: () => setState(() => _correctIndex = 1))),
+                  Expanded(
+                    child: AdminSelectTile(
+                      label: 'False',
+                      selected: _correctIndex == 1,
+                      color: AppColors.green,
+                      onTap: () => setState(() => _correctIndex = 1),
+                    ),
+                  ),
                 ]),
               ],
-              const SizedBox(height: 14),
-              const AdminLabel('Explanation'), const SizedBox(height: 8),
-              TextFormField(controller: _explanationCtrl, maxLines: 3,
-                  decoration: AdminField.decoration('Why is this the correct answer?'),
-                  validator: (v) => v == null || v.isEmpty ? 'Required' : null),
-            ],
-          )),
-          const SizedBox(height: 14),
 
+              const SizedBox(height: 14),
+              const AdminLabel('Explanation'),
+              const SizedBox(height: 8),
+              TextFormField(
+                controller: _explanationCtrl,
+                maxLines: 3,
+                style: GoogleFonts.nunito(
+                    fontSize: 14, color: AppColors.textPrimary),
+                decoration: AdminField.decoration(
+                    'Why is this the correct answer?'),
+                validator: (v) =>
+                    v == null || v.isEmpty ? 'Required' : null,
+              ),
+            ]),
+          ),
+          const SizedBox(height: 12),
+
+          // â”€â”€ Points chip â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
           Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFE5E7EB))),
-            child: Text('This question awards $_points points', textAlign: TextAlign.center,
-                style: const TextStyle(color: Color(0xFF6B7280), fontWeight: FontWeight.w600)),
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.border, width: 1.5),
+            ),
+            child: Text(
+              'This question awards $_points points',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.nunito(
+                  color: AppColors.textSecondary,
+                  fontWeight: FontWeight.w600,
+                  fontSize: 13),
+            ),
           ),
           const SizedBox(height: 16),
-          AdminPrimaryButton(label: _saving ? 'Saving...' : 'Save Question', onTap: _saving ? () {} : _save),
+          AdminPrimaryButton(
+            label: _saving ? 'Saving...' : 'Save Question',
+            onTap: _saving ? () {} : _save,
+          ),
         ],
       ),
     );
   }
 }
 
-// ─────────────────────────────────────────────────────────────
-// QUESTIONS LIST
-// ─────────────────────────────────────────────────────────────
+// â”€â”€â”€ Questions list â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 class _QuestionsList extends StatelessWidget {
   const _QuestionsList();
@@ -324,20 +460,36 @@ class _QuestionsList extends StatelessWidget {
       context: context,
       builder: (_) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Delete Question'),
-        content: Text('"${q.text}"'),
+        title: Text('Delete question?',
+            style: GoogleFonts.nunito(fontWeight: FontWeight.w800)),
+        content: Text(q.text,
+            style: GoogleFonts.nunito(
+                color: AppColors.textSecondary, fontSize: 13)),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Cancel')),
-          TextButton(onPressed: () => Navigator.pop(context, true),
-              child: const Text('Delete', style: TextStyle(color: AdminColors.red))),
+          TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text('Cancel',
+                  style: GoogleFonts.nunito(color: AppColors.textSecondary))),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text('Delete',
+                  style: GoogleFonts.nunito(
+                      color: AppColors.red, fontWeight: FontWeight.w700))),
         ],
       ),
     );
     if (ok == true) {
       await QuestionService().deleteQuestion(q.id);
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Deleted'), backgroundColor: AdminColors.darkTeal));
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          content: Text('Deleted',
+              style: GoogleFonts.nunito(fontWeight: FontWeight.w700)),
+          backgroundColor: AppColors.blue,
+          behavior: SnackBarBehavior.floating,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        ));
       }
     }
   }
@@ -347,45 +499,88 @@ class _QuestionsList extends StatelessWidget {
     return StreamBuilder<List<QuestionModel>>(
       stream: QuestionService().watchAllQuestions(),
       builder: (context, snap) {
-        if (!snap.hasData) return const Center(child: CircularProgressIndicator(color: AdminColors.teal));
+        if (!snap.hasData) {
+          return const Center(
+              child: CircularProgressIndicator(color: AppColors.blue));
+        }
         final items = snap.data!;
         if (items.isEmpty) {
           return const AdminEmptyState(
-              icon: Icons.quiz_rounded, title: 'No questions yet', subtitle: 'Add some from the "Add Question" tab');
+            icon: Icons.quiz_rounded,
+            title: 'No questions yet',
+            subtitle: 'Add some from the "Add Question" tab',
+          );
         }
 
         return ListView.builder(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
           itemCount: items.length,
           itemBuilder: (context, i) {
             final q = items[i];
-            final diffColor = q.difficulty == DifficultyLevel.beginner ? Colors.green
-                : q.difficulty == DifficultyLevel.intermediate ? Colors.orange : AdminColors.red;
-            final diffLabel = q.difficulty == DifficultyLevel.beginner ? 'Beginner'
-                : q.difficulty == DifficultyLevel.intermediate ? 'Intermediate' : 'Advanced';
+            final diffColor = q.difficulty == DifficultyLevel.beginner
+                ? AppColors.green
+                : q.difficulty == DifficultyLevel.intermediate
+                    ? AppColors.orange
+                    : AppColors.red;
+            final diffLabel = q.difficulty.name[0].toUpperCase() +
+                q.difficulty.name.substring(1);
 
             return Container(
-              margin: const EdgeInsets.only(bottom: 12),
+              margin: const EdgeInsets.only(bottom: 10),
               padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16),
-                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 8, offset: const Offset(0, 3))]),
-              child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Row(children: [
-                    AdminBadge(text: diffLabel, color: diffColor),
-                    AdminBadge(text: q.type == QuestionType.trueFalse ? 'T/F' : 'MCQ', color: AdminColors.teal),
-                    const SizedBox(width: 4),
-                    Text('${q.points} pts', style: const TextStyle(color: Color(0xFF9CA3AF), fontSize: 10)),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.border, width: 1.5),
+              ),
+              child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                        child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                          Row(children: [
+                            AdminBadge(text: diffLabel, color: diffColor),
+                            AdminBadge(
+                                text: q.type == QuestionType.trueFalse
+                                    ? 'T/F'
+                                    : 'MCQ',
+                                color: AppColors.blue),
+                            Text(' ${q.points} pts',
+                                style: GoogleFonts.nunito(
+                                    color: AppColors.textLight,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600)),
+                          ]),
+                          const SizedBox(height: 6),
+                          Text(q.text,
+                              style: GoogleFonts.nunito(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 13,
+                                  color: AppColors.textPrimary)),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Correct: ${q.options.isNotEmpty ? q.options[q.correctIndex] : ''}',
+                            style: GoogleFonts.nunito(
+                                color: AppColors.green,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600),
+                          ),
+                          Text(
+                            '${q.categoryId} / ${q.topicId}',
+                            style: GoogleFonts.nunito(
+                                color: AppColors.textLight, fontSize: 11),
+                          ),
+                        ])),
+                    IconButton(
+                      icon: const Icon(Icons.delete_outline_rounded,
+                          color: AppColors.red, size: 20),
+                      onPressed: () => _delete(context, q),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
                   ]),
-                  const SizedBox(height: 6),
-                  Text(q.text, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Color(0xFF111827))),
-                  const SizedBox(height: 4),
-                  Text('✓ ${q.options.isNotEmpty ? q.options[q.correctIndex] : ""}',
-                      style: const TextStyle(color: Color(0xFF6B7280), fontSize: 12)),
-                ])),
-                IconButton(icon: const Icon(Icons.delete_rounded, color: AdminColors.red, size: 20),
-                    onPressed: () => _delete(context, q)),
-              ]),
             );
           },
         );
@@ -393,3 +588,4 @@ class _QuestionsList extends StatelessWidget {
     );
   }
 }
+

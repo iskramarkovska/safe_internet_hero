@@ -14,7 +14,6 @@ import '../../services/topics_service.dart';
 import '../../widgets/app_avatar.dart';
 import '../../widgets/app_widgets.dart';
 import '../../core/app_page_route.dart';
-import '../home/main_screen.dart';
 import '../auth/splash_screen.dart';
 import 'quiz_screen.dart';
 

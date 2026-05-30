@@ -126,12 +126,11 @@ class _QuizScreenState extends State<QuizScreen> {
   }
 
   int _calculateStars(int score, int total) {
-    if (total == 0) return 0;
+    if (total == 0 || score == 0) return 0;
     final pct = score / total;
     if (pct == 1.0) return 3;
-    if (pct >= 0.8) return 2;
-    if (pct >= 0.5) return 1;
-    return 0;
+    if (pct >= 0.6) return 2;
+    return 1;
   }
 
   void _finish() {

@@ -66,14 +66,18 @@ class QuestionService {
   }
 
   Future<void> seedQuestions(List<QuestionModel> questions) async {
-    final batch = _db.batch();
-    for (final q in questions) {
-      final doc = q.id.isNotEmpty
-          ? _db.collection('questions').doc(q.id)
-          : _db.collection('questions').doc();
-      batch.set(doc, q.toMap()..['id'] = doc.id);
+    const chunkSize = 400;
+    for (var i = 0; i < questions.length; i += chunkSize) {
+      final chunk = questions.sublist(i, (i + chunkSize).clamp(0, questions.length));
+      final batch = _db.batch();
+      for (final q in chunk) {
+        final doc = q.id.isNotEmpty
+            ? _db.collection('questions').doc(q.id)
+            : _db.collection('questions').doc();
+        batch.set(doc, q.toMap()..['id'] = doc.id);
+      }
+      await batch.commit();
     }
-    await batch.commit();
   }
 
   Future<void> saveResult(QuizResultModel result) async {

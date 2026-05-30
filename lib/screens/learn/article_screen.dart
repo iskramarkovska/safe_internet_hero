@@ -7,6 +7,7 @@ import '../../core/theme.dart';
 import '../../models/learning_content_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/learning_service.dart';
+import '../../widgets/app_avatar.dart';
 import '../auth/splash_screen.dart';
 
 class ArticleScreen extends StatefulWidget {
@@ -25,7 +26,6 @@ class _ArticleScreenState extends State<ArticleScreen> {
   bool _completionTriggered = false;
   bool _completionVisible = false;
   bool _completionLoading = false;
-  // null = loading/pending, 0 = already read before, >0 = just earned
   int? _xpEarned;
 
   int get _xpAmount =>
@@ -37,7 +37,6 @@ class _ArticleScreenState extends State<ArticleScreen> {
   void initState() {
     super.initState();
     _scrollController.addListener(_onScroll);
-    // Short articles that don't require scrolling complete after 3 s of reading.
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!_scrollController.hasClients) return;
       if (_scrollController.position.maxScrollExtent <= 20) {
@@ -72,12 +71,9 @@ class _ArticleScreenState extends State<ArticleScreen> {
     if (!mounted) return;
     final auth = context.read<AuthProvider>();
     setState(() => _completionVisible = true);
-
-    if (auth.isGuest) return; // guest card renders without XP
-
+    if (auth.isGuest) return;
     final user = auth.user;
     if (user == null) return;
-
     setState(() => _completionLoading = true);
     try {
       final earned = await _learningService.markContentRead(
@@ -97,12 +93,36 @@ class _ArticleScreenState extends State<ArticleScreen> {
     }
   }
 
+  // ── Content parsing ──────────────────────────────────────────────────────
+
+  List<String> get _paragraphs => widget.content.content
+      .split(RegExp(r'\n\n+'))
+      .expand((block) => block
+          .split('\n')
+          .map((l) => l.trim())
+          .where((l) => l.isNotEmpty))
+      .toList();
+
+  List<String> get _keyPoints {
+    final desc = widget.content.description.trim();
+    if (desc.isEmpty) return [];
+    return desc
+        .split('\n')
+        .map((l) => l.trim())
+        .where((l) => l.isNotEmpty)
+        .map((l) => l.startsWith('- ') ? l.substring(2) : l)
+        .toList();
+  }
+
   @override
   Widget build(BuildContext context) {
     final isGuest = context.read<AuthProvider>().isGuest;
+    final accent = AppCategoryIcon.colorFor(widget.content.categoryId);
+    final paras = _paragraphs;
+    final keyPoints = _keyPoints;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       body: Column(
         children: [
           // ── Fixed top bar ──────────────────────────────────────────────
@@ -138,7 +158,6 @@ class _ArticleScreenState extends State<ArticleScreen> {
                     ],
                   ),
                 ),
-                // Reading progress bar
                 TweenAnimationBuilder<double>(
                   tween: Tween(begin: 0, end: _readProgress),
                   duration: const Duration(milliseconds: 150),
@@ -146,119 +165,67 @@ class _ArticleScreenState extends State<ArticleScreen> {
                     value: v,
                     minHeight: 4,
                     backgroundColor: AppColors.border,
-                    valueColor: const AlwaysStoppedAnimation<Color>(
-                        AppColors.green),
+                    valueColor:
+                        AlwaysStoppedAnimation<Color>(accent),
                   ),
                 ),
               ],
             ),
           ),
 
-          // ── Scrollable content ─────────────────────────────────────────
+          // ── Scrollable body ────────────────────────────────────────────
           Expanded(
             child: SingleChildScrollView(
               controller: _scrollController,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Hero image
-                  widget.content.thumbnailUrl.isNotEmpty
-                      ? Image.network(
-                          widget.content.thumbnailUrl,
-                          height: 220,
-                          width: double.infinity,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) =>
-                              const _ArticlePlaceholder(),
-                        )
-                      : const _ArticlePlaceholder(),
+                  // ── Hero card ──────────────────────────────────────────
+                  _HeroCard(
+                    title: widget.content.title,
+                    categoryId: widget.content.categoryId,
+                    readTimeMinutes: widget.content.readTimeMinutes,
+                    accent: accent,
+                  ),
 
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 22, 20, 48),
+                    padding: const EdgeInsets.fromLTRB(16, 20, 16, 48),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Badges
-                        Row(children: [
-                          _Badge(
-                            label: 'ARTICLE',
-                            icon: Icons.article_rounded,
-                            color: AppColors.teal,
-                          ),
-                          if (widget.content.readTimeMinutes > 0) ...[
-                            const SizedBox(width: 8),
-                            _Badge(
-                              label: '${widget.content.readTimeMinutes} MIN READ',
-                              icon: Icons.access_time_rounded,
-                              color: AppColors.textSecondary,
-                            ),
-                          ],
-                        ]),
-
-                        const SizedBox(height: 16),
-
-                        // Title
-                        Text(
-                          widget.content.title,
-                          maxLines: 4,
-                          overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.nunito(
-                            fontSize: 24,
-                            fontWeight: FontWeight.w900,
-                            color: AppColors.textPrimary,
-                            height: 1.25,
-                          ),
-                        ),
-
-                        // Description callout
-                        if (widget.content.description.isNotEmpty) ...[
-                          const SizedBox(height: 14),
-                          Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              color: AppColors.blueLight,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(
-                                  color: AppColors.blue
-                                      .withValues(alpha: 0.25)),
-                            ),
-                            child: Text(
-                              widget.content.description,
-                              style: GoogleFonts.nunito(
-                                fontSize: 15,
-                                color: AppColors.blue,
-                                fontWeight: FontWeight.w700,
-                                height: 1.5,
-                              ),
-                            ),
-                          ),
+                        // ── Key Takeaways ──────────────────────────────
+                        if (keyPoints.isNotEmpty) ...[
+                          _KeyTakeawaysCard(
+                            points: keyPoints,
+                            accent: accent,
+                          )
+                              .animate()
+                              .fadeIn(duration: 300.ms)
+                              .slideY(
+                                  begin: 0.05,
+                                  end: 0,
+                                  duration: 300.ms),
+                          const SizedBox(height: 20),
                         ],
 
-                        const SizedBox(height: 22),
-                        Container(
-                          height: 2,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(1),
-                            color: AppColors.border,
-                          ),
-                        ),
-                        const SizedBox(height: 22),
+                        // ── Body paragraphs ────────────────────────────
+                        ...paras.asMap().entries.map((e) {
+                          final i = e.key;
+                          final para = e.value;
+                          return _ParagraphWidget(
+                            text: para,
+                            isFirst: i == 0,
+                            accent: accent,
+                          )
+                              .animate(
+                                  delay: Duration(
+                                      milliseconds: 100 + i * 50))
+                              .fadeIn(duration: 250.ms);
+                        }),
 
-                        // Body
-                        Text(
-                          widget.content.content,
-                          style: GoogleFonts.nunito(
-                            fontSize: 16,
-                            color: AppColors.textPrimary,
-                            height: 1.8,
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
+                        const SizedBox(height: 32),
 
-                        const SizedBox(height: 36),
-
-                        // Completion card — slides in after reading
+                        // ── Completion card ────────────────────────────
                         AnimatedSize(
                           duration: const Duration(milliseconds: 400),
                           curve: Curves.easeOut,
@@ -304,58 +271,347 @@ class _ArticleScreenState extends State<ArticleScreen> {
   }
 }
 
-// ─── Placeholder ──────────────────────────────────────────────────────────────
+// ─── Hero card ────────────────────────────────────────────────────────────────
 
-class _ArticlePlaceholder extends StatelessWidget {
-  const _ArticlePlaceholder();
+class _HeroCard extends StatelessWidget {
+  final String title;
+  final String categoryId;
+  final int readTimeMinutes;
+  final Color accent;
+
+  const _HeroCard({
+    required this.title,
+    required this.categoryId,
+    required this.readTimeMinutes,
+    required this.accent,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final icon = AppCategoryIcon.iconFor(categoryId);
+    final darkAccent = AppCategoryIcon.darkColorFor(categoryId);
+
     return Container(
-      height: 200,
       width: double.infinity,
-      decoration: const BoxDecoration(
+      padding: const EdgeInsets.fromLTRB(20, 28, 20, 28),
+      decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [AppColors.teal, Color(0xFF4DD0C4)],
+          colors: [accent, darkAccent],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
       ),
-      child: Center(
-        child: Icon(Icons.article_rounded,
-            color: Colors.white.withValues(alpha: 0.5), size: 80),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Icon in a white circle
+          Container(
+            width: 56,
+            height: 56,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.2),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: Colors.white, size: 28),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            title,
+            style: GoogleFonts.nunito(
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              height: 1.25,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(children: [
+            _HeroBadge(
+              icon: Icons.menu_book_rounded,
+              label: 'ARTICLE',
+            ),
+            if (readTimeMinutes > 0) ...[
+              const SizedBox(width: 8),
+              _HeroBadge(
+                icon: Icons.access_time_rounded,
+                label: '$readTimeMinutes MIN READ',
+              ),
+            ],
+          ]),
+        ],
       ),
     );
   }
 }
 
-// ─── Badge ────────────────────────────────────────────────────────────────────
-
-class _Badge extends StatelessWidget {
-  final String label;
+class _HeroBadge extends StatelessWidget {
   final IconData icon;
-  final Color color;
-  const _Badge({required this.label, required this.icon, required this.color});
+  final String label;
+  const _HeroBadge({required this.icon, required this.label});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
+        color: Colors.white.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withValues(alpha: 0.3), width: 1.5),
+        border: Border.all(
+            color: Colors.white.withValues(alpha: 0.4), width: 1),
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, color: color, size: 12),
+        Icon(icon, color: Colors.white, size: 11),
         const SizedBox(width: 5),
         Text(
           label,
           style: GoogleFonts.nunito(
-            color: color,
+            color: Colors.white,
             fontWeight: FontWeight.w800,
-            fontSize: 11,
+            fontSize: 10,
             letterSpacing: 0.5,
+          ),
+        ),
+      ]),
+    );
+  }
+}
+
+// ─── Key Takeaways card ───────────────────────────────────────────────────────
+
+class _KeyTakeawaysCard extends StatelessWidget {
+  final List<String> points;
+  final Color accent;
+
+  const _KeyTakeawaysCard(
+      {required this.points, required this.accent});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+            color: accent.withValues(alpha: 0.3), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: accent.withValues(alpha: 0.08),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(children: [
+            Container(
+              width: 32,
+              height: 32,
+              decoration: BoxDecoration(
+                color: accent.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(Icons.lightbulb_rounded,
+                  color: accent, size: 18),
+            ),
+            const SizedBox(width: 10),
+            Text(
+              'Key Takeaways',
+              style: GoogleFonts.nunito(
+                color: AppColors.textPrimary,
+                fontWeight: FontWeight.w900,
+                fontSize: 15,
+              ),
+            ),
+          ]),
+          const SizedBox(height: 12),
+          ...points.asMap().entries.map((e) => Padding(
+                padding: const EdgeInsets.only(bottom: 9),
+                child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                  Container(
+                    margin: const EdgeInsets.only(top: 2),
+                    width: 20,
+                    height: 20,
+                    decoration: BoxDecoration(
+                      color: accent,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.check_rounded,
+                        color: Colors.white, size: 13),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      e.value,
+                      style: GoogleFonts.nunito(
+                        color: AppColors.textPrimary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                        height: 1.45,
+                      ),
+                    ),
+                  ),
+                ]),
+              )),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── Paragraph widget ─────────────────────────────────────────────────────────
+// Decides how each paragraph is displayed based on its content.
+
+class _ParagraphWidget extends StatelessWidget {
+  final String text;
+  final bool isFirst;
+  final Color accent;
+
+  const _ParagraphWidget({
+    required this.text,
+    required this.isFirst,
+    required this.accent,
+  });
+
+  static bool _isEmoji(String char) {
+    final r = char.runes.firstOrNull;
+    return r != null && r > 0x1F300;
+  }
+
+  static bool _isTip(String text) {
+    final lower = text.toLowerCase();
+    return lower.startsWith('tip:') ||
+        lower.startsWith('note:') ||
+        lower.startsWith('remember:') ||
+        lower.startsWith('important:') ||
+        lower.startsWith('warning:') ||
+        (text.isNotEmpty && _isEmoji(text[0]));
+  }
+
+  static bool _isShortFact(String text) =>
+      text.length <= 90 && !text.endsWith(':');
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isTip(text)) {
+      return _TipBox(text: text, accent: accent);
+    }
+    if (!isFirst && _isShortFact(text)) {
+      return _CalloutBox(text: text, accent: accent);
+    }
+    return _BodyParagraph(text: text, isFirst: isFirst);
+  }
+}
+
+// Regular paragraph
+class _BodyParagraph extends StatelessWidget {
+  final String text;
+  final bool isFirst;
+  const _BodyParagraph({required this.text, required this.isFirst});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: Text(
+        text,
+        style: GoogleFonts.nunito(
+          fontSize: isFirst ? 16 : 15,
+          color: AppColors.textPrimary,
+          height: 1.75,
+          fontWeight: isFirst ? FontWeight.w600 : FontWeight.w500,
+        ),
+      ),
+    );
+  }
+}
+
+// Short impactful sentence — shown as a callout with colored left border
+class _CalloutBox extends StatelessWidget {
+  final String text;
+  final Color accent;
+  const _CalloutBox({required this.text, required this.accent});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
+      decoration: BoxDecoration(
+        color: accent.withValues(alpha: 0.06),
+        borderRadius: const BorderRadius.only(
+          topRight: Radius.circular(14),
+          bottomRight: Radius.circular(14),
+          topLeft: Radius.circular(4),
+          bottomLeft: Radius.circular(4),
+        ),
+        border: Border(
+          left: BorderSide(color: accent, width: 4),
+        ),
+      ),
+      child: Text(
+        text,
+        style: GoogleFonts.nunito(
+          color: AppColors.textPrimary,
+          fontSize: 15,
+          fontWeight: FontWeight.w700,
+          height: 1.5,
+        ),
+      ),
+    );
+  }
+}
+
+// Tip / emoji paragraph — shown as a fun card with icon
+class _TipBox extends StatelessWidget {
+  final String text;
+  final Color accent;
+  const _TipBox({required this.text, required this.accent});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border:
+            Border.all(color: accent.withValues(alpha: 0.25), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+        Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: accent.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(Icons.tips_and_updates_rounded,
+              color: accent, size: 20),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Text(
+            text,
+            style: GoogleFonts.nunito(
+              color: AppColors.textPrimary,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              height: 1.5,
+            ),
           ),
         ),
       ]),
@@ -397,7 +653,8 @@ class _EarnedCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
+      padding:
+          const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [AppColors.green, Color(0xFF46A302)],
@@ -413,42 +670,44 @@ class _EarnedCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Column(
-        children: [
-          Text('Article Complete!',
-              style: GoogleFonts.nunito(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900)),
-          const SizedBox(height: 6),
-          Text('Great job! Keep exploring to level up.',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.nunito(
-                  color: Colors.white.withValues(alpha: 0.88),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600)),
-          const SizedBox(height: 16),
-          Container(
-            padding:
-                const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(24),
-              border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.4), width: 1.5),
-            ),
-            child: Row(mainAxisSize: MainAxisSize.min, children: [
-              const Icon(Icons.star_rounded, color: Colors.white, size: 20),
-              const SizedBox(width: 8),
-              Text('+$xp XP earned',
-                  style: GoogleFonts.nunito(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 15)),
-            ]),
+      child: Column(children: [
+        const Text('🎉', style: TextStyle(fontSize: 40)),
+        const SizedBox(height: 8),
+        Text('Article Complete!',
+            style: GoogleFonts.nunito(
+                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.w900)),
+        const SizedBox(height: 4),
+        Text('Great job! Keep exploring to level up.',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.nunito(
+                color: Colors.white.withValues(alpha: 0.88),
+                fontSize: 14,
+                fontWeight: FontWeight.w600)),
+        const SizedBox(height: 16),
+        Container(
+          padding: const EdgeInsets.symmetric(
+              horizontal: 20, vertical: 10),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.2),
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+                color: Colors.white.withValues(alpha: 0.4),
+                width: 1.5),
           ),
-        ],
-      ),
+          child: Row(mainAxisSize: MainAxisSize.min, children: [
+            const Icon(Icons.star_rounded,
+                color: Colors.white, size: 20),
+            const SizedBox(width: 8),
+            Text('+$xp XP earned',
+                style: GoogleFonts.nunito(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 15)),
+          ]),
+        ),
+      ]),
     );
   }
 }
@@ -464,41 +723,36 @@ class _AlreadyReadCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.blueLight,
         borderRadius: BorderRadius.circular(20),
-        border:
-            Border.all(color: AppColors.blue.withValues(alpha: 0.3), width: 1.5),
+        border: Border.all(
+            color: AppColors.blue.withValues(alpha: 0.3), width: 1.5),
       ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: AppColors.blue.withValues(alpha: 0.15),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.check_circle_rounded,
-                color: AppColors.blue, size: 26),
+      child: Row(children: [
+        Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: AppColors.blue.withValues(alpha: 0.15),
+            shape: BoxShape.circle,
           ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Already completed',
-                    style: GoogleFonts.nunito(
-                        color: AppColors.blue,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 15)),
-                Text('You already earned XP for this article.',
-                    style: GoogleFonts.nunito(
-                        color: AppColors.blue.withValues(alpha: 0.75),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600)),
-              ],
-            ),
-          ),
-        ],
-      ),
+          child: const Icon(Icons.check_circle_rounded,
+              color: AppColors.blue, size: 26),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+            Text('Already completed',
+                style: GoogleFonts.nunito(
+                    color: AppColors.blue,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 15)),
+            Text('You already earned XP for this article.',
+                style: GoogleFonts.nunito(
+                    color: AppColors.blue.withValues(alpha: 0.75),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600)),
+          ]),
+        ),
+      ]),
     );
   }
 }
@@ -551,52 +805,50 @@ class _GuestCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Column(
-        children: [
-          const Icon(Icons.lock_open_rounded, color: Colors.white, size: 32),
-          const SizedBox(height: 10),
-          Text('Want to earn XP for reading?',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.nunito(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900)),
-          const SizedBox(height: 6),
-          Text(
-              'Create a free account to save your progress\nand earn XP for every article you read.',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.nunito(
-                  color: Colors.white.withValues(alpha: 0.88),
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  height: 1.5)),
-          const SizedBox(height: 16),
-          GestureDetector(
-            onTap: onCreateAccount,
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 13),
-              decoration: BoxDecoration(
+      child: Column(children: [
+        const Icon(Icons.lock_open_rounded, color: Colors.white, size: 32),
+        const SizedBox(height: 10),
+        Text('Want to earn XP for reading?',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.nunito(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(14),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.blueDark.withValues(alpha: 0.4),
-                    blurRadius: 0,
-                    offset: const Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Text('Create Free Account',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.nunito(
-                      color: AppColors.blue,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 15)),
+                fontSize: 18,
+                fontWeight: FontWeight.w900)),
+        const SizedBox(height: 6),
+        Text(
+            'Create a free account to save your progress\nand earn XP for every article you read.',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.nunito(
+                color: Colors.white.withValues(alpha: 0.88),
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                height: 1.5)),
+        const SizedBox(height: 16),
+        GestureDetector(
+          onTap: onCreateAccount,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 13),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.blueDark.withValues(alpha: 0.4),
+                  blurRadius: 0,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
+            child: Text('Create Free Account',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.nunito(
+                    color: AppColors.blue,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 15)),
           ),
-        ],
-      ),
+        ),
+      ]),
     );
   }
 }

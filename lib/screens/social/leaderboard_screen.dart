@@ -24,12 +24,15 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
 
   Future<int> _computeUserRank(int userStars) async {
     try {
+      // Fetch users with more stars and filter admins client-side.
       final snap = await FirebaseFirestore.instance
           .collection('users')
           .where('totalStars', isGreaterThan: userStars)
-          .count()
           .get();
-      return (snap.count ?? 0) + 1;
+      final nonAdminCount = snap.docs
+          .where((d) => (d.data())['isAdmin'] != true)
+          .length;
+      return nonAdminCount + 1;
     } catch (_) {
       return 0;
     }
@@ -130,13 +133,17 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                       stream: FirebaseFirestore.instance
                           .collection('users')
                           .orderBy('totalStars', descending: true)
-                          .limit(3)
+                          .limit(10)
                           .snapshots(),
                       builder: (context, snap) {
                         if (!snap.hasData) {
                           return const LeaderboardPodiumSkeleton();
                         }
-                        final docs = snap.data!.docs;
+                        final docs = snap.data!.docs
+                            .where((d) =>
+                                (d.data() as Map<String, dynamic>)['isAdmin'] != true)
+                            .take(3)
+                            .toList();
                         return _Podium(docs: docs, currentUser: currentUser)
                             .animate()
                             .fadeIn(duration: const Duration(milliseconds: 500))
@@ -193,7 +200,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                       stream: FirebaseFirestore.instance
                           .collection('users')
                           .orderBy('totalStars', descending: true)
-                          .limit(50)
+                          .limit(60)
                           .snapshots(),
                       builder: (context, snap) {
                         if (!snap.hasData) {
@@ -202,7 +209,11 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                                 8, (_) => const LeaderboardRowSkeleton()),
                           );
                         }
-                        final users = snap.data!.docs;
+                        final users = snap.data!.docs
+                            .where((d) =>
+                                (d.data() as Map<String, dynamic>)['isAdmin'] != true)
+                            .take(50)
+                            .toList();
                         return Column(
                           children: users.asMap().entries.map((e) {
                             final index = e.key;
