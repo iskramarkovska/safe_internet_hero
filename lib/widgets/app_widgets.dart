@@ -279,6 +279,81 @@ class _Chip extends StatelessWidget {
   }
 }
 
+// ─── TabHeader ─────────────────────────────────────────────────────────────────
+// Clean white header for the top of each main tab: a small colored icon tile +
+// bold title (+ optional subtitle), with an optional trailing widget on the right.
+// Replaces the old saturated blue gradient banners.
+
+class TabHeader extends StatelessWidget {
+  final String title;
+  final String? subtitle;
+  final IconData? icon;
+  final Color? color;
+  final Widget? trailing;
+
+  const TabHeader({
+    super.key,
+    required this.title,
+    this.icon,
+    this.color,
+    this.subtitle,
+    this.trailing,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final tileColor = color ?? AppColors.blue;
+    return Container(
+      color: Colors.white,
+      padding: const EdgeInsets.fromLTRB(20, 14, 20, 16),
+      child: Row(
+        children: [
+          // Optional colored icon tile
+          if (icon != null) ...[
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: tileColor.withValues(alpha: 0.14),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(icon, color: tileColor, size: 26),
+            ),
+            const SizedBox(width: 14),
+          ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: GoogleFonts.nunito(
+                    color: AppColors.textPrimary,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 1),
+                  Text(
+                    subtitle!,
+                    style: GoogleFonts.nunito(
+                      color: AppColors.textSecondary,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          if (trailing != null) trailing!,
+        ],
+      ),
+    );
+  }
+}
+
 // ─── Shared guest CTA button ──────────────────────────────────────────────────
 
 class GuestCTAButton extends StatefulWidget {

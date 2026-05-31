@@ -71,32 +71,29 @@ class _ShopScreenState extends State<ShopScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // ── Header ──────────────────────────────────────────────────────
-            Container(
-              color: Colors.white,
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-              child: Row(
-                children: [
-                  Text(
-                    'Shop',
-                    style: GoogleFonts.nunito(
-                      fontSize: 22,
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.textPrimary,
-                    ),
-                  ),
-                  const Spacer(),
-                  _CoinBadge(coins: coins),
-                ],
-              ),
+      body: Column(
+        children: [
+          SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                AppTopBar(
+                  stars: user?.totalStars ?? 0,
+                  streak: user?.currentStreak ?? 0,
+                  coins: coins,
+                ),
+                Container(height: 1, color: AppColors.border),
+                const TabHeader(
+                  title: 'Shop',
+                  subtitle: 'Spend your coins on power-ups',
+                ),
+                Container(height: 1, color: AppColors.border),
+              ],
             ),
-            Container(height: 1, color: AppColors.border),
+          ),
 
-            // ── Body ────────────────────────────────────────────────────────
-            Expanded(
+          // ── Body ────────────────────────────────────────────────────────
+          Expanded(
               child: isGuest
                   ? _GuestPrompt()
                   : ListView(
@@ -172,43 +169,6 @@ class _ShopScreenState extends State<ShopScreen> {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-// ─── Coin badge ───────────────────────────────────────────────────────────────
-
-class _CoinBadge extends StatelessWidget {
-  final int coins;
-  const _CoinBadge({required this.coins});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-      decoration: BoxDecoration(
-        color: AppColors.orangeDark.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-            color: AppColors.orangeDark.withValues(alpha: 0.35), width: 1.5),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.monetization_on_rounded,
-              color: AppColors.orangeDark, size: 16),
-          const SizedBox(width: 5),
-          Text(
-            '$coins coins',
-            style: GoogleFonts.nunito(
-              color: AppColors.orangeDark,
-              fontWeight: FontWeight.w800,
-              fontSize: 14,
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

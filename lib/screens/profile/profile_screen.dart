@@ -70,15 +70,20 @@ class ProfileScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // ── Top nav bar (white, like profile.png) ────────────────────
-            _ProfileNavBar(showBackButton: showBackButton),
-            Container(height: 1, color: AppColors.border),
+      body: Column(
+        children: [
+          SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                _ProfileNavBar(showBackButton: showBackButton),
+                Container(height: 1, color: AppColors.border),
+              ],
+            ),
+          ),
 
-            // ── Scrollable content ────────────────────────────────────────
-            Expanded(
+          // ── Scrollable content ────────────────────────────────────────
+          Expanded(
               child: CustomScrollView(
                 slivers: [
                   // User info section (white card area)
@@ -119,7 +124,6 @@ class ProfileScreen extends StatelessWidget {
             ),
           ],
         ),
-      ),
     );
   }
 }
@@ -430,16 +434,6 @@ class _GuestProfileScreen extends StatelessWidget {
       backgroundColor: AppColors.background,
       body: Column(
         children: [
-          SafeArea(
-            bottom: false,
-            child: Column(
-              children: [
-                const AppTopBar(stars: 0, streak: 0, coins: 0),
-                Container(height: 1, color: AppColors.border),
-              ],
-            ),
-          ),
-
           // ── SVG on top ──────────────────────────────────────────────
           Padding(
             padding: const EdgeInsets.fromLTRB(0, 20, 0, 8),
@@ -668,6 +662,45 @@ class _GhostStatBox extends StatelessWidget {
   }
 }
 
+// ─── Section title (icon + label) ────────────────────────────────────────────
+
+class _ProfileSectionTitle extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String text;
+  final Widget? trailing;
+  const _ProfileSectionTitle({
+    required this.icon,
+    required this.color,
+    required this.text,
+    this.trailing,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 30,
+          height: 30,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.14),
+            borderRadius: BorderRadius.circular(9),
+          ),
+          child: Icon(icon, color: color, size: 18),
+        ),
+        const SizedBox(width: 9),
+        Text(text,
+            style: GoogleFonts.nunito(
+                color: AppColors.textPrimary,
+                fontSize: 18,
+                fontWeight: FontWeight.w900)),
+        if (trailing != null) ...[const Spacer(), trailing!],
+      ],
+    );
+  }
+}
+
 // ─── Statistics grid ──────────────────────────────────────────────────────────
 
 class _StatsGrid extends StatelessWidget {
@@ -680,12 +713,12 @@ class _StatsGrid extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Statistics',
-            style: GoogleFonts.nunito(
-                color: AppColors.textPrimary,
-                fontSize: 18,
-                fontWeight: FontWeight.w900)),
-        const SizedBox(height: 12),
+        const _ProfileSectionTitle(
+          icon: Icons.insights_rounded,
+          color: AppColors.blue,
+          text: 'Statistics',
+        ),
+        const SizedBox(height: 14),
         Row(
           children: [
             Expanded(
@@ -753,30 +786,38 @@ class _StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 8,
-              offset: const Offset(0, 2))
-        ],
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            iconColor.withValues(alpha: 0.16),
+            iconColor.withValues(alpha: 0.06),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: iconColor.withValues(alpha: 0.25), width: 1.5),
       ),
       child: Row(
         children: [
           Container(
-            width: 40,
-            height: 40,
+            width: 44,
+            height: 44,
             decoration: BoxDecoration(
-              color: iconColor.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(12),
+              color: iconColor,
+              borderRadius: BorderRadius.circular(14),
+              boxShadow: [
+                BoxShadow(
+                  color: iconColor.withValues(alpha: 0.4),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                ),
+              ],
             ),
-            child: Icon(icon, color: iconColor, size: 22),
+            child: Icon(icon, color: Colors.white, size: 24),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -786,16 +827,18 @@ class _StatCard extends StatelessWidget {
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
                     color: AppColors.textPrimary,
-                    fontSize: smallValue ? 13 : 17,
+                    fontSize: smallValue ? 14 : 22,
                     fontWeight: FontWeight.w900,
+                    height: 1.1,
                   ),
                 ),
+                const SizedBox(height: 1),
                 Text(
                   label,
                   style: const TextStyle(
                     color: AppColors.textSecondary,
                     fontSize: 11,
-                    fontWeight: FontWeight.w600,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
               ],
@@ -815,22 +858,39 @@ class _AchievementsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final unlockedCount =
+        _badges.where((b) => stars >= b.threshold).length;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Achievements',
-            style: GoogleFonts.nunito(
-                color: AppColors.textPrimary,
-                fontSize: 18,
-                fontWeight: FontWeight.w900)),
-        const SizedBox(height: 12),
+        _ProfileSectionTitle(
+          icon: Icons.military_tech_rounded,
+          color: AppColors.gold,
+          text: 'Achievements',
+          trailing: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppColors.gold.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              '$unlockedCount/${_badges.length}',
+              style: GoogleFonts.nunito(
+                color: AppColors.goldDark,
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 14),
         GridView.count(
           crossAxisCount: 3,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           crossAxisSpacing: 10,
           mainAxisSpacing: 10,
-          childAspectRatio: 0.9,
+          childAspectRatio: 0.86,
           children: _badges.asMap().entries.map((e) {
             final badge = e.value;
             final unlocked = stars >= badge.threshold;
@@ -868,31 +928,83 @@ class _BadgeCell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
       decoration: BoxDecoration(
-        color: unlocked ? AppColors.blueLight : AppColors.border,
-        borderRadius: BorderRadius.circular(16),
+        gradient: unlocked
+            ? LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [
+                  color.withValues(alpha: 0.20),
+                  color.withValues(alpha: 0.08),
+                ],
+              )
+            : null,
+        color: unlocked ? null : AppColors.background,
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: unlocked
-              ? AppColors.blue.withValues(alpha: 0.3)
-              : AppColors.borderDark,
+          color: unlocked ? color.withValues(alpha: 0.45) : AppColors.border,
           width: 1.5,
         ),
+        boxShadow: unlocked
+            ? [
+                BoxShadow(
+                  color: color.withValues(alpha: 0.18),
+                  blurRadius: 8,
+                  offset: const Offset(0, 3),
+                )
+              ]
+            : null,
       ),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          unlocked
-              ? Icon(icon, color: color, size: 32)
-              : const Icon(Icons.lock_rounded,
-                  color: AppColors.textLight, size: 28),
-          const SizedBox(height: 6),
+          Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.center,
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: unlocked
+                      ? color.withValues(alpha: 0.18)
+                      : AppColors.border,
+                  shape: BoxShape.circle,
+                ),
+                child: unlocked
+                    ? Icon(icon, color: color, size: 26)
+                    : const Icon(Icons.lock_rounded,
+                        color: AppColors.textLight, size: 22),
+              ),
+              if (unlocked)
+                Positioned(
+                  bottom: -2,
+                  right: -2,
+                  child: Container(
+                    width: 18,
+                    height: 18,
+                    decoration: BoxDecoration(
+                      color: AppColors.green,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                    child: const Icon(Icons.check_rounded,
+                        color: Colors.white, size: 10),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
           Text(
             label,
             textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              color: unlocked ? AppColors.blue : AppColors.textLight,
+              color: unlocked ? AppColors.textPrimary : AppColors.textLight,
               fontSize: 11,
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w800,
             ),
           ),
         ],
@@ -1013,28 +1125,35 @@ class _FriendsSectionState extends State<_FriendsSection>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Section header row
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Friends',
-              style: GoogleFonts.nunito(
-                  color: AppColors.textPrimary,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900),
-            ),
-            GestureDetector(
-              onTap: _openAddFriends,
-              child: const Text(
-                'ADD FRIENDS',
-                style: TextStyle(
-                    color: AppColors.blue,
-                    fontSize: 12,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: 0.5),
+        _ProfileSectionTitle(
+          icon: Icons.people_alt_rounded,
+          color: AppColors.green,
+          text: 'Friends',
+          trailing: GestureDetector(
+            onTap: _openAddFriends,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColors.blue,
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: const Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.person_add_alt_1_rounded,
+                      color: Colors.white, size: 14),
+                  SizedBox(width: 5),
+                  Text(
+                    'Add',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800),
+                  ),
+                ],
               ),
             ),
-          ],
+          ),
         ),
 
         const SizedBox(height: 4),
@@ -1167,29 +1286,50 @@ class _FriendsSectionState extends State<_FriendsSection>
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(friend.username,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
                                   style: const TextStyle(
                                       color: AppColors.textPrimary,
                                       fontWeight: FontWeight.w800,
                                       fontSize: 14)),
-                              Text('${friend.totalStars} XP',
-                                  style: const TextStyle(
-                                      color: AppColors.textSecondary,
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w600)),
+                              const SizedBox(height: 2),
+                              Builder(builder: (_) {
+                                final t = _tierInfo(friend.totalStars);
+                                return Row(
+                                  children: [
+                                    Icon(t.icon, color: t.iconColor, size: 12),
+                                    const SizedBox(width: 4),
+                                    Text(t.label,
+                                        style: const TextStyle(
+                                            color: AppColors.textSecondary,
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600)),
+                                  ],
+                                );
+                              }),
                             ],
                           ),
                         ),
-                        Row(
-                          children: [
-                            const Icon(Icons.star_rounded,
-                                color: AppColors.gold, size: 15),
-                            const SizedBox(width: 3),
-                            Text('${friend.totalStars}',
-                                style: const TextStyle(
-                                    color: AppColors.textSecondary,
-                                    fontSize: 13,
-                                    fontWeight: FontWeight.w700)),
-                          ],
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 5),
+                          decoration: BoxDecoration(
+                            color: AppColors.gold.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.star_rounded,
+                                  color: AppColors.gold, size: 14),
+                              const SizedBox(width: 3),
+                              Text('${friend.totalStars}',
+                                  style: const TextStyle(
+                                      color: AppColors.goldDark,
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w800)),
+                            ],
+                          ),
                         ),
                       ],
                     ),

@@ -55,7 +55,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     final stars = currentUser?.totalStars ?? 0;
     final streak = currentUser?.currentStreak ?? 0;
     final coins = currentUser?.coins ?? 0;
-
     if (!isGuest && currentUser != null) {
       _maybeRefreshRank(stars);
     }
@@ -71,39 +70,11 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
               children: [
                 AppTopBar(stars: stars, streak: streak, coins: coins),
                 Container(height: 1, color: AppColors.border),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
-                  decoration: const BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [AppColors.blue, Color(0xFF5AB4F7)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Leaderboard',
-                        style: GoogleFonts.nunito(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'See how you rank against other heroes',
-                        style: GoogleFonts.nunito(
-                          color: Colors.white.withValues(alpha: 0.85),
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
+                const TabHeader(
+                  title: 'Leaderboard',
+                  subtitle: 'See how you rank against other heroes',
                 ),
+                Container(height: 1, color: AppColors.border),
               ],
             ),
           ),
@@ -127,6 +98,14 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
                 child: Column(
                   children: [
+                    // ── League banner ──────────────────────────────────────
+                    if (currentUser != null)
+                      _LeagueBanner(stars: stars)
+                          .animate()
+                          .fadeIn(duration: 400.ms)
+                          .slideY(begin: -0.08, end: 0, duration: 350.ms),
+                    if (currentUser != null) const SizedBox(height: 16),
+
                     // ── Podium ─────────────────────────────────────────────
                     StreamBuilder<QuerySnapshot>(
                       stream: FirebaseFirestore.instance
@@ -380,22 +359,49 @@ class _Podium extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AppCard(
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 16),
+    return Container(
+      padding: const EdgeInsets.fromLTRB(8, 18, 8, 18),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [AppColors.blueLight, Colors.white],
+        ),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: Column(
         children: [
-          Text(
-            'Top performers',
-            style: GoogleFonts.nunito(
-              color: AppColors.textSecondary,
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0,
-            ),
-          ),
-          const SizedBox(height: 16),
+          // Sparkly title
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.auto_awesome_rounded,
+                  color: AppColors.gold, size: 16),
+              const SizedBox(width: 6),
+              Text(
+                'Top Heroes',
+                style: GoogleFonts.nunito(
+                  color: AppColors.textPrimary,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              const SizedBox(width: 6),
+              const Icon(Icons.auto_awesome_rounded,
+                  color: AppColors.gold, size: 16),
+            ],
+          ),
+          const SizedBox(height: 18),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               if (docs.length > 1)
@@ -403,34 +409,34 @@ class _Podium extends StatelessWidget {
                   doc: docs[1],
                   rank: 2,
                   pillarHeight: 80,
-                  color: const Color(0xFFC0C0C0),
-                  shadowColor: const Color(0xFF9E9E9E),
+                  color: const Color(0xFFB9C3CC),
+                  shadowColor: const Color(0xFF8C99A6),
                   isMe: (docs[1].data() as Map)['uid'] == currentUser?.id,
                 )
               else
-                const SizedBox(width: 80),
+                const SizedBox(width: 92),
               if (docs.isNotEmpty)
                 _PodiumSlot(
                   doc: docs[0],
                   rank: 1,
-                  pillarHeight: 110,
+                  pillarHeight: 118,
                   color: AppColors.gold,
                   shadowColor: AppColors.goldDark,
                   isMe: (docs[0].data() as Map)['uid'] == currentUser?.id,
                 )
               else
-                const SizedBox(width: 80),
+                const SizedBox(width: 92),
               if (docs.length > 2)
                 _PodiumSlot(
                   doc: docs[2],
                   rank: 3,
-                  pillarHeight: 55,
-                  color: const Color(0xFFCD7F32),
-                  shadowColor: const Color(0xFF9E5B20),
+                  pillarHeight: 56,
+                  color: const Color(0xFFD9925A),
+                  shadowColor: const Color(0xFFA9663A),
                   isMe: (docs[2].data() as Map)['uid'] == currentUser?.id,
                 )
               else
-                const SizedBox(width: 80),
+                const SizedBox(width: 92),
             ],
           ),
         ],
@@ -456,38 +462,84 @@ class _PodiumSlot extends StatelessWidget {
     required this.isMe,
   });
 
-  static const _crownIcons = [
-    Icons.emoji_events_rounded,
-    Icons.military_tech_rounded,
-    Icons.workspace_premium_rounded,
-  ];
-  static const _crownSizes = [26.0, 22.0, 20.0];
-
   @override
   Widget build(BuildContext context) {
     final data = doc.data() as Map<String, dynamic>;
     final username = data['username'] ?? '?';
     final stars = data['totalStars'] ?? 0;
     final hasGoldFrame = (data['hasGoldFrame'] as bool?) ?? false;
+    final isFirst = rank == 1;
+    final avatarSize = isFirst ? 58.0 : 46.0;
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.end,
       children: [
-        Icon(_crownIcons[rank - 1], color: color, size: _crownSizes[rank - 1]),
+        // Crown floats above the champion
+        if (isFirst)
+          const Icon(Icons.emoji_events_rounded,
+              color: AppColors.gold, size: 30)
+        else
+          const SizedBox(height: 22),
         const SizedBox(height: 4),
 
-        AppAvatar(
-          name: username,
-          size: 46,
-          goldFrame: hasGoldFrame,
-          borderColor: hasGoldFrame ? null : (isMe ? AppColors.blue : color),
-          borderWidth: isMe ? 3 : 2.5,
+        // Avatar with a glossy colored ring + rank medal badge
+        Stack(
+          clipBehavior: Clip.none,
+          alignment: Alignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(3),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [color, shadowColor],
+                ),
+                boxShadow: isFirst
+                    ? [
+                        BoxShadow(
+                          color: color.withValues(alpha: 0.55),
+                          blurRadius: 14,
+                          offset: const Offset(0, 4),
+                        )
+                      ]
+                    : null,
+              ),
+              child: AppAvatar(
+                name: username,
+                size: avatarSize,
+                goldFrame: hasGoldFrame,
+              ),
+            ),
+            Positioned(
+              bottom: -8,
+              child: Container(
+                width: 24,
+                height: 24,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: color,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2.5),
+                ),
+                child: Text(
+                  '$rank',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 12,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
 
-        const SizedBox(height: 6),
+        const SizedBox(height: 12),
 
         SizedBox(
-          width: 80,
+          width: 88,
           child: Text(
             username,
             textAlign: TextAlign.center,
@@ -495,15 +547,16 @@ class _PodiumSlot extends StatelessWidget {
             style: GoogleFonts.nunito(
               color: isMe ? AppColors.blue : AppColors.textPrimary,
               fontWeight: FontWeight.w800,
-              fontSize: 12,
+              fontSize: 12.5,
             ),
           ),
         ),
 
-        const SizedBox(height: 4),
+        const SizedBox(height: 6),
 
+        // Glossy pillar with a shine highlight
         Container(
-          width: 72,
+          width: 82,
           height: pillarHeight,
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -512,42 +565,61 @@ class _PodiumSlot extends StatelessWidget {
               colors: [color, shadowColor],
             ),
             borderRadius: const BorderRadius.vertical(
-              top: Radius.circular(10),
+              top: Radius.circular(14),
             ),
             boxShadow: [
               BoxShadow(
-                color: shadowColor.withValues(alpha: 0.6),
+                color: shadowColor.withValues(alpha: 0.55),
                 offset: const Offset(0, 4),
                 blurRadius: 0,
               ),
             ],
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+          child: Stack(
             children: [
-              Text(
-                '$rank',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 20,
+              // shine strip
+              Positioned(
+                left: 12,
+                top: 10,
+                bottom: 10,
+                child: Container(
+                  width: 5,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.28),
+                    borderRadius: BorderRadius.circular(3),
+                  ),
                 ),
               ),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.star_rounded,
-                      color: Colors.white, size: 11),
-                  const SizedBox(width: 2),
-                  Text(
-                    '$stars',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 11,
+              Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      '$rank',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w900,
+                        fontSize: isFirst ? 28 : 22,
+                      ),
                     ),
-                  ),
-                ],
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.star_rounded,
+                            color: Colors.white, size: 12),
+                        const SizedBox(width: 2),
+                        Text(
+                          '$stars',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ],
           ),
@@ -663,6 +735,171 @@ class _LeaderboardRow extends StatelessWidget {
               ),
             ],
           ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─── League banner ────────────────────────────────────────────────────────────
+
+typedef _League = ({
+  String name,
+  IconData icon,
+  Color color,
+  int floor,
+  int? next,
+});
+
+_League _leagueFor(int stars) {
+  if (stars >= 60) {
+    return (
+      name: 'Cyber Legend League',
+      icon: Icons.emoji_events_rounded,
+      color: AppColors.gold,
+      floor: 60,
+      next: null,
+    );
+  }
+  if (stars >= 30) {
+    return (
+      name: 'Guardian League',
+      icon: Icons.bolt_rounded,
+      color: AppColors.orange,
+      floor: 30,
+      next: 60,
+    );
+  }
+  if (stars >= 15) {
+    return (
+      name: 'Hero League',
+      icon: Icons.shield_rounded,
+      color: AppColors.blue,
+      floor: 15,
+      next: 30,
+    );
+  }
+  if (stars >= 5) {
+    return (
+      name: 'Apprentice League',
+      icon: Icons.school_rounded,
+      color: AppColors.green,
+      floor: 5,
+      next: 15,
+    );
+  }
+  return (
+    name: 'Rookie League',
+    icon: Icons.eco_rounded,
+    color: AppColors.greenDark,
+    floor: 0,
+    next: 5,
+  );
+}
+
+class _LeagueBanner extends StatelessWidget {
+  final int stars;
+  const _LeagueBanner({required this.stars});
+
+  @override
+  Widget build(BuildContext context) {
+    final league = _leagueFor(stars);
+    final color = league.color;
+    final lighter = Color.lerp(color, Colors.white, 0.22)!;
+    final hasNext = league.next != null;
+    final span = hasNext ? (league.next! - league.floor) : 1;
+    final progress =
+        hasNext ? ((stars - league.floor) / span).clamp(0.0, 1.0) : 1.0;
+    final remaining = hasNext ? (league.next! - stars) : 0;
+
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [lighter, color],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.35),
+            blurRadius: 16,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              // Glowing league badge
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.25),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.6), width: 2),
+                ),
+                child: Icon(league.icon, color: Colors.white, size: 30),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      league.name,
+                      style: GoogleFonts.nunito(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      hasNext
+                          ? '$stars stars earned'
+                          : 'You reached the top league! 🎉',
+                      style: GoogleFonts.nunito(
+                        color: Colors.white.withValues(alpha: 0.9),
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          if (hasNext) ...[
+            const SizedBox(height: 16),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: Stack(
+                children: [
+                  Container(
+                      height: 12, color: Colors.white.withValues(alpha: 0.3)),
+                  FractionallySizedBox(
+                    widthFactor: progress,
+                    child: Container(height: 12, color: Colors.white),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '$remaining more ${remaining == 1 ? 'star' : 'stars'} to level up!',
+              style: GoogleFonts.nunito(
+                color: Colors.white,
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
         ],
       ),
     );

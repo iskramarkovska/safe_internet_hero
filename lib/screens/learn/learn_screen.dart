@@ -5,9 +5,9 @@ import 'package:provider/provider.dart';
 import '../../core/app_page_route.dart';
 import '../../core/theme.dart';
 import '../../models/learning_content_model.dart';
-import '../../providers/auth_provider.dart';
 import '../../services/learning_service.dart';
 import '../../services/topics_service.dart';
+import '../../providers/auth_provider.dart';
 import '../../widgets/app_avatar.dart';
 import '../../widgets/app_widgets.dart';
 import '../../widgets/skeleton_loader.dart';
@@ -108,8 +108,7 @@ class _LearnScreenState extends State<LearnScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final auth = context.watch<AuthProvider>();
-    final user = auth.user;
+    final user = context.watch<AuthProvider>().user;
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -126,36 +125,9 @@ class _LearnScreenState extends State<LearnScreen> {
                   coins: user?.coins ?? 0,
                 ),
                 Container(height: 1, color: AppColors.border),
-
-                // Title bar
-                Container(
-                  color: Colors.white,
-                  padding: const EdgeInsets.fromLTRB(20, 14, 20, 14),
-                  child: Row(
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Learn',
-                            style: GoogleFonts.nunito(
-                              color: AppColors.textPrimary,
-                              fontSize: 22,
-                              fontWeight: FontWeight.w900,
-                            ),
-                          ),
-                          Text(
-                            'Articles and videos to level up your skills',
-                            style: GoogleFonts.nunito(
-                              color: AppColors.textSecondary,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+                const TabHeader(
+                  title: 'Learn',
+                  subtitle: 'Articles and videos to level up your skills',
                 ),
                 Container(height: 1, color: AppColors.border),
               ],

@@ -244,7 +244,7 @@ class _TopicsScreenState extends State<TopicsScreen> {
           SafeArea(
             bottom: false,
             child: Container(
-              padding: const EdgeInsets.fromLTRB(4, 8, 16, 16),
+              padding: const EdgeInsets.fromLTRB(4, 4, 16, 20),
               decoration: const BoxDecoration(
                 gradient: LinearGradient(
                   colors: [AppColors.blue, Color(0xFF5AB4F7)],
@@ -252,14 +252,30 @@ class _TopicsScreenState extends State<TopicsScreen> {
                   end: Alignment.bottomRight,
                 ),
               ),
-              child: Row(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.arrow_back_ios_rounded,
-                        color: Colors.white, size: 20),
-                    onPressed: () => Navigator.pop(context),
+                  // Back button row (matches create-account / login)
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back_ios_rounded,
+                            color: Colors.white, size: 22),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                      const Spacer(),
+                      if (widget.filterCategoryId != null)
+                        AppCategoryIcon(
+                          title: headerTitle,
+                          size: 36,
+                          overrideColor: Colors.white.withValues(alpha: 0.9),
+                        ),
+                    ],
                   ),
-                  Expanded(
+                  const SizedBox(height: 8),
+                  // Title + subtitle below the arrow
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -267,28 +283,24 @@ class _TopicsScreenState extends State<TopicsScreen> {
                           headerTitle,
                           style: GoogleFonts.nunito(
                             color: Colors.white,
-                            fontSize: 20,
+                            fontSize: 26,
                             fontWeight: FontWeight.w900,
                           ),
                         ),
-                        if (widget.filterCategoryId == null)
+                        if (widget.filterCategoryId == null) ...[
+                          const SizedBox(height: 4),
                           Text(
                             'All learning topics',
                             style: GoogleFonts.nunito(
                               color: Colors.white.withValues(alpha: 0.8),
-                              fontSize: 12,
+                              fontSize: 13,
                               fontWeight: FontWeight.w600,
                             ),
                           ),
+                        ],
                       ],
                     ),
                   ),
-                  if (widget.filterCategoryId != null)
-                    AppCategoryIcon(
-                      title: headerTitle,
-                      size: 36,
-                      overrideColor: Colors.white.withValues(alpha: 0.9),
-                    ),
                 ],
               ),
             ),

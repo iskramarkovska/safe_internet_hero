@@ -10,7 +10,6 @@ import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/friend_service.dart';
 import '../../widgets/app_avatar.dart';
-import '../../widgets/app_widgets.dart';
 import '../home/main_screen.dart';
 
 class AllFriendsScreen extends StatefulWidget {
@@ -92,8 +91,6 @@ class _AllFriendsScreenState extends State<AllFriendsScreen>
 
   @override
   Widget build(BuildContext context) {
-    final user = context.watch<AuthProvider>().user ?? widget.user;
-
     return Scaffold(
       backgroundColor: Colors.white,
       bottomNavigationBar: _AllFriendsBottomNav(
@@ -104,13 +101,6 @@ class _AllFriendsScreenState extends State<AllFriendsScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── AppTopBar + blue header (same pattern as leaderboard) ─────
-            AppTopBar(
-              stars: user.totalStars,
-              streak: user.currentStreak,
-              coins: user.coins,
-            ),
-            Container(height: 1, color: AppColors.border),
             Container(
               width: double.infinity,
               padding: const EdgeInsets.fromLTRB(4, 4, 20, 20),
