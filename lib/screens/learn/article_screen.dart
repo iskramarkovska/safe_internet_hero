@@ -188,7 +188,11 @@ class _ArticleScreenState extends State<ArticleScreen> {
                     accent: accent,
                   ),
 
-                  Padding(
+                  Align(
+                    alignment: Alignment.topCenter,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: kContentMaxWidth),
+                      child: Padding(
                     padding: const EdgeInsets.fromLTRB(16, 20, 16, 48),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -261,6 +265,8 @@ class _ArticleScreenState extends State<ArticleScreen> {
                       ],
                     ),
                   ),
+                      ),
+                    ),
                 ],
               ),
             ),

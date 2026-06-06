@@ -91,11 +91,12 @@ class _AllFriendsScreenState extends State<AllFriendsScreen>
 
   @override
   Widget build(BuildContext context) {
+    final desktop = isDesktop(context);
     return Scaffold(
       backgroundColor: Colors.white,
-      bottomNavigationBar: _AllFriendsBottomNav(
-        onTap: (i) => _onNavTap(context, i),
-      ),
+      bottomNavigationBar: desktop
+          ? null
+          : _AllFriendsBottomNav(onTap: (i) => _onNavTap(context, i)),
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -194,7 +195,11 @@ class _AllFriendsScreenState extends State<AllFriendsScreen>
 
             // ── Tab views ─────────────────────────────────────────────────
             Expanded(
-              child: _loading
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: kContentMaxWidth),
+                  child: _loading
                   ? const Center(
                       child: CircularProgressIndicator(
                           color: AppColors.blue, strokeWidth: 2))
@@ -219,6 +224,8 @@ class _AllFriendsScreenState extends State<AllFriendsScreen>
                         ),
                       ],
                     ),
+                ),
+              ),
             ),
           ],
         ),

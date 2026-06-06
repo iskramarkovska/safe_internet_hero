@@ -203,6 +203,7 @@ class AppTopBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (isDesktop(context)) return const SizedBox.shrink();
     return Container(
       color: Colors.white,
       padding: const EdgeInsets.symmetric(

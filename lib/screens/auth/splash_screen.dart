@@ -177,10 +177,10 @@ class LandingScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.blue,
-      body: Column(
-        children: [
+    final desktop = isDesktop(context);
+
+    Widget content = Column(
+      children: [
           // ── Hero section ───────────────────────────────────────────────────
           Expanded(
             flex: 5,
@@ -338,8 +338,16 @@ class LandingScreen extends StatelessWidget {
                   end: 0,
                   duration: const Duration(milliseconds: 450),
                   curve: Curves.easeOut),
-        ],
-      ),
+      ],
+    );
+
+    if (desktop) {
+      content = Center(child: SizedBox(width: 480, child: content));
+    }
+
+    return Scaffold(
+      backgroundColor: AppColors.blue,
+      body: content,
     );
   }
 }

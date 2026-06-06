@@ -55,20 +55,135 @@ class _HomeScreenState extends State<HomeScreen> {
     final streak = user?.currentStreak ?? 0;
     final coins = user?.coins ?? 0;
 
+    final desktop = isDesktop(context);
+
+    // Content children shared between desktop and mobile layouts.
+    final contentChildren = <Widget>[
+      // Practice weak spots
+      if (!isGuest &&
+          user != null &&
+          user.incorrectlyAnsweredIds.length >= 3) ...[
+        _PracticeCard(
+          count: user.incorrectlyAnsweredIds.length,
+          onTap: () => Navigator.push(
+            context,
+            AppPageRoute(
+              builder: (_) => QuizScreen(
+                categoryId: 'practice',
+                categoryName: 'Practice',
+                topicId: '',
+                topicName: 'Weak Spots',
+                color: AppColors.orange,
+                specificIds:
+                    user.incorrectlyAnsweredIds.take(10).toList(),
+              ),
+            ),
+          ),
+        )
+            .animate()
+            .fadeIn(duration: 350.ms)
+            .slideY(begin: 0.06, end: 0, duration: 350.ms),
+        const SizedBox(height: 20),
+      ],
+
+      // Section header
+      _SectionHeader(
+        onSeeAll: () => Navigator.push(
+          context,
+          AppPageRoute(builder: (_) => const TopicsScreen()),
+        ),
+      ).animate(delay: 80.ms).fadeIn(duration: 300.ms),
+
+      const SizedBox(height: 14),
+
+      // Category quest cards
+      StreamBuilder<List<CategoryModel>>(
+        stream: _topicsService.watchCategories(),
+        builder: (context, catSnap) {
+          if (catSnap.hasError) return _buildError();
+          return StreamBuilder<List<TopicModel>>(
+            stream: _topicsService.watchAllTopics(),
+            builder: (context, topicSnap) {
+              if (topicSnap.hasError) return _buildError();
+              if (!catSnap.hasData || !topicSnap.hasData) {
+                return Column(
+                  children:
+                      List.generate(3, (_) => const _QuestCardSkeleton()),
+                );
+              }
+              final categories = catSnap.data!;
+              final allTopics = topicSnap.data!;
+              List<TopicModel> topicsFor(String catId) => allTopics
+                  .where((t) => t.categoryId == catId)
+                  .toList()
+                ..sort((a, b) => a.order.compareTo(b.order));
+
+              return Column(
+                children: categories.asMap().entries.map((e) {
+                  final cat = e.value;
+                  final topics = topicsFor(cat.id);
+                  return _QuestCard(
+                    category: cat,
+                    topics: topics,
+                    user: user,
+                    isGuest: isGuest,
+                    completedTopics: _completedTopicCount,
+                    onTap: () => Navigator.push(
+                      context,
+                      AppPageRoute(
+                        builder: (_) => TopicsScreen(
+                          filterCategoryId: cat.id,
+                          filterCategoryTitle: cat.title,
+                        ),
+                      ),
+                    ),
+                  )
+                      .animate(
+                          delay: Duration(
+                              milliseconds: 120 + e.key * 60))
+                      .fadeIn(duration: 300.ms)
+                      .slideY(
+                          begin: 0.07,
+                          end: 0,
+                          duration: 300.ms,
+                          curve: Curves.easeOut);
+                }).toList(),
+              );
+            },
+          );
+        },
+      ),
+
+      // Admin button
+      if (user?.isAdmin == true) ...[
+        const SizedBox(height: 8),
+        AppButton(
+          label: 'Admin Panel',
+          variant: AppButtonVariant.secondary,
+          icon: Icons.admin_panel_settings_rounded,
+          onTap: () => Navigator.push(
+              context,
+              AppPageRoute(
+                  builder: (_) => const AdminDashboardScreen())),
+        ).animate(delay: 500.ms).fadeIn(),
+      ],
+    ];
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Column(
         children: [
-          // ── Top stats bar ──────────────────────────────────────────────────
-          SafeArea(
-            bottom: false,
-            child: Column(
-              children: [
-                AppTopBar(stars: stars, streak: streak, coins: coins),
-                Container(height: 1, color: AppColors.border),
-              ],
+          // ── Top stats bar (hidden on desktop) ─────────────────────────────
+          if (!desktop)
+            SafeArea(
+              bottom: false,
+              child: Column(
+                children: [
+                  AppTopBar(stars: stars, streak: streak, coins: coins),
+                  Container(height: 1, color: AppColors.border),
+                ],
+              ),
             ),
-          ),
 
           // ── Scrollable body ────────────────────────────────────────────────
           Expanded(
@@ -76,140 +191,57 @@ class _HomeScreenState extends State<HomeScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // ── Hero banner ─────────────────────────────────────────
+                  // ── Hero banner — full-width ─────────────────────────────
                   _HeroBanner(username: username, streak: streak)
                       .animate()
                       .fadeIn(duration: 400.ms),
 
-                  // ── Padded content ──────────────────────────────────────
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 20, 16, 32),
-                    child: Column(
+                  // ── Padded content ───────────────────────────────────────
+                  if (desktop)
+                    // On desktop: push content left to avoid the floating
+                    // side panel that overlays the right portion of the screen.
+                    Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Practice weak spots
-                        if (!isGuest &&
-                            user != null &&
-                            user.incorrectlyAnsweredIds.length >= 3) ...[
-                          _PracticeCard(
-                            count: user.incorrectlyAnsweredIds.length,
-                            onTap: () => Navigator.push(
-                              context,
-                              AppPageRoute(
-                                builder: (_) => QuizScreen(
-                                  categoryId: 'practice',
-                                  categoryName: 'Practice',
-                                  topicId: '',
-                                  topicName: 'Weak Spots',
-                                  color: AppColors.orange,
-                                  specificIds: user.incorrectlyAnsweredIds
-                                      .take(10)
-                                      .toList(),
+                        Expanded(
+                          child: Align(
+                            alignment: Alignment.topCenter,
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(
+                                  maxWidth: kContentMaxWidth),
+                              child: Padding(
+                                padding: const EdgeInsets.fromLTRB(
+                                    16, 20, 16, 32),
+                                child: Column(
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.start,
+                                  children: contentChildren,
                                 ),
                               ),
                             ),
-                          )
-                              .animate()
-                              .fadeIn(duration: 350.ms)
-                              .slideY(begin: 0.06, end: 0, duration: 350.ms),
-                          const SizedBox(height: 20),
-                        ],
-
-                        // Section header
-                        _SectionHeader(
-                          onSeeAll: () => Navigator.push(
-                            context,
-                            AppPageRoute(
-                                builder: (_) => const TopicsScreen()),
                           ),
-                        )
-                            .animate(delay: 80.ms)
-                            .fadeIn(duration: 300.ms),
-
-                        const SizedBox(height: 14),
-
-                        // Category quest cards
-                        StreamBuilder<List<CategoryModel>>(
-                          stream: _topicsService.watchCategories(),
-                          builder: (context, catSnap) {
-                            if (catSnap.hasError) return _buildError();
-                            return StreamBuilder<List<TopicModel>>(
-                              stream: _topicsService.watchAllTopics(),
-                              builder: (context, topicSnap) {
-                                if (topicSnap.hasError) return _buildError();
-
-                                if (!catSnap.hasData || !topicSnap.hasData) {
-                                  return Column(
-                                    children: List.generate(
-                                        3, (_) => const _QuestCardSkeleton()),
-                                  );
-                                }
-
-                                final categories = catSnap.data!;
-                                final allTopics = topicSnap.data!;
-
-                                List<TopicModel> topicsFor(String catId) =>
-                                    allTopics
-                                        .where((t) => t.categoryId == catId)
-                                        .toList()
-                                      ..sort((a, b) =>
-                                          a.order.compareTo(b.order));
-
-                                return Column(
-                                  children:
-                                      categories.asMap().entries.map((e) {
-                                    final cat = e.value;
-                                    final topics = topicsFor(cat.id);
-                                    return _QuestCard(
-                                      category: cat,
-                                      topics: topics,
-                                      user: user,
-                                      isGuest: isGuest,
-                                      completedTopics: _completedTopicCount,
-                                      onTap: () => Navigator.push(
-                                        context,
-                                        AppPageRoute(
-                                          builder: (_) => TopicsScreen(
-                                            filterCategoryId: cat.id,
-                                            filterCategoryTitle: cat.title,
-                                          ),
-                                        ),
-                                      ),
-                                    )
-                                        .animate(
-                                            delay: Duration(
-                                                milliseconds:
-                                                    120 + e.key * 60))
-                                        .fadeIn(duration: 300.ms)
-                                        .slideY(
-                                            begin: 0.07,
-                                            end: 0,
-                                            duration: 300.ms,
-                                            curve: Curves.easeOut);
-                                  }).toList(),
-                                );
-                              },
-                            );
-                          },
                         ),
-
-                        // Admin button
-                        if (user?.isAdmin == true) ...[
-                          const SizedBox(height: 8),
-                          AppButton(
-                            label: 'Admin Panel',
-                            variant: AppButtonVariant.secondary,
-                            icon: Icons.admin_panel_settings_rounded,
-                            onTap: () => Navigator.push(
-                                context,
-                                AppPageRoute(
-                                    builder: (_) =>
-                                        const AdminDashboardScreen())),
-                          ).animate(delay: 500.ms).fadeIn(),
-                        ],
+                        const SizedBox(
+                            width: kDesktopPanelWidth +
+                                kDesktopPanelMargin * 2),
                       ],
+                    )
+                  else
+                    Align(
+                      alignment: Alignment.topCenter,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(
+                            maxWidth: kContentMaxWidth),
+                        child: Padding(
+                          padding:
+                              const EdgeInsets.fromLTRB(16, 20, 16, 32),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: contentChildren,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
                 ],
               ),
             ),

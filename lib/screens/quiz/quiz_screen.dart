@@ -223,9 +223,21 @@ class _QuizScreenState extends State<QuizScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Intercept hardware back only when a quiz is actively in progress.
-    // Loading and empty states allow normal back navigation.
     final quizActive = !_isLoading && _questions.isNotEmpty;
+    final desktop = isDesktop(context);
+
+    Widget body = _isLoading
+        ? _buildLoading()
+        : _questions.isEmpty
+            ? _buildEmptyState()
+            : _buildQuiz();
+
+    if (desktop) {
+      body = Align(
+        alignment: Alignment.topCenter,
+        child: SizedBox(width: 740, child: body),
+      );
+    }
 
     return PopScope(
       canPop: !quizActive,
@@ -235,13 +247,7 @@ class _QuizScreenState extends State<QuizScreen> {
       },
       child: Scaffold(
         backgroundColor: AppColors.background,
-        body: SafeArea(
-          child: _isLoading
-              ? _buildLoading()
-              : _questions.isEmpty
-                  ? _buildEmptyState()
-                  : _buildQuiz(),
-        ),
+        body: SafeArea(child: body),
       ),
     );
   }

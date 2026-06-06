@@ -65,11 +65,10 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
+    final desktop = isDesktop(context);
 
-    return Scaffold(
-      backgroundColor: AppColors.blue,
-      body: Column(
-        children: [
+    Widget content = Column(
+      children: [
           // ── Blue header ────────────────────────────────────────────────────
           SafeArea(
             bottom: false,
@@ -261,8 +260,16 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
             ),
           ),
-        ],
-      ),
+      ],
+    );
+
+    if (desktop) {
+      content = Center(child: SizedBox(width: 480, child: content));
+    }
+
+    return Scaffold(
+      backgroundColor: AppColors.blue,
+      body: content,
     );
   }
 }

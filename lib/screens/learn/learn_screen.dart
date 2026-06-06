@@ -110,6 +110,8 @@ class _LearnScreenState extends State<LearnScreen> {
   Widget build(BuildContext context) {
     final user = context.watch<AuthProvider>().user;
 
+    final desktop = isDesktop(context);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Column(
@@ -124,7 +126,7 @@ class _LearnScreenState extends State<LearnScreen> {
                   streak: user?.currentStreak ?? 0,
                   coins: user?.coins ?? 0,
                 ),
-                Container(height: 1, color: AppColors.border),
+                if (!desktop) Container(height: 1, color: AppColors.border),
                 const TabHeader(
                   title: 'Learn',
                   subtitle: 'Articles and videos to level up your skills',
@@ -136,7 +138,15 @@ class _LearnScreenState extends State<LearnScreen> {
 
           // ── Content list ─────────────────────────────────────────────
           Expanded(
-            child: StreamBuilder<List<LearningContentModel>>(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: kContentMaxWidth),
+                      child: StreamBuilder<List<LearningContentModel>>(
               stream: _learningService.getAllContent(),
               builder: (context, snap) {
                 if (!snap.hasData) {
@@ -231,6 +241,14 @@ class _LearnScreenState extends State<LearnScreen> {
                   ],
                 );
               },
+                    ),
+                  ),
+                ),
+              ),
+                if (desktop)
+                  const SizedBox(
+                      width: kDesktopPanelWidth + kDesktopPanelMargin * 2),
+              ],
             ),
           ),
         ],

@@ -59,6 +59,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
       _maybeRefreshRank(stars);
     }
 
+    final desktop = isDesktop(context);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Column(
@@ -69,7 +71,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
             child: Column(
               children: [
                 AppTopBar(stars: stars, streak: streak, coins: coins),
-                Container(height: 1, color: AppColors.border),
+                if (!desktop) Container(height: 1, color: AppColors.border),
                 const TabHeader(
                   title: 'Leaderboard',
                   subtitle: 'See how you rank against other heroes',
@@ -94,7 +96,16 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
 
           if (!isGuest)
             Expanded(
-              child: SingleChildScrollView(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: SingleChildScrollView(
+                      child: Align(
+                        alignment: Alignment.topCenter,
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: kContentMaxWidth),
+                          child: Padding(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
                 child: Column(
                   children: [
@@ -224,8 +235,17 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                     ),
                   ],
                 ),
+                    ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  if (desktop)
+                    const SizedBox(
+                        width: kDesktopPanelWidth + kDesktopPanelMargin * 2),
+                ],
               ),
-            ),
+          ),
         ],
       ),
     );
@@ -648,7 +668,9 @@ class _LeaderboardRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       decoration: BoxDecoration(
@@ -736,6 +758,7 @@ class _LeaderboardRow extends StatelessWidget {
             ],
           ),
         ],
+      ),
       ),
     );
   }

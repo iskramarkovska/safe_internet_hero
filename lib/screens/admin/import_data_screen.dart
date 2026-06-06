@@ -111,12 +111,18 @@ class _ImportDataScreenState extends State<ImportDataScreen>
 
             // â”€â”€ Body â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
             Expanded(
-              child: TabBarView(
-                controller: _tabs,
-                children: const [
-                  _ImportTab(mode: _ImportMode.questions),
-                  _ImportTab(mode: _ImportMode.articles),
-                ],
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 960),
+                  child: TabBarView(
+                    controller: _tabs,
+                    children: const [
+                      _ImportTab(mode: _ImportMode.questions),
+                      _ImportTab(mode: _ImportMode.articles),
+                    ],
+                  ),
+                ),
               ),
             ),
           ],

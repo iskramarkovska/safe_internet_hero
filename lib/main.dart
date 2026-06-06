@@ -1,3 +1,4 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:provider/provider.dart';
@@ -26,7 +27,23 @@ class MyApp extends StatelessWidget {
       title: 'Safe Internet Hero',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
+      scrollBehavior: _AppScrollBehavior(),
       home: const SplashScreen(),
     );
   }
+}
+
+class _AppScrollBehavior extends ScrollBehavior {
+  @override
+  Widget buildScrollbar(
+      BuildContext context, Widget child, ScrollableDetails details) =>
+      child;
+
+  @override
+  Set<PointerDeviceKind> get dragDevices => {
+        PointerDeviceKind.touch,
+        PointerDeviceKind.mouse,
+        PointerDeviceKind.stylus,
+        PointerDeviceKind.invertedStylus,
+      };
 }

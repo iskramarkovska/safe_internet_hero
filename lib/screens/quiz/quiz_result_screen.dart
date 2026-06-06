@@ -198,9 +198,13 @@ class _QuizResultScreenState extends State<QuizResultScreen>
       body: Stack(
         children: [
           SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 48),
-              child: Column(
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 680),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 48),
+                  child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   const SizedBox(height: 52),
@@ -481,6 +485,8 @@ class _QuizResultScreenState extends State<QuizResultScreen>
                     ],
                   ],
                 ],
+              ),
+                ),
               ),
             ),
           ),

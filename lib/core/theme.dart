@@ -114,6 +114,14 @@ class AppSpacing {
   static const xxl = 48.0;
 }
 
+const double kDesktopBreakpoint = 900.0;
+const double kContentMaxWidth = 860.0;
+const double kDesktopPanelWidth = 324.0;
+const double kDesktopPanelMargin = 12.0;
+
+bool isDesktop(BuildContext context) =>
+    MediaQuery.sizeOf(context).width >= kDesktopBreakpoint;
+
 class AppTheme {
   AppTheme._();
 

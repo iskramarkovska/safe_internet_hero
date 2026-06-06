@@ -69,6 +69,8 @@ class _ShopScreenState extends State<ShopScreen> {
     final isGuest = auth.isGuest;
     final coins = user?.coins ?? 0;
 
+    final desktop = isDesktop(context);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Column(
@@ -82,7 +84,7 @@ class _ShopScreenState extends State<ShopScreen> {
                   streak: user?.currentStreak ?? 0,
                   coins: coins,
                 ),
-                Container(height: 1, color: AppColors.border),
+                if (!desktop) Container(height: 1, color: AppColors.border),
                 const TabHeader(
                   title: 'Shop',
                   subtitle: 'Spend your coins on power-ups',
@@ -96,7 +98,16 @@ class _ShopScreenState extends State<ShopScreen> {
           Expanded(
               child: isGuest
                   ? _GuestPrompt()
-                  : ListView(
+                  : Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(
+                          child: Align(
+                            alignment: Alignment.topCenter,
+                            child: ConstrainedBox(
+                              constraints: const BoxConstraints(
+                                  maxWidth: kContentMaxWidth),
+                              child: ListView(
                       padding: const EdgeInsets.fromLTRB(20, 24, 20, 48),
                       children: [
                         // Power-Ups section
@@ -166,9 +177,18 @@ class _ShopScreenState extends State<ShopScreen> {
                         ).animate(delay: 200.ms).fadeIn(duration: 250.ms).slideY(begin: 0.06, end: 0),
                       ],
                     ),
-            ),
-          ],
-        ),
+                            ),
+                          ),
+                        ),
+                        if (desktop)
+                          const SizedBox(
+                              width: kDesktopPanelWidth +
+                                  kDesktopPanelMargin * 2),
+                      ],
+                    ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -229,7 +249,9 @@ class _ShopItemCard extends StatelessWidget {
     final canAfford = userCoins >= price;
     final actionable = canBuy && canAfford && !loading;
 
-    return Container(
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -325,6 +347,7 @@ class _ShopItemCard extends StatelessWidget {
           ),
         ],
       ),
+      ),
     );
   }
 }
@@ -402,7 +425,11 @@ class _BuyButton extends StatelessWidget {
       );
     }
 
-    return GestureDetector(
+    return MouseRegion(
+      cursor: (loading || onTap == null)
+          ? SystemMouseCursors.basic
+          : SystemMouseCursors.click,
+      child: GestureDetector(
       onTap: loading ? null : onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
@@ -416,6 +443,7 @@ class _BuyButton extends StatelessWidget {
               : null,
         ),
         child: content,
+      ),
       ),
     );
   }

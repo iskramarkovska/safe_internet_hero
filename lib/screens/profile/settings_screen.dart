@@ -59,9 +59,13 @@ class SettingsScreen extends StatelessWidget {
 
             // ── Scrollable body ───────────────────────────────────────────
             Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
-                child: Column(
+              child: Align(
+                alignment: Alignment.topCenter,
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: kContentMaxWidth),
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
+                    child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Account section
@@ -123,6 +127,8 @@ class SettingsScreen extends StatelessWidget {
                       );
                     }),
                   ],
+                    ),
+                  ),
                 ),
               ),
             ),

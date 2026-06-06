@@ -338,17 +338,21 @@ class _CategoryTopicManagerScreenState
           ),
         ),
         Expanded(
-          child: _loadingCategories
-              ? const Center(
-                  child: CircularProgressIndicator(color: AppColors.blue))
-              : _categories.isEmpty
-                  ? const AdminEmptyState(
-                      icon: Icons.category_rounded,
-                      title: 'No categories yet',
-                      subtitle: 'Tap + to add your first category',
-                    )
-                  : ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
+          child: Align(
+            alignment: Alignment.topCenter,
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 960),
+              child: _loadingCategories
+                  ? const Center(
+                      child: CircularProgressIndicator(color: AppColors.blue))
+                  : _categories.isEmpty
+                      ? const AdminEmptyState(
+                          icon: Icons.category_rounded,
+                          title: 'No categories yet',
+                          subtitle: 'Tap + to add your first category',
+                        )
+                      : ListView.builder(
+                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 40),
                       itemCount: _categories.length,
                       itemBuilder: (context, i) =>
                           _CategoryTile(
@@ -369,8 +373,10 @@ class _CategoryTopicManagerScreenState
                                 topic: t),
                             onDeleteTopic: _deleteTopic,
                           ),
-                    ),
-        ),
+                      ),
+              ),
+            ),
+          ),
       ]),
     );
   }

@@ -46,15 +46,21 @@ class _ManageLearningContentScreenState
             tabs: const ['Add Content', 'All Content'],
           ),
           Expanded(
-            child: TabBarView(
-              controller: _tabs,
-              children: [
-                _AddContentForm(key: _formKey),
-                _ContentList(onEdit: (item) {
-                  _formKey.currentState?.loadForEdit(item);
-                  _tabs.animateTo(0);
-                }),
-              ],
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 960),
+                child: TabBarView(
+                  controller: _tabs,
+                  children: [
+                    _AddContentForm(key: _formKey),
+                    _ContentList(onEdit: (item) {
+                      _formKey.currentState?.loadForEdit(item);
+                      _tabs.animateTo(0);
+                    }),
+                  ],
+                ),
+              ),
             ),
           ),
         ],

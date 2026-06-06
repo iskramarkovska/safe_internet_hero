@@ -165,16 +165,22 @@ class _VideoScreenState extends State<VideoScreen> {
                     catIcon: catIcon,
                   ),
 
-                  Padding(
+                  Align(
+                    alignment: Alignment.topCenter,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: kContentMaxWidth),
+                      child: Padding(
                     padding: const EdgeInsets.fromLTRB(16, 20, 16, 48),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Thumbnail card
-                        GestureDetector(
+                        MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: GestureDetector(
                           onTap: _onWatch,
                           child: _ThumbnailCard(videoId: _videoId),
-                        )
+                        ))
                             .animate()
                             .fadeIn(duration: 300.ms)
                             .slideY(
@@ -230,6 +236,8 @@ class _VideoScreenState extends State<VideoScreen> {
                               : const SizedBox.shrink(),
                         ),
                       ],
+                    ),
+                      ),
                     ),
                   ),
                 ],

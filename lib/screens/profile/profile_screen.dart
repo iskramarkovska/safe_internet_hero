@@ -68,6 +68,8 @@ class ProfileScreen extends StatelessWidget {
       return _GuestProfileScreen(showBackButton: showBackButton);
     }
 
+    final desktop = isDesktop(context);
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Column(
@@ -84,7 +86,15 @@ class ProfileScreen extends StatelessWidget {
 
           // ── Scrollable content ────────────────────────────────────────
           Expanded(
-              child: CustomScrollView(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Align(
+                    alignment: Alignment.topCenter,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: kContentMaxWidth),
+                      child: CustomScrollView(
                 slivers: [
                   // User info section (white card area)
                   SliverToBoxAdapter(
@@ -120,10 +130,18 @@ class ProfileScreen extends StatelessWidget {
                     ),
                   ),
                 ],
-              ),
+                      ),
+                    ),
+                  ),
+                ),
+                if (desktop)
+                  const SizedBox(
+                      width: kDesktopPanelWidth + kDesktopPanelMargin * 2),
+              ],
             ),
-          ],
-        ),
+          ),
+        ],
+      ),
     );
   }
 }

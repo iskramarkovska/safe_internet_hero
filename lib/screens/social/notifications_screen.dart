@@ -16,18 +16,48 @@ class NotificationsScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: AppColors.teal,
-        foregroundColor: Colors.white,
-        title: const Text(
-          'Notifications',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-        ),
-        iconTheme: const IconThemeData(color: Colors.white),
-        elevation: 0,
-      ),
-      body: user == null || user.friendRequests.isEmpty
-          ? Center(
+      body: Column(
+        children: [
+          SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                Container(
+                  color: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
+                  child: Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.arrow_back_ios_rounded,
+                            color: AppColors.textPrimary, size: 20),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                      const Expanded(
+                        child: Text(
+                          'Notifications',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: AppColors.textPrimary,
+                            fontSize: 17,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 48),
+                    ],
+                  ),
+                ),
+                Container(height: 1, color: AppColors.border),
+              ],
+            ),
+          ),
+          Expanded(
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: kContentMaxWidth),
+                child: user == null || user.friendRequests.isEmpty
+                    ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -157,6 +187,11 @@ class NotificationsScreen extends StatelessWidget {
                 );
               },
             ),
+                ),
+              ),
+            ),
+          ],
+        ),
     );
   }
 }

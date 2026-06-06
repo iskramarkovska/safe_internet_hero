@@ -41,8 +41,12 @@ class AdminDashboardScreen extends StatelessWidget {
             ),
           ),
           Expanded(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 20, 16, 40),
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 960),
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(16, 20, 16, 40),
               children: [
                 Text(
                   'Content',
@@ -133,6 +137,8 @@ class AdminDashboardScreen extends StatelessWidget {
                   ]),
                 ),
               ],
+                ),
+              ),
             ),
           ),
         ],

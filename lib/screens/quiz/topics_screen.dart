@@ -345,85 +345,118 @@ class _TopicsScreenState extends State<TopicsScreen> {
                     final query = _searchText.trim().toLowerCase();
                     final items = _buildItems(visibleCats, allTopics, query);
 
+                    final desktop = isDesktop(context);
+                    const maxW = 740.0;
+
+                    Widget searchBar = Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+                      child: _SearchBar(
+                        controller: _searchController,
+                        onChanged: (v) =>
+                            setState(() => _searchText = v),
+                        onClear: () {
+                          _searchController.clear();
+                          setState(() => _searchText = '');
+                        },
+                      ),
+                    );
+
+                    Widget? chips;
+                    if (widget.filterCategoryId == null &&
+                        allCategories.length > 1) {
+                      chips = SizedBox(
+                        height: 36,
+                        child: ListView(
+                          scrollDirection: Axis.horizontal,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16),
+                          children: [
+                            _Chip(
+                              label: 'All',
+                              selected: _activeCategoryId == null,
+                              color: AppColors.blue,
+                              onTap: () => setState(
+                                  () => _activeCategoryId = null),
+                            ),
+                            ...allCategories.map(
+                              (cat) => _Chip(
+                                label: cat.title,
+                                selected: _activeCategoryId == cat.id,
+                                color: AppCategoryIcon.colorFor(
+                                    cat.title),
+                                onTap: () => setState(
+                                    () => _activeCategoryId = cat.id),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    Widget topicList = items.isEmpty
+                        ? _EmptyState(query: query)
+                        : ListView.builder(
+                            padding: const EdgeInsets.fromLTRB(
+                                16, 4, 16, 32),
+                            itemCount: items.length,
+                            itemBuilder: (ctx, i) {
+                              final item = items[i];
+                              if (item is CategoryModel) {
+                                return _SectionHeader(
+                                    category: item);
+                              }
+                              if (item is _TopicEntry) {
+                                return _TopicCard(
+                                  entry: item,
+                                  user: user,
+                                  isGuest: isGuest,
+                                  topicProgress: _topicProgress,
+                                  onTap: () => _openQuiz(
+                                      ctx, item.category, item.topic),
+                                );
+                              }
+                              return const SizedBox.shrink();
+                            },
+                          );
+
+                    if (desktop) {
+                      searchBar = Align(
+                        alignment: Alignment.topCenter,
+                        child: ConstrainedBox(
+                          constraints:
+                              const BoxConstraints(maxWidth: maxW),
+                          child: searchBar,
+                        ),
+                      );
+                      if (chips != null) {
+                        chips = Align(
+                          alignment: Alignment.topCenter,
+                          child: ConstrainedBox(
+                            constraints:
+                                const BoxConstraints(maxWidth: maxW),
+                            child: chips,
+                          ),
+                        );
+                      }
+                      topicList = Align(
+                        alignment: Alignment.topCenter,
+                        child: ConstrainedBox(
+                          constraints:
+                              const BoxConstraints(maxWidth: maxW),
+                          child: topicList,
+                        ),
+                      );
+                    }
+
                     return Column(
                       children: [
-                        // Search bar
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                          child: _SearchBar(
-                            controller: _searchController,
-                            onChanged: (v) =>
-                                setState(() => _searchText = v),
-                            onClear: () {
-                              _searchController.clear();
-                              setState(() => _searchText = '');
-                            },
-                          ),
-                        ),
-
-                        // Category filter chips (when showing all)
-                        if (widget.filterCategoryId == null &&
-                            allCategories.length > 1) ...[
+                        searchBar,
+                        if (chips != null) ...[
                           const SizedBox(height: 10),
-                          SizedBox(
-                            height: 36,
-                            child: ListView(
-                              scrollDirection: Axis.horizontal,
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16),
-                              children: [
-                                _Chip(
-                                  label: 'All',
-                                  selected: _activeCategoryId == null,
-                                  color: AppColors.blue,
-                                  onTap: () => setState(
-                                      () => _activeCategoryId = null),
-                                ),
-                                ...allCategories.map(
-                                  (cat) => _Chip(
-                                    label: cat.title,
-                                    selected: _activeCategoryId == cat.id,
-                                    color: AppCategoryIcon.colorFor(
-                                        cat.title),
-                                    onTap: () => setState(
-                                        () => _activeCategoryId = cat.id),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                          chips,
                         ],
-
                         const SizedBox(height: 8),
-
-                        // Topics list
-                        Expanded(
-                          child: items.isEmpty
-                              ? _EmptyState(query: query)
-                              : ListView.builder(
-                                  padding: const EdgeInsets.fromLTRB(
-                                      16, 4, 16, 32),
-                                  itemCount: items.length,
-                                  itemBuilder: (ctx, i) {
-                                    final item = items[i];
-                                    if (item is CategoryModel) {
-                                      return _SectionHeader(
-                                          category: item);
-                                    }
-                                    if (item is _TopicEntry) {
-                                      return _TopicCard(
-                                        entry: item,
-                                        user: user,
-                                        isGuest: isGuest,
-                                        topicProgress: _topicProgress,
-                                        onTap: () => _openQuiz(
-                                            ctx, item.category, item.topic),
-                                      );
-                                    }
-                                    return const SizedBox.shrink();
-                                  },
-                                ),
-                        ),
+                        Expanded(child: topicList),
                       ],
                     );
                   },

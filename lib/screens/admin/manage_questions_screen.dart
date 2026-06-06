@@ -44,12 +44,18 @@ class _ManageQuestionsScreenState extends State<ManageQuestionsScreen>
             tabs: const ['Add Question', 'All Questions'],
           ),
           Expanded(
-            child: TabBarView(
-              controller: _tabs,
-              children: const [
-                _AddQuestionForm(),
-                _QuestionsList(),
-              ],
+            child: Align(
+              alignment: Alignment.topCenter,
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 960),
+                child: TabBarView(
+                  controller: _tabs,
+                  children: const [
+                    _AddQuestionForm(),
+                    _QuestionsList(),
+                  ],
+                ),
+              ),
             ),
           ),
         ],
