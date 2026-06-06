@@ -235,12 +235,22 @@ class _TopicsScreenState extends State<TopicsScreen> {
     final isGuest = auth.isGuest;
 
     final headerTitle = widget.filterCategoryTitle ?? 'All Topics';
+    final desktop = isDesktop(context);
 
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Column(
         children: [
-          // ── Gradient header ───────────────────────────────────────────────
+          // ── Header ────────────────────────────────────────────────────────
+          // Desktop gets a compact title (no oversized gradient bar, and the
+          // browser's back button replaces the in-app arrow).
+          if (desktop)
+            _DesktopTopicsHeader(
+              title: headerTitle,
+              showSubtitle: widget.filterCategoryId == null,
+              showIcon: widget.filterCategoryId != null,
+            ),
+          if (!desktop)
           SafeArea(
             bottom: false,
             child: Container(
@@ -345,7 +355,6 @@ class _TopicsScreenState extends State<TopicsScreen> {
                     final query = _searchText.trim().toLowerCase();
                     final items = _buildItems(visibleCats, allTopics, query);
 
-                    final desktop = isDesktop(context);
                     const maxW = 740.0;
 
                     Widget searchBar = Padding(
@@ -465,6 +474,69 @@ class _TopicsScreenState extends State<TopicsScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+// ─── Desktop header ───────────────────────────────────────────────────────────
+
+class _DesktopTopicsHeader extends StatelessWidget {
+  final String title;
+  final bool showSubtitle;
+  final bool showIcon;
+  const _DesktopTopicsHeader({
+    required this.title,
+    required this.showSubtitle,
+    required this.showIcon,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      bottom: false,
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 740),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 28, 16, 4),
+            child: Row(
+              children: [
+                if (showIcon) ...[
+                  AppCategoryIcon(title: title, size: 36),
+                  const SizedBox(width: 12),
+                ],
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: GoogleFonts.nunito(
+                          color: AppColors.textPrimary,
+                          fontSize: 26,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      if (showSubtitle) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          'All learning topics',
+                          style: GoogleFonts.nunito(
+                            color: AppColors.textSecondary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }

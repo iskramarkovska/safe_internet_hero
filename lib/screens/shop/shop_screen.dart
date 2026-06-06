@@ -75,6 +75,8 @@ class _ShopScreenState extends State<ShopScreen> {
       backgroundColor: AppColors.background,
       body: Column(
         children: [
+          // Header shown on mobile only (desktop uses the rail + side panel).
+          if (!desktop)
           SafeArea(
             bottom: false,
             child: Column(
@@ -180,10 +182,6 @@ class _ShopScreenState extends State<ShopScreen> {
                             ),
                           ),
                         ),
-                        if (desktop)
-                          const SizedBox(
-                              width: kDesktopPanelWidth +
-                                  kDesktopPanelMargin * 2),
                       ],
                     ),
           ),

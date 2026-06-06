@@ -115,16 +115,17 @@ class _AllFriendsScreenState extends State<AllFriendsScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Back button — same style as create account screen
-                  Row(
-                    children: [
-                      IconButton(
-                        icon: const Icon(Icons.arrow_back_ios_rounded,
-                            color: Colors.white, size: 22),
-                        onPressed: () => Navigator.pop(context),
-                      ),
-                    ],
-                  ),
+                  // Back button — hidden on desktop (browser back handles it)
+                  if (!desktop)
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back_ios_rounded,
+                              color: Colors.white, size: 22),
+                          onPressed: () => Navigator.pop(context),
+                        ),
+                      ],
+                    ),
                   const SizedBox(height: 4),
                   Padding(
                     padding: const EdgeInsets.only(left: 16),

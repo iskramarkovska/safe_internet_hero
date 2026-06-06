@@ -65,7 +65,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
       backgroundColor: AppColors.background,
       body: Column(
         children: [
-          // ── Header ────────────────────────────────────────────────────────
+          // ── Header (mobile only — desktop uses the rail + side panel) ─────
+          if (!desktop)
           SafeArea(
             bottom: false,
             child: Column(
@@ -240,9 +241,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                         ),
                       ),
                     ),
-                  if (desktop)
-                    const SizedBox(
-                        width: kDesktopPanelWidth + kDesktopPanelMargin * 2),
                 ],
               ),
           ),

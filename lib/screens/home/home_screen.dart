@@ -196,52 +196,22 @@ class _HomeScreenState extends State<HomeScreen> {
                       .animate()
                       .fadeIn(duration: 400.ms),
 
-                  // ── Padded content ───────────────────────────────────────
-                  if (desktop)
-                    // On desktop: push content left to avoid the floating
-                    // side panel that overlays the right portion of the screen.
-                    Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Expanded(
-                          child: Align(
-                            alignment: Alignment.topCenter,
-                            child: ConstrainedBox(
-                              constraints: const BoxConstraints(
-                                  maxWidth: kContentMaxWidth),
-                              child: Padding(
-                                padding: const EdgeInsets.fromLTRB(
-                                    16, 20, 16, 32),
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.start,
-                                  children: contentChildren,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(
-                            width: kDesktopPanelWidth +
-                                kDesktopPanelMargin * 2),
-                      ],
-                    )
-                  else
-                    Align(
-                      alignment: Alignment.topCenter,
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(
-                            maxWidth: kContentMaxWidth),
-                        child: Padding(
-                          padding:
-                              const EdgeInsets.fromLTRB(16, 20, 16, 32),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: contentChildren,
-                          ),
+                  // ── Padded content (centered on all sizes) ───────────────
+                  Align(
+                    alignment: Alignment.topCenter,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(
+                          maxWidth: kContentMaxWidth),
+                      child: Padding(
+                        padding:
+                            const EdgeInsets.fromLTRB(16, 20, 16, 32),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: contentChildren,
                         ),
                       ),
                     ),
+                  ),
                 ],
               ),
             ),

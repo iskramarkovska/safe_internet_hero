@@ -13,6 +13,7 @@ class NotificationsScreen extends StatelessWidget {
     final auth = context.watch<AuthProvider>();
     final user = auth.user;
     final friendService = FriendService();
+    final desktop = isDesktop(context);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -27,11 +28,13 @@ class NotificationsScreen extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
                   child: Row(
                     children: [
-                      IconButton(
-                        icon: const Icon(Icons.arrow_back_ios_rounded,
-                            color: AppColors.textPrimary, size: 20),
-                        onPressed: () => Navigator.pop(context),
-                      ),
+                      // Back arrow hidden on desktop (browser back handles it)
+                      if (!desktop)
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back_ios_rounded,
+                              color: AppColors.textPrimary, size: 20),
+                          onPressed: () => Navigator.pop(context),
+                        ),
                       const Expanded(
                         child: Text(
                           'Notifications',
@@ -43,7 +46,9 @@ class NotificationsScreen extends StatelessWidget {
                           ),
                         ),
                       ),
-                      const SizedBox(width: 48),
+                      // Trailing spacer balances the back arrow to keep the
+                      // title centered — only needed when the arrow is shown.
+                      if (!desktop) const SizedBox(width: 48),
                     ],
                   ),
                 ),

@@ -116,16 +116,18 @@ class _LearnScreenState extends State<LearnScreen> {
       backgroundColor: AppColors.background,
       body: Column(
         children: [
-          // ── Header ──────────────────────────────────────────────────
-          SafeArea(
-            bottom: false,
-            child: Column(
-              children: [
-                AppTopBar(
-                  stars: user?.totalStars ?? 0,
-                  streak: user?.currentStreak ?? 0,
-                  coins: user?.coins ?? 0,
-                ),
+          // ── Header (mobile only — desktop reads the page from the rail
+          // and stats from the side panel) ────────────────────────────
+          if (!desktop)
+            SafeArea(
+              bottom: false,
+              child: Column(
+                children: [
+                  AppTopBar(
+                    stars: user?.totalStars ?? 0,
+                    streak: user?.currentStreak ?? 0,
+                    coins: user?.coins ?? 0,
+                  ),
                 if (!desktop) Container(height: 1, color: AppColors.border),
                 const TabHeader(
                   title: 'Learn',
@@ -245,9 +247,6 @@ class _LearnScreenState extends State<LearnScreen> {
                   ),
                 ),
               ),
-                if (desktop)
-                  const SizedBox(
-                      width: kDesktopPanelWidth + kDesktopPanelMargin * 2),
               ],
             ),
           ),

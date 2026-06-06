@@ -21,8 +21,25 @@ class SettingsScreen extends StatelessWidget {
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
               child: Row(
                 children: [
-                  // Left spacer (same width as "DONE" to keep title centred)
-                  const SizedBox(width: 48),
+                  // Left: back arrow on desktop (browser back is unreliable
+                  // here); plain spacer on mobile so the title stays centred.
+                  SizedBox(
+                    width: 48,
+                    child: isDesktop(context)
+                        ? Align(
+                            alignment: Alignment.centerLeft,
+                            child: GestureDetector(
+                              onTap: () => Navigator.pop(context),
+                              behavior: HitTestBehavior.opaque,
+                              child: const Icon(
+                                Icons.arrow_back_ios_rounded,
+                                color: AppColors.textPrimary,
+                                size: 20,
+                              ),
+                            ),
+                          )
+                        : null,
+                  ),
                   const Expanded(
                     child: Text(
                       'Settings',

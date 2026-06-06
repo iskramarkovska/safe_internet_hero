@@ -63,26 +63,28 @@ class ProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final user = auth.user;
+    final desktop = isDesktop(context);
 
     if (auth.isGuest || user == null) {
       return _GuestProfileScreen(showBackButton: showBackButton);
     }
 
-    final desktop = isDesktop(context);
-
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Column(
         children: [
-          SafeArea(
-            bottom: false,
-            child: Column(
-              children: [
-                _ProfileNavBar(showBackButton: showBackButton),
-                Container(height: 1, color: AppColors.border),
-              ],
+          // Top nav (with the settings gear) is mobile-only — on desktop those
+          // actions live in the "More" item at the bottom of the rail.
+          if (!desktop)
+            SafeArea(
+              bottom: false,
+              child: Column(
+                children: [
+                  _ProfileNavBar(showBackButton: showBackButton),
+                  Container(height: 1, color: AppColors.border),
+                ],
+              ),
             ),
-          ),
 
           // ── Scrollable content ────────────────────────────────────────
           Expanded(
@@ -120,12 +122,14 @@ class ProfileScreen extends StatelessWidget {
                             .animate()
                             .fadeIn(delay: 200.ms),
 
-                        const SizedBox(height: 24),
-
-                        // Friends
-                        _FriendsSection(user: user, auth: auth)
-                            .animate()
-                            .fadeIn(delay: 300.ms),
+                        // Friends — on desktop these live in the right-hand
+                        // side panel instead, so they're not shown twice.
+                        if (!desktop) ...[
+                          const SizedBox(height: 24),
+                          ProfileFriendsSection(user: user, auth: auth)
+                              .animate()
+                              .fadeIn(delay: 300.ms),
+                        ],
                       ]),
                     ),
                   ),
@@ -134,9 +138,6 @@ class ProfileScreen extends StatelessWidget {
                     ),
                   ),
                 ),
-                if (desktop)
-                  const SizedBox(
-                      width: kDesktopPanelWidth + kDesktopPanelMargin * 2),
               ],
             ),
           ),
@@ -171,17 +172,20 @@ class _ProfileNavBar extends StatelessWidget {
                 : null,
           ),
 
-          // Center title (Expanded keeps it perfectly centred)
-          const Expanded(
-            child: Text(
-              'Profile',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: AppColors.textPrimary,
-                fontSize: 17,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
+          // Center title — desktop reads the page from the rail, so the
+          // title only shows on mobile.
+          Expanded(
+            child: isDesktop(context)
+                ? const SizedBox()
+                : const Text(
+                    'Profile',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: AppColors.textPrimary,
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
           ),
 
           // Right: gear / settings icon (circle outline, like profile.png)
@@ -1033,16 +1037,17 @@ class _BadgeCell extends StatelessWidget {
 
 // ─── Friends section ──────────────────────────────────────────────────────────
 
-class _FriendsSection extends StatefulWidget {
+class ProfileFriendsSection extends StatefulWidget {
   final UserModel user;
   final AuthProvider auth;
-  const _FriendsSection({required this.user, required this.auth});
+  const ProfileFriendsSection(
+      {super.key, required this.user, required this.auth});
 
   @override
-  State<_FriendsSection> createState() => _FriendsSectionState();
+  State<ProfileFriendsSection> createState() => _ProfileFriendsSectionState();
 }
 
-class _FriendsSectionState extends State<_FriendsSection>
+class _ProfileFriendsSectionState extends State<ProfileFriendsSection>
     with SingleTickerProviderStateMixin {
   final _friendService = FriendService();
   late final TabController _tabController;
@@ -1063,7 +1068,7 @@ class _FriendsSectionState extends State<_FriendsSection>
   }
 
   @override
-  void didUpdateWidget(_FriendsSection old) {
+  void didUpdateWidget(ProfileFriendsSection old) {
     super.didUpdateWidget(old);
     if (old.user.id != widget.user.id) {
       _sub?.cancel();

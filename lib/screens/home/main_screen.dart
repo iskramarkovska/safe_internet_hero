@@ -2,9 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import '../../core/app_page_route.dart';
 import '../../core/theme.dart';
+import '../../models/user_model.dart';
 import '../../providers/auth_provider.dart';
-import '../../widgets/app_avatar.dart';
+import '../../widgets/app_widgets.dart';
+import '../auth/login_screen.dart';
+import '../auth/register_screen.dart';
+import '../auth/splash_screen.dart';
+import '../profile/settings_screen.dart';
 import 'home_screen.dart';
 import '../learn/learn_screen.dart';
 import '../shop/shop_screen.dart';
@@ -21,6 +27,7 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   late int _currentIndex;
+  bool _showMore = false;
 
   @override
   void initState() {
@@ -41,50 +48,38 @@ class _MainScreenState extends State<MainScreen> {
     final desktop = MediaQuery.sizeOf(context).width >= kDesktopBreakpoint;
 
     if (desktop) {
+      final isGuest = context.watch<AuthProvider>().isGuest;
+      // Guests have no "More" menu, so it can never be the active panel.
+      final showMore = _showMore && !isGuest;
       return Scaffold(
         backgroundColor: AppColors.background,
-        body: Stack(
+        body: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Row(
-              children: [
-                _DesktopRail(
-                  currentIndex: _currentIndex,
-                  onTap: (i) => setState(() => _currentIndex = i),
-                ),
-                Container(width: 1, color: AppColors.border),
-                Expanded(
-                  child: IndexedStack(
-                    index: _currentIndex,
-                    children: _screens,
-                  ),
-                ),
-              ],
+            _DesktopRail(
+              currentIndex: _currentIndex,
+              showMore: showMore,
+              showMoreButton: !isGuest,
+              onTap: (i) => setState(() {
+                _currentIndex = i;
+                _showMore = false;
+              }),
+              onMore: () => setState(() => _showMore = !_showMore),
             ),
-            Positioned(
-              top: kDesktopPanelMargin,
-              right: kDesktopPanelMargin,
-              bottom: kDesktopPanelMargin,
-              child: SizedBox(
-                width: kDesktopPanelWidth,
-                child: DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: AppColors.border, width: 1.5),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.09),
-                        blurRadius: 28,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(20),
-                    child: const _DesktopSidePanel(),
-                  ),
-                ),
+            Container(width: 1, color: AppColors.border),
+            // Scrollable center content — takes the remaining width.
+            Expanded(
+              child: IndexedStack(
+                index: _currentIndex,
+                children: _screens,
               ),
+            ),
+            // Right sidebar — a solid panel mirroring the left rail.
+            Container(width: 1, color: AppColors.border),
+            Container(
+              width: kDesktopPanelWidth,
+              color: Colors.white,
+              child: _DesktopSidePanel(currentIndex: _currentIndex),
             ),
           ],
         ),
@@ -105,15 +100,24 @@ class _MainScreenState extends State<MainScreen> {
 
 class _DesktopRail extends StatelessWidget {
   final int currentIndex;
+  final bool showMore;
+  final bool showMoreButton;
   final ValueChanged<int> onTap;
-  const _DesktopRail({required this.currentIndex, required this.onTap});
+  final VoidCallback onMore;
+  const _DesktopRail({
+    required this.currentIndex,
+    required this.showMore,
+    required this.showMoreButton,
+    required this.onTap,
+    required this.onMore,
+  });
 
   static const _items = [
-    (icon: Icons.home_rounded, label: 'Home'),
-    (icon: Icons.menu_book_rounded, label: 'Learn'),
-    (icon: Icons.storefront_rounded, label: 'Shop'),
-    (icon: Icons.leaderboard_rounded, label: 'Leaderboard'),
-    (icon: Icons.person_rounded, label: 'Profile'),
+    (svg: 'assets/images/home.svg', label: 'Home'),
+    (svg: 'assets/images/learn.svg', label: 'Learn'),
+    (svg: 'assets/images/store.svg', label: 'Shop'),
+    (svg: 'assets/images/leaderboard.svg', label: 'Leaderboard'),
+    (svg: 'assets/images/profile.svg', label: 'Profile'),
   ];
 
   @override
@@ -154,14 +158,104 @@ class _DesktopRail extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 18),
-              Container(height: 1, color: AppColors.border),
-              const SizedBox(height: 10),
               ...List.generate(_items.length, (i) => _RailItem(
-                    icon: _items[i].icon,
+                    svgPath: _items[i].svg,
                     label: _items[i].label,
-                    selected: i == currentIndex,
+                    selected: !showMore && i == currentIndex,
                     onTap: () => onTap(i),
                   )),
+              // "More" sits directly under Profile; hidden for guests.
+              if (showMoreButton)
+                _RailItem(
+                  svgPath: 'assets/images/more.svg',
+                  label: 'More',
+                  selected: showMore,
+                  onTap: onMore,
+                ),
+              // Tapping More expands its actions inline in the rail.
+              if (showMoreButton && showMore) ...[
+                Padding(
+                  padding: const EdgeInsets.only(left: 14),
+                  child: _MoreOption(
+                    icon: Icons.settings_outlined,
+                    label: 'Settings',
+                    onTap: () => Navigator.push(
+                      context,
+                      AppPageRoute(builder: (_) => const SettingsScreen()),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(left: 14),
+                  child: _MoreOption(
+                    icon: Icons.logout_rounded,
+                    label: 'Log out',
+                    onTap: () async {
+                      final navigator = Navigator.of(context);
+                      await context.read<AuthProvider>().logout();
+                      navigator.pushAndRemoveUntil(
+                        AppPageRoute(builder: (_) => const AuthGate()),
+                        (r) => false,
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── "More" action (Settings / Log out shown inline in the rail) ──────────────
+
+class _MoreOption extends StatefulWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+  const _MoreOption({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  State<_MoreOption> createState() => _MoreOptionState();
+}
+
+class _MoreOptionState extends State<_MoreOption> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        behavior: HitTestBehavior.opaque,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 140),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          decoration: BoxDecoration(
+            color: _hovered ? AppColors.background : Colors.transparent,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Row(
+            children: [
+              Icon(widget.icon, size: 20, color: AppColors.textSecondary),
+              const SizedBox(width: 12),
+              Text(
+                widget.label,
+                style: GoogleFonts.nunito(
+                  color: AppColors.textPrimary,
+                  fontWeight: FontWeight.w700,
+                  fontSize: 14,
+                ),
+              ),
             ],
           ),
         ),
@@ -171,12 +265,12 @@ class _DesktopRail extends StatelessWidget {
 }
 
 class _RailItem extends StatefulWidget {
-  final IconData icon;
+  final String svgPath;
   final String label;
   final bool selected;
   final VoidCallback onTap;
   const _RailItem({
-    required this.icon,
+    required this.svgPath,
     required this.label,
     required this.selected,
     required this.onTap,
@@ -215,12 +309,10 @@ class _RailItemState extends State<_RailItem> {
           ),
           child: Row(
             children: [
-              Icon(
-                widget.icon,
-                color: widget.selected
-                    ? AppColors.blue
-                    : AppColors.textSecondary,
-                size: 22,
+              SvgPicture.asset(
+                widget.svgPath,
+                width: 26,
+                height: 26,
               ),
               const SizedBox(width: 12),
               Text(
@@ -314,156 +406,216 @@ class _DuolingoBottomNav extends StatelessWidget {
 // ─── Desktop side panel ───────────────────────────────────────────────────────
 
 class _DesktopSidePanel extends StatelessWidget {
-  const _DesktopSidePanel();
+  final int currentIndex;
+  const _DesktopSidePanel({required this.currentIndex});
 
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final user = auth.user;
     final isGuest = auth.isGuest;
-    final username = isGuest ? 'Hero' : (user?.username ?? 'Hero');
-    final stars = user?.totalStars ?? 0;
-    final streak = user?.currentStreak ?? 0;
-    final coins = user?.coins ?? 0;
-    final hasGoldFrame = user?.hasGoldFrame ?? false;
-    final xpBoostActive = user?.xpBoostActive ?? false;
-    final freezeCount = user?.streakFreezeCount ?? 0;
-    final ageGroup = user?.ageGroup;
 
-    return Container(
-      color: Colors.white,
-      child: SafeArea(
-        left: false,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(20, 24, 20, 32),
+    // Guests have no progress to show — invite them to create a profile
+    // or sign in instead (Duolingo-style).
+    if (isGuest || user == null) {
+      return const _GuestSidePanel();
+    }
+
+    // The Profile tab already shows stats in the centre, so show friends
+    // here instead — otherwise both sides repeat the same stats.
+    if (currentIndex == 4) {
+      return _ProfileSidePanel(user: user, auth: auth);
+    }
+
+    return _StatsSidePanel(user: user);
+  }
+}
+
+// ─── Stats side panel ─────────────────────────────────────────────────────────
+
+class _StatsSidePanel extends StatelessWidget {
+  final UserModel user;
+  const _StatsSidePanel({required this.user});
+
+  @override
+  Widget build(BuildContext context) {
+    return _SidePanelScroll(
+      children: [
+        // ── Stats box ─────────────────────────────────────────────
+        _PanelBox(
+          label: 'YOUR STATS',
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Profile ──────────────────────────────────────────────
-              Row(
-                children: [
-                  AppAvatar(
-                    name: username,
-                    size: 52,
-                    goldFrame: hasGoldFrame,
-                  ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          username,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.nunito(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w900,
-                            color: AppColors.textPrimary,
-                            letterSpacing: -0.3,
-                          ),
-                        ),
-                        if (ageGroup != null) ...[
-                          const SizedBox(height: 3),
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: AppColors.blueLight,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Text(
-                              ageGroup.name[0].toUpperCase() +
-                                  ageGroup.name.substring(1),
-                              style: GoogleFonts.nunito(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.blue,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-
-              const SizedBox(height: 20),
-              Container(height: 1, color: AppColors.border),
-              const SizedBox(height: 20),
-
-              // ── Stats label ───────────────────────────────────────────
-              Text(
-                'YOUR STATS',
-                style: GoogleFonts.nunito(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.textLight,
-                  letterSpacing: 1.0,
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              _StatCard(
+              _StatRow(
                 icon: Icons.local_fire_department_rounded,
-                color: streak > 0 ? AppColors.orange : AppColors.textLight,
+                color: user.currentStreak > 0
+                    ? AppColors.orange
+                    : AppColors.textLight,
                 label: 'Day Streak',
-                value: '$streak',
+                value: '${user.currentStreak}',
               ),
-              const SizedBox(height: 10),
-              _StatCard(
+              const SizedBox(height: 16),
+              _StatRow(
                 icon: Icons.star_rounded,
                 color: AppColors.gold,
                 label: 'Total Stars',
-                value: '$stars',
+                value: '${user.totalStars}',
               ),
-              const SizedBox(height: 10),
-              _StatCard(
+              const SizedBox(height: 16),
+              _StatRow(
                 icon: Icons.monetization_on_rounded,
                 color: AppColors.orangeDark,
                 label: 'Coins',
-                value: '$coins',
+                value: '${user.coins}',
               ),
-
-              // ── Active boosts ─────────────────────────────────────────
-              if (xpBoostActive || freezeCount > 0) ...[
-                const SizedBox(height: 20),
-                Container(height: 1, color: AppColors.border),
-                const SizedBox(height: 20),
-                Text(
-                  'ACTIVE BOOSTS',
-                  style: GoogleFonts.nunito(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.textLight,
-                    letterSpacing: 1.0,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                if (xpBoostActive) ...[
-                  const _BoostBanner(),
-                  if (freezeCount > 0) const SizedBox(height: 10),
-                ],
-                if (freezeCount > 0) _FreezeBanner(count: freezeCount),
-              ],
             ],
           ),
+        ),
+
+        // ── Active boosts box ─────────────────────────────────────
+        if (user.xpBoostActive || user.streakFreezeCount > 0) ...[
+          const SizedBox(height: 14),
+          _PanelBox(
+            label: 'ACTIVE BOOSTS',
+            child: Column(
+              children: [
+                if (user.xpBoostActive) ...[
+                  const _BoostBanner(),
+                  if (user.streakFreezeCount > 0) const SizedBox(height: 10),
+                ],
+                if (user.streakFreezeCount > 0)
+                  _FreezeBanner(count: user.streakFreezeCount),
+              ],
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+// ─── Profile side panel (friends) ──────────────────────────────────────────────
+
+class _ProfileSidePanel extends StatelessWidget {
+  final UserModel user;
+  final AuthProvider auth;
+  const _ProfileSidePanel({required this.user, required this.auth});
+
+  @override
+  Widget build(BuildContext context) {
+    return _SidePanelScroll(
+      children: [ProfileFriendsSection(user: user, auth: auth)],
+    );
+  }
+}
+
+// ─── Side-panel scroll wrapper (centres content, scrolls when it overflows) ────
+
+class _SidePanelScroll extends StatelessWidget {
+  final List<Widget> children;
+  const _SidePanelScroll({required this.children});
+
+  static const _padding = EdgeInsets.fromLTRB(16, 24, 20, 24);
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      left: false,
+      child: SingleChildScrollView(
+        padding: _padding,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: children,
         ),
       ),
     );
   }
 }
 
-// ─── Stat card ────────────────────────────────────────────────────────────────
+// ─── Panel section (label + content, no box — sits on the sidebar) ─────────────
 
-class _StatCard extends StatelessWidget {
+class _PanelBox extends StatelessWidget {
+  final String label;
+  final Widget child;
+  const _PanelBox({required this.label, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: GoogleFonts.nunito(
+            fontSize: 11,
+            fontWeight: FontWeight.w800,
+            color: AppColors.textLight,
+            letterSpacing: 1.0,
+          ),
+        ),
+        const SizedBox(height: 14),
+        child,
+      ],
+    );
+  }
+}
+
+// ─── Guest side panel ─────────────────────────────────────────────────────────
+
+class _GuestSidePanel extends StatelessWidget {
+  const _GuestSidePanel();
+
+  @override
+  Widget build(BuildContext context) {
+    return _SidePanelScroll(
+      children: [
+            // ── Create-profile CTA ────────────────────────────────────
+            Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Create a profile to save your progress!',
+                    style: GoogleFonts.nunito(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.textPrimary,
+                      height: 1.3,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  AppButton(
+                    label: 'CREATE A PROFILE',
+                    variant: AppButtonVariant.success,
+                    onTap: () => Navigator.push(
+                      context,
+                      AppPageRoute(builder: (_) => const RegisterScreen()),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  AppButton(
+                    label: 'SIGN IN',
+                    variant: AppButtonVariant.primary,
+                    onTap: () => Navigator.push(
+                      context,
+                      AppPageRoute(builder: (_) => const LoginScreen()),
+                    ),
+                  ),
+                ],
+              ),
+      ],
+    );
+  }
+}
+
+// ─── Stat row (used inside the stats box) ──────────────────────────────────────
+
+class _StatRow extends StatelessWidget {
   final IconData icon;
   final Color color;
   final String label;
   final String value;
 
-  const _StatCard({
+  const _StatRow({
     required this.icon,
     required this.color,
     required this.label,
@@ -472,37 +624,30 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: AppColors.background,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.border, width: 1.5),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: color, size: 22),
+    return Row(
+      children: [
+        Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.12),
+            borderRadius: BorderRadius.circular(12),
           ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Text(
-              label,
-              style: GoogleFonts.nunito(
-                color: AppColors.textSecondary,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
+          child: Icon(icon, color: color, size: 22),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Text(
+            label,
+            style: GoogleFonts.nunito(
+              color: AppColors.textSecondary,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
             ),
           ),
-          Text(
-            value,
+        ),
+        Text(
+          value,
             style: GoogleFonts.nunito(
               color: AppColors.textPrimary,
               fontSize: 20,
@@ -511,8 +656,7 @@ class _StatCard extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
+      );
   }
 }
 

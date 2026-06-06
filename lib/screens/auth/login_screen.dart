@@ -79,11 +79,13 @@ class _LoginScreenState extends State<LoginScreen> {
                 children: [
                   Row(
                     children: [
-                      IconButton(
-                        icon: const Icon(Icons.arrow_back_ios_rounded,
-                            color: Colors.white, size: 22),
-                        onPressed: () => Navigator.pop(context),
-                      ),
+                      // On desktop the browser's back button handles this.
+                      if (!desktop)
+                        IconButton(
+                          icon: const Icon(Icons.arrow_back_ios_rounded,
+                              color: Colors.white, size: 22),
+                          onPressed: () => Navigator.pop(context),
+                        ),
                       const Spacer(),
                     ],
                   ),
