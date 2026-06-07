@@ -9,6 +9,7 @@ import '../../models/topic_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/questions_service.dart';
 import '../../services/shop_service.dart';
+import '../../services/sound_service.dart';
 import '../../services/streak_service.dart';
 import '../../services/topics_service.dart';
 import '../../widgets/app_avatar.dart';
@@ -45,6 +46,8 @@ class _QuizResultScreenState extends State<QuizResultScreen>
 
     if (!widget.result.isPractice && !widget.result.isReplay) _loadNextTopic();
 
+    _playResultSounds();
+
     if (widget.result.starsEarned >= 2 &&
         !widget.result.isPractice &&
         !widget.result.isReplay) {
@@ -64,6 +67,18 @@ class _QuizResultScreenState extends State<QuizResultScreen>
     _confettiCtrl.dispose();
     _trophyCtrl.dispose();
     super.dispose();
+  }
+
+  void _playResultSounds() {
+    final stars = widget.result.starsEarned;
+    if (stars == 0) return;
+    SoundService.instance.playComplete(stars);
+    // Delay coin jingle to match the rewards text fade-in (~950ms).
+    if (!widget.result.isReplay) {
+      Future.delayed(const Duration(milliseconds: 950), () {
+        if (mounted) SoundService.instance.playCoin();
+      });
+    }
   }
 
   Future<void> _loadNextTopic() async {

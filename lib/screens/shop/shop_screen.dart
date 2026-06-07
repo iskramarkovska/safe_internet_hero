@@ -7,6 +7,7 @@ import '../../core/app_page_route.dart';
 import '../../core/theme.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/shop_service.dart';
+import '../../services/sound_service.dart';
 import '../../widgets/app_avatar.dart';
 import '../../widgets/app_widgets.dart';
 import '../auth/splash_screen.dart';
@@ -46,6 +47,8 @@ class _ShopScreenState extends State<ShopScreen> {
     await auth.refreshUser();
     if (!mounted) return;
     setState(() => _loadingIds.remove(itemId));
+
+    if (success) SoundService.instance.playPurchase();
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

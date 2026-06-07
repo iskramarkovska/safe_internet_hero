@@ -11,6 +11,7 @@ import '../../models/enums.dart';
 import '../../models/quiz_result_model.dart';
 import '../../providers/auth_provider.dart';
 import '../../services/questions_service.dart';
+import '../../services/sound_service.dart';
 import '../../widgets/app_widgets.dart';
 import 'quiz_result_screen.dart';
 
@@ -111,6 +112,11 @@ class _QuizScreenState extends State<QuizScreen> {
         _totalPoints += _questions[_currentIndex].points;
       }
     });
+    if (isCorrect) {
+      SoundService.instance.playCorrect();
+    } else {
+      SoundService.instance.playWrong();
+    }
   }
 
   void _next() {
