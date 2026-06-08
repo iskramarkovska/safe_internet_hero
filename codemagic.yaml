@@ -1,0 +1,27 @@
+workflows:
+  ios-unsigned:
+    name: iOS Unsigned Build
+    max_build_duration: 60
+    environment:
+      vars:
+        FLUTTER_XCODE_CODE_SIGNING_REQUIRED: "NO"
+        FLUTTER_XCODE_CODE_SIGNING_ALLOWED: "NO"
+      flutter: stable
+      xcode: 16.2
+      cocoapods: default
+    scripts:
+      - name: Inject Firebase config
+        script: |
+          echo "$GOOGLE_SERVICE_INFO_PLIST" | base64 --decode > ios/Runner/GoogleService-Info.plist
+      - name: Get Flutter packages
+        script: flutter pub get
+      - name: Build iOS (no codesign)
+        script: |
+          flutter build ios --debug --no-codesign || true
+          APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData -name "*.app" -path "*/Debug-iphoneos/*" | head -1)
+          echo "App path: $APP_PATH"
+          mkdir -p Payload
+          cp -r "$APP_PATH" Payload/
+          zip -r Runner.ipa Payload/
+    artifacts:
+      - Runner.ipa
